@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Head from 'next/head';
 // import Header from '../components/Header';
 // import Footer from '../components/Footer';
 
@@ -82,10 +83,67 @@ export default function BronzeBundlePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* <Header /> */}
-      
-      {/* Top Header Section */}
+    <>
+      <Head>
+        <title>Digital Starter Package (DSP) - Bronze Bundle Course | Digital Career Center</title>
+        <meta name="description" content="Master essential office skills with our Digital Starter Package (DSP) Bronze Bundle. Learn Microsoft Office, professional communication, resume building, and interview preparation. 21 hours of content for just ₹1,899." />
+        <meta name="keywords" content="digital starter package, DSP course, bronze bundle, Microsoft Office course, professional communication, resume building, interview preparation, office skills training" />
+        <meta property="og:title" content="Digital Starter Package (DSP) - Bronze Bundle Course | Digital Career Center" />
+        <meta property="og:description" content="Master essential office skills with our Digital Starter Package (DSP) Bronze Bundle. Learn Microsoft Office, professional communication, resume building, and interview preparation. 21 hours of content for just ₹1,899." />
+        <meta property="og:url" content="https://domainisdigitalcareercenter.com/BronzeBundle" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Digital Starter Package (DSP) - Bronze Bundle Course | Digital Career Center" />
+        <meta name="twitter:description" content="Master essential office skills with our Digital Starter Package (DSP) Bronze Bundle. Learn Microsoft Office, professional communication, resume building, and interview preparation. 21 hours of content for just ₹1,899." />
+        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <link rel="canonical" href="https://domainisdigitalcareercenter.com/BronzeBundle" />
+        
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Course",
+              "name": "Digital Starter Package (DSP) - Bronze Bundle",
+              "description": "Master essential office skills with our Digital Starter Package (DSP) Bronze Bundle. Learn Microsoft Office, professional communication, resume building, and interview preparation.",
+              "provider": {
+                "@type": "EducationalOrganization",
+                "name": "Digital Career Center",
+                "url": "https://domainisdigitalcareercenter.com"
+              },
+              "courseCode": "DSP-BRONZE",
+              "educationalLevel": "Beginner to Intermediate",
+              "timeRequired": "P21H",
+              "coursePrerequisites": "Basic computer knowledge",
+              "teaches": [
+                "Microsoft Office Proficiency",
+                "Professional Communication",
+                "Resume & Interview Preparation",
+                "LinkedIn Mastery",
+                "Video Creation",
+                "Email Marketing",
+                "Content Creation",
+                "Organic Affiliate Marketing"
+              ],
+              "offers": {
+                "@type": "Offer",
+                "price": "1899",
+                "priceCurrency": "INR",
+                "availability": "https://schema.org/InStock",
+                "validFrom": "2024-01-01"
+              },
+              "inLanguage": "en-IN",
+              "isAccessibleForFree": false,
+              "educationalCredentialAwarded": "Certificate of Completion"
+            })
+          }}
+        />
+      </Head>
+      <div className="min-h-screen bg-gray-50">
+        {/* <Header /> */}
+        
+        {/* Top Header Section */}
       <div className="relative overflow-hidden">
        <img src="/dsps.jpg" alt="" className='w-full h-[300px] md:h-[500px] md:w-full ' />
 
@@ -432,6 +490,7 @@ export default function BronzeBundlePage() {
       </div>     
       
       {/* <Footer /> */}
-    </div>
+      </div>
+    </>
   );
 }

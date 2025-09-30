@@ -5,6 +5,7 @@ import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaClock, FaFacebookF, FaInstagram,
 import { FaXTwitter } from 'react-icons/fa6';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import Head from 'next/head';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -45,10 +46,67 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+      <Head>
+        <title>Contact Us - Digital Career Center | Get in Touch for Digital Skills Training</title>
+        <meta name="description" content="Contact Digital Career Center for digital skills training inquiries. Located in Muzaffarnagar, Uttar Pradesh. Call +91-7599863007 or email info@digitalcareercenter.com" />
+        <meta name="keywords" content="contact digital career center, digital skills training contact, computer course Muzaffarnagar, digital marketing institute contact" />
+        <meta property="og:title" content="Contact Us - Digital Career Center | Get in Touch for Digital Skills Training" />
+        <meta property="og:description" content="Contact Digital Career Center for digital skills training inquiries. Located in Muzaffarnagar, Uttar Pradesh. Call +91-7599863007 or email info@digitalcareercenter.com" />
+        <meta property="og:url" content="https://domainisdigitalcareercenter.com/contact" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Contact Us - Digital Career Center | Get in Touch for Digital Skills Training" />
+        <meta name="twitter:description" content="Contact Digital Career Center for digital skills training inquiries. Located in Muzaffarnagar, Uttar Pradesh. Call +91-7599863007 or email info@digitalcareercenter.com" />
+        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <link rel="canonical" href="https://domainisdigitalcareercenter.com/contact" />
+        
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "ContactPage",
+              "name": "Contact Digital Career Center",
+              "description": "Contact Digital Career Center for digital skills training inquiries and course information.",
+              "url": "https://domainisdigitalcareercenter.com/contact",
+              "mainEntity": {
+                "@type": "EducationalOrganization",
+                "name": "Digital Career Center",
+                "address": {
+                  "@type": "PostalAddress",
+                  "streetAddress": "1st Floor, Raja Ji Market, Near M.B Public School, Mimlana Road",
+                  "addressLocality": "Muzaffarnagar",
+                  "addressRegion": "Uttar Pradesh",
+                  "postalCode": "251002",
+                  "addressCountry": "IN"
+                },
+                "contactPoint": [
+                  {
+                    "@type": "ContactPoint",
+                    "telephone": "+91-7599863007",
+                    "contactType": "customer service",
+                    "areaServed": "IN",
+                    "availableLanguage": ["English", "Hindi"]
+                  },
+                  {
+                    "@type": "ContactPoint",
+                    "telephone": "+91-8218971413",
+                    "contactType": "customer service",
+                    "areaServed": "IN",
+                    "availableLanguage": ["English", "Hindi"]
+                  }
+                ],
+                "email": "info@digitalcareercenter.com"
+              }
+            })
+          }}
+        />
+      </Head>
+      <div className="min-h-screen bg-gray-50">
       
-      
-      {/* Hero Section */}
+        {/* Hero Section */}
       <div className="bg-gradient-to-r from-red-600 to-red-700 text-white py-20">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center">
@@ -433,6 +491,7 @@ export default function ContactPage() {
       </section>
 
       
-    </div>
+      </div>
+    </>
   );
 }

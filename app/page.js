@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Image from 'next/image';
+import Head from 'next/head';
 
 const slides = [
   {
@@ -299,8 +300,47 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="w-full">
-      {/* Slider Section */}
+    <>
+      <Head>
+        <title>Digital Career Center - Transform Your Career with Expert-Led Digital Skills Courses</title>
+        <meta name="description" content="Master essential digital skills and advance your professional journey with our comprehensive course bundles. Learn from industry professionals and get certified. Digital marketing, SEO, web development courses in Muzaffarnagar." />
+        <meta name="keywords" content="digital marketing course, SEO training, web development course, digital career center, computer course Muzaffarnagar, digital skills training, online courses India, career development, professional certification, digital marketing institute" />
+        <meta property="og:title" content="Digital Career Center - Transform Your Career with Expert-Led Digital Skills Courses" />
+        <meta property="og:description" content="Master essential digital skills and advance your professional journey with our comprehensive course bundles. Learn from industry professionals and get certified. Digital marketing, SEO, web development courses in Muzaffarnagar." />
+        <meta property="og:url" content="https://domainisdigitalcareercenter.com" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Digital Career Center - Transform Your Career with Expert-Led Digital Skills Courses" />
+        <meta name="twitter:description" content="Master essential digital skills and advance your professional journey with our comprehensive course bundles. Learn from industry professionals and get certified. Digital marketing, SEO, web development courses in Muzaffarnagar." />
+        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <link rel="canonical" href="https://domainisdigitalcareercenter.com" />
+        
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Digital Career Center",
+              "url": "https://domainisdigitalcareercenter.com",
+              "description": "Digital Career Center - Transform Your Career with Expert-Led Digital Skills Courses",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://domainisdigitalcareercenter.com/search?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+              },
+              "publisher": {
+                "@type": "EducationalOrganization",
+                "name": "Digital Career Center",
+                "url": "https://domainisdigitalcareercenter.com"
+              }
+            })
+          }}
+        />
+      </Head>
+      <div className="w-full">
+        {/* Slider Section */}
       <div className="relative w-full h-[200px] sm:h-[400px] md:h-[500px] overflow-hidden">
         {slides.map((slide, index) => (
           <div
@@ -926,6 +966,7 @@ export default function HomePage() {
           </a>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }

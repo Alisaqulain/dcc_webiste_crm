@@ -2,6 +2,7 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
+import Head from "next/head";
 
 const BlogPage = () => {
   const blogPosts = [
@@ -76,8 +77,54 @@ const BlogPage = () => {
   const categories = ["All", "Career Tips", "Digital Marketing", "SEO", "Remote Work", "Advertising", "Personal Branding"];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
+    <>
+      <Head>
+        <title>Digital Career Blog - Latest Tips, Trends & Insights | Digital Career Center</title>
+        <meta name="description" content="Stay updated with the latest digital career trends, tips, and insights. Read expert articles on digital marketing, SEO, web development, and career development from Digital Career Center." />
+        <meta name="keywords" content="digital career blog, digital marketing tips, SEO insights, web development trends, career development, digital skills blog" />
+        <meta property="og:title" content="Digital Career Blog - Latest Tips, Trends & Insights | Digital Career Center" />
+        <meta property="og:description" content="Stay updated with the latest digital career trends, tips, and insights. Read expert articles on digital marketing, SEO, web development, and career development from Digital Career Center." />
+        <meta property="og:url" content="https://domainisdigitalcareercenter.com/blog" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Digital Career Blog - Latest Tips, Trends & Insights | Digital Career Center" />
+        <meta name="twitter:description" content="Stay updated with the latest digital career trends, tips, and insights. Read expert articles on digital marketing, SEO, web development, and career development from Digital Career Center." />
+        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <link rel="canonical" href="https://domainisdigitalcareercenter.com/blog" />
+        
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Blog",
+              "name": "Digital Career Center Blog",
+              "description": "Stay updated with the latest digital career trends, tips, and insights from Digital Career Center.",
+              "url": "https://domainisdigitalcareercenter.com/blog",
+              "publisher": {
+                "@type": "EducationalOrganization",
+                "name": "Digital Career Center",
+                "url": "https://domainisdigitalcareercenter.com"
+              },
+              "blogPost": blogPosts.map(post => ({
+                "@type": "BlogPosting",
+                "headline": post.title,
+                "description": post.excerpt,
+                "author": {
+                  "@type": "Organization",
+                  "name": post.author
+                },
+                "datePublished": post.date,
+                "image": `https://domainisdigitalcareercenter.com${post.image}`,
+                "url": `https://domainisdigitalcareercenter.com/blog/${post.id}`
+              }))
+            })
+          }}
+        />
+      </Head>
+      <div className="min-h-screen bg-gray-50">
+        {/* Hero Section */}
       <section className="bg-gradient-to-r from-red-600 to-red-700 text-white py-16">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center">
@@ -228,7 +275,8 @@ const BlogPage = () => {
       </section>
 
      
-    </div>
+      </div>
+    </>
   );
 };
 
