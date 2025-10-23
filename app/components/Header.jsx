@@ -63,26 +63,33 @@ const Header = () => {
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
-          <button
-            className="text-gray-900 font-medium hover:text-red-600 transition-colors flex items-center"
-            aria-haspopup="menu"
-            aria-expanded={coursesOpen}
-          >
-            All Courses
-            <svg
-              className="w-4 h-4 ml-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div className="flex items-center">
+            <Link
+              href="/courses"
+              className="text-gray-900 font-medium hover:text-red-600 transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
+              All Courses
+            </Link>
+            <button
+              className="ml-1 text-gray-900 font-medium hover:text-red-600 transition-colors"
+              aria-haspopup="menu"
+              aria-expanded={coursesOpen}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+          </div>
 
           {/* Dropdown Menu */}
           <div
