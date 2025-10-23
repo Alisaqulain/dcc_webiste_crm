@@ -1,6 +1,7 @@
 import "./globals.css";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+import SessionProvider from "./components/SessionProvider";
 
 export const metadata = {
   title: {
@@ -169,9 +170,11 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="antialiased">
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        <SessionProvider>
+          <Header />
+          <main>{children}</main>
+          <Footer />
+        </SessionProvider>
       </body>
     </html>
   );

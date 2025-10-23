@@ -2,11 +2,20 @@
 "use client";
 import React, { useState } from "react";
 import Image from "next/image";
+import { useSession, signOut } from 'next-auth/react';
+import Link from 'next/link';
+import { useCrmAccess } from '../hooks/useCrmAccess';
 
 const Header = () => {
+  const { data: session, status } = useSession();
+  const { hasCrmAccess } = useCrmAccess();
   const [menuOpen, setMenuOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
   const [closeTimeout, setCloseTimeout] = useState(null);
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: '/' });
+  };
 
   // Handle dropdown hover enter
   const handleMouseEnter = () => {
@@ -111,29 +120,74 @@ const Header = () => {
           Blog
         </a>
         <a
-          href="#"
+          href="/download-app"
           className="text-gray-900 font-medium hover:text-red-600 transition-colors"
         >
-          My Courses
+          Download App
         </a>
-        <a
-          href="/crm"
-          className="text-gray-900 font-medium hover:text-red-600 transition-colors"
-        >
-          CRM
-        </a>
+        {session ? (
+          <>
+            <Link
+              href="/my-courses"
+              className="text-gray-900 font-medium hover:text-red-600 transition-colors"
+            >
+              My Courses
+            </Link>
+            <Link
+              href="/referral"
+              className="text-gray-900 font-medium hover:text-red-600 transition-colors"
+            >
+              Refer & Earn
+            </Link>
+            <Link
+              href="/profile"
+              className="text-gray-900 font-medium hover:text-red-600 transition-colors"
+            >
+              My Profile
+            </Link>
+            {hasCrmAccess && (
+              <Link
+                href="/crm"
+                className="text-gray-900 font-medium hover:text-red-600 transition-colors"
+              >
+                CRM
+              </Link>
+            )}
+          </>
+        ) : (
+          <a
+            href="/courses"
+            className="text-gray-900 font-medium hover:text-red-600 transition-colors"
+          >
+            Browse Courses
+          </a>
+        )}
       </nav>
 
-      {/* Login/Signup (Desktop) */}
-      <div className="hidden md:flex bg-red-600 hover:bg-red-700 text-white font-medium px-4 sm:px-6 py-2 rounded-full transition-colors shadow-md hover:shadow-lg space-x-2">
-        <a href="/login" className="hover:underline text-sm sm:text-base">
-          Login
-        </a>
-        <span>/</span>
-        <a href="/signup" className="hover:underline text-sm sm:text-base">
-          Signup
-        </a>
-      </div>
+      {/* Login/Signup or Logout (Desktop) */}
+      {session ? (
+        <div className="hidden md:flex items-center space-x-4">
+          <span className="text-sm text-gray-600">
+            Welcome, {session.user?.name?.split(' ')[0] || 'User'}!
+          </span>
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 sm:px-6 py-2 rounded-full transition-colors shadow-md hover:shadow-lg"
+          >
+            Logout
+          </button>
+        </div>
+      ) : (
+        <div className="hidden md:flex bg-red-600 hover:bg-red-700 text-white font-medium px-4 sm:px-6 py-2 rounded-full transition-colors shadow-md hover:shadow-lg space-x-2">
+          <a href="/login" className="hover:underline text-sm sm:text-base">
+            Login
+          </a>
+          <span>/</span>
+          <a href="/signup" className="hover:underline text-sm sm:text-base">
+            Signup
+          </a>
+        </div>
+      )}
 
       {/* Mobile Hamburger */}
       <button
@@ -205,28 +259,57 @@ const Header = () => {
               Blog
             </a>
             <a
-              href="#"
+              href="/download-app"
               className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
             >
-              My Courses
+              Download App
             </a>
-            <a
-              href="/crm"
-              className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
-            >
-              CRM
-            </a>
-
-            {/* Login/Signup (Mobile) */}
-            <div className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-full shadow-md text-center mt-2">
-              <a href="/login" className="hover:underline text-sm">
-                Login
-              </a>{" "}
-              /{" "}
-              <a href="/signup" className="hover:underline text-sm">
-                Signup
-              </a>
-            </div>
+            {session ? (
+              <>
+                <Link
+                  href="/my-courses"
+                  className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
+                >
+                  My Courses
+                </Link>
+                <Link
+                  href="/referral"
+                  className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
+                >
+                  Refer & Earn
+                </Link>
+                <Link
+                  href="/profile"
+                  className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
+                >
+                  My Profile
+                </Link>
+                {hasCrmAccess && (
+                  <Link
+                    href="/crm"
+                    className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
+                  >
+                    CRM
+                  </Link>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-full shadow-md text-center mt-2 text-sm"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <div className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-full shadow-md text-center mt-2">
+                <Link href="/login" className="hover:underline text-sm">
+                  Login
+                </Link>{" "}
+                /{" "}
+                <Link href="/signup" className="hover:underline text-sm">
+                  Signup
+                </Link>
+              </div>
+            )}
           </nav>
         </div>
       )}

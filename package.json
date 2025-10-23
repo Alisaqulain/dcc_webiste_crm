@@ -6,10 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:setup": "node scripts/test-setup.js",
+    "test:admin": "echo 'Testing admin panel...' && echo '1. Go to http://localhost:3000/admin/login' && echo '2. Login with admin@test.com / admin123' && echo '3. Create a test course'",
+    "test:user": "echo 'Testing user flow...' && echo '1. Go to http://localhost:3000/signup' && echo '2. Create a test account' && echo '3. Browse and purchase courses'"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.3",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.2",
     "next": "15.5.2",
+    "next-auth": "^4.24.11",
+    "nodemailer": "^6.10.1",
+    "razorpay": "^2.9.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-icons": "^5.5.0",

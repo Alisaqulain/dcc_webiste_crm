@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Admin Panel Test</h1>
+    
+    <div class="test-section">
+        <h3>1. Test Admin Setup</h3>
+        <button onclick="testAdminSetup()">Create Admin Account</button>
+        <div id="setup-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Test Admin Login</h3>
+        <button onclick="testAdminLogin()">Test Login</button>
+        <div id="login-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Test Admin Dashboard Access</h3>
+        <button onclick="testDashboardAccess()">Test Dashboard</button>
+        <div id="dashboard-result"></div>
+    </div>
+
+    <script>
+        async function testAdminSetup() {
+            const resultDiv = document.getElementById('setup-result');
+            try {
+                const response = await fetch('http://localhost:3001/api/admin/seed', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: '{}'
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="success">✅ Success: ${data.message}</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Error: ${data.message}</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testAdminLogin() {
+            const resultDiv = document.getElementById('login-result');
+            try {
+                const response = await fetch('http://localhost:3001/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@gmail.com',
+                        password: 'Admin@786786'
+                    })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('adminToken', data.token);
+                    localStorage.setItem('adminInfo', JSON.stringify(data.admin));
+                    resultDiv.innerHTML = `<div class="success">✅ Login Successful!</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Login Failed: ${data.message}</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testDashboardAccess() {
+            const resultDiv = document.getElementById('dashboard-result');
+            const token = localStorage.getItem('adminToken');
+            
+            if (!token) {
+                resultDiv.innerHTML = `<div class="error">❌ No token found. Please login first.</div>`;
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3001/api/admin/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div class="success">✅ Dashboard Access Successful!</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Dashboard Access Failed: ${data.message}</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
