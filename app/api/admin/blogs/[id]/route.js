@@ -21,10 +21,14 @@ function verifyAdminToken(request) {
 
 export async function GET(request, { params }) {
   try {
-    await connectDB();
-    
     // Verify admin authentication
-    const admin = verifyAdminToken(request);
+    try {
+      verifyAdminToken(request);
+    } catch (authError) {
+      return Response.json({ message: authError.message }, { status: 401 });
+    }
+    
+    await connectDB();
     
     const { id } = await params;
     const blog = await Blog.findById(id);
@@ -42,10 +46,14 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    await connectDB();
-    
     // Verify admin authentication
-    const admin = verifyAdminToken(request);
+    try {
+      verifyAdminToken(request);
+    } catch (authError) {
+      return Response.json({ message: authError.message }, { status: 401 });
+    }
+    
+    await connectDB();
     
     const { id } = await params;
     const updateData = await request.json();
@@ -106,10 +114,14 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    await connectDB();
-    
     // Verify admin authentication
-    const admin = verifyAdminToken(request);
+    try {
+      verifyAdminToken(request);
+    } catch (authError) {
+      return Response.json({ message: authError.message }, { status: 401 });
+    }
+    
+    await connectDB();
     
     const { id } = await params;
     const blog = await Blog.findByIdAndDelete(id);

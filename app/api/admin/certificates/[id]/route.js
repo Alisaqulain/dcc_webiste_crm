@@ -21,7 +21,11 @@ const verifyAdminToken = (request) => {
 export async function PUT(request, { params }) {
   try {
     // Verify admin authentication
-    verifyAdminToken(request);
+    try {
+      verifyAdminToken(request);
+    } catch (authError) {
+      return NextResponse.json({ error: authError.message }, { status: 401 });
+    }
     
     await connectDB();
     
@@ -96,7 +100,11 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     // Verify admin authentication
-    verifyAdminToken(request);
+    try {
+      verifyAdminToken(request);
+    } catch (authError) {
+      return NextResponse.json({ error: authError.message }, { status: 401 });
+    }
     
     await connectDB();
     

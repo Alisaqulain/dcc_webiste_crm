@@ -25,9 +25,24 @@ const verifyAdminToken = (request) => {
 export async function POST(request) {
   try {
     // Verify admin authentication
-    verifyAdminToken(request);
+    try {
+      verifyAdminToken(request);
+    } catch (authError) {
+      return NextResponse.json(
+        { error: authError.message },
+        { status: 401 }
+      );
+    }
     
-    await connectDB();
+    try {
+      await connectDB();
+    } catch (dbError) {
+      console.error('Database connection error:', dbError);
+      return NextResponse.json(
+        { error: 'Database connection failed' },
+        { status: 500 }
+      );
+    }
     
     const formData = await request.formData();
     const file = formData.get('video');

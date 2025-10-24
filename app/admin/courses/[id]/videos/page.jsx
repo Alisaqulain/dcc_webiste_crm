@@ -462,8 +462,22 @@ function VideoModal({ video, onClose, onSave }) {
         // Refresh the page to show the new video
         window.location.reload();
       } else {
-        const error = await response.json();
-        alert(error.error || 'Error uploading video');
+        let errorMessage = 'Error uploading video';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+        } catch (jsonError) {
+          // If response is not JSON, try to get text
+          try {
+            const errorText = await response.text();
+            console.error('Non-JSON error response:', errorText);
+            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          } catch (textError) {
+            console.error('Could not parse error response:', textError);
+            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          }
+        }
+        alert(errorMessage);
       }
     } catch (error) {
       console.error('Error saving video:', error);

@@ -21,7 +21,11 @@ const verifyAdminToken = (request) => {
 export async function GET(request) {
   try {
     // Verify admin authentication
-    verifyAdminToken(request);
+    try {
+      verifyAdminToken(request);
+    } catch (authError) {
+      return NextResponse.json({ error: authError.message }, { status: 401 });
+    }
     
     await connectDB();
     
@@ -44,7 +48,11 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     // Verify admin authentication
-    verifyAdminToken(request);
+    try {
+      verifyAdminToken(request);
+    } catch (authError) {
+      return NextResponse.json({ error: authError.message }, { status: 401 });
+    }
     
     await connectDB();
     

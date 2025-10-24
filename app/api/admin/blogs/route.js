@@ -21,10 +21,14 @@ function verifyAdminToken(request) {
 
 export async function GET(request) {
   try {
-    await connectDB();
-    
     // Verify admin authentication
-    const admin = verifyAdminToken(request);
+    try {
+      verifyAdminToken(request);
+    } catch (authError) {
+      return Response.json({ message: authError.message }, { status: 401 });
+    }
+    
+    await connectDB();
     
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
@@ -88,10 +92,14 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    await connectDB();
-    
     // Verify admin authentication
-    const admin = verifyAdminToken(request);
+    try {
+      verifyAdminToken(request);
+    } catch (authError) {
+      return Response.json({ message: authError.message }, { status: 401 });
+    }
+    
+    await connectDB();
     
     const {
       title,
