@@ -75,9 +75,18 @@ ${message}
 Please respond to this inquiry within 24 hours.
     `;
 
+    // Determine admin email address - use EMAIL_USER as primary
+    const adminEmail = process.env.EMAIL_USER || process.env.ADMIN_EMAIL || 'Dcchelp1@gmail.com';
+    
+    console.log('Sending contact form email to:', adminEmail);
+    console.log('Environment variables:', {
+      ADMIN_EMAIL: process.env.ADMIN_EMAIL,
+      EMAIL_USER: process.env.EMAIL_USER
+    });
+
     // Send email to admin
     const adminEmailResult = await sendEmail({
-      to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'info@digitalcareercenter.com',
+      to: adminEmail,
       subject: emailSubject,
       html: emailHtml,
       text: emailText
