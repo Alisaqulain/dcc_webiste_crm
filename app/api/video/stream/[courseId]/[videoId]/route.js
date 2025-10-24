@@ -8,7 +8,7 @@ import { authOptions } from '@/lib/auth';
 
 export async function GET(request, { params }) {
   try {
-    const { courseId, videoId } = params;
+    const { courseId, videoId } = await params;
     const { searchParams } = new URL(request.url);
     const range = request.headers.get('range');
 

@@ -25,7 +25,7 @@ export async function GET(request, { params }) {
     
     await connectDB();
     
-    const { id } = params;
+    const { id } = await params;
     
     if (!id) {
       return NextResponse.json(
@@ -68,7 +68,7 @@ export async function POST(request, { params }) {
     
     await connectDB();
     
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const {
       title,
@@ -145,7 +145,7 @@ export async function PUT(request, { params }) {
     
     await connectDB();
     
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { videoId, ...updateData } = body;
 
@@ -211,7 +211,7 @@ export async function DELETE(request, { params }) {
     
     await connectDB();
     
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { videoId } = body;
 

@@ -11,14 +11,15 @@ const Header = () => {
   const { hasCrmAccess } = useCrmAccess();
   const [menuOpen, setMenuOpen] = useState(false);
   const [coursesOpen, setCoursesOpen] = useState(false);
+  const [downloadsOpen, setDownloadsOpen] = useState(false);
   const [closeTimeout, setCloseTimeout] = useState(null);
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/' });
   };
 
-  // Handle dropdown hover enter
-  const handleMouseEnter = () => {
+  // Handle courses dropdown hover enter
+  const handleCoursesMouseEnter = () => {
     if (closeTimeout) {
       clearTimeout(closeTimeout);
       setCloseTimeout(null);
@@ -26,10 +27,27 @@ const Header = () => {
     setCoursesOpen(true);
   };
 
-  // Handle dropdown hover leave (with delay)
-  const handleMouseLeave = () => {
+  // Handle courses dropdown hover leave (with delay)
+  const handleCoursesMouseLeave = () => {
     const timeout = setTimeout(() => {
       setCoursesOpen(false);
+    }, 300); // 300ms delay to close
+    setCloseTimeout(timeout);
+  };
+
+  // Handle downloads dropdown hover enter
+  const handleDownloadsMouseEnter = () => {
+    if (closeTimeout) {
+      clearTimeout(closeTimeout);
+      setCloseTimeout(null);
+    }
+    setDownloadsOpen(true);
+  };
+
+  // Handle downloads dropdown hover leave (with delay)
+  const handleDownloadsMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setDownloadsOpen(false);
     }, 300); // 300ms delay to close
     setCloseTimeout(timeout);
   };
@@ -57,11 +75,11 @@ const Header = () => {
           Home
         </a>
 
-        {/* Dropdown */}
+        {/* Courses Dropdown */}
         <div
           className="relative"
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
+          onMouseEnter={handleCoursesMouseEnter}
+          onMouseLeave={handleCoursesMouseLeave}
         >
           <div className="flex items-center">
             <Link
@@ -91,7 +109,7 @@ const Header = () => {
             </button>
           </div>
 
-          {/* Dropdown Menu */}
+          {/* Courses Dropdown Menu */}
           <div
             className={`absolute transition-all duration-300 ease-out transform bg-white shadow-md rounded-md mt-2 w-48 border border-red-200 z-20
               ${
@@ -126,12 +144,63 @@ const Header = () => {
         >
           Blog
         </a>
-        <a
-          href="/download-app"
-          className="text-gray-900 font-medium hover:text-red-600 transition-colors"
+
+        {/* Downloads Dropdown */}
+        <div
+          className="relative"
+          onMouseEnter={handleDownloadsMouseEnter}
+          onMouseLeave={handleDownloadsMouseLeave}
         >
-          Download App
-        </a>
+          <div className="flex items-center">
+            <span className="text-gray-900 font-medium hover:text-red-600 transition-colors cursor-pointer">
+              Downloads
+            </span>
+            <button
+              className="ml-1 text-gray-900 font-medium hover:text-red-600 transition-colors"
+              aria-haspopup="menu"
+              aria-expanded={downloadsOpen}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {/* Downloads Dropdown Menu */}
+          <div
+            className={`absolute transition-all duration-300 ease-out transform bg-white shadow-md rounded-md mt-2 w-48 border border-red-200 z-20
+              ${
+                downloadsOpen
+                  ? "opacity-100 scale-100"
+                  : "opacity-0 scale-95 pointer-events-none"
+              }`}
+          >
+            {[
+              { name: "Download App", href: "/download-app" },
+              { name: "Download Certificate", href: "/certificate" },
+              { name: "Download ID Card", href: "/idcard" },
+            ].map((item, idx) => (
+              <a
+                key={idx}
+                href={item.href}
+                className="block px-4 py-2 text-[12px] text-gray-900 hover:bg-red-50 hover:text-red-600 transition-colors"
+                onClick={() => setDownloadsOpen(false)}
+              >
+                {item.name}
+              </a>
+            ))}
+          </div>
+        </div>
         {session ? (
           <>
             <Link
@@ -268,12 +337,33 @@ const Header = () => {
             >
               Blog
             </a>
-            <a
-              href="/download-app"
-              className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
-            >
-              Download App
-            </a>
+            
+            {/* Mobile Downloads Section */}
+            <div className="flex flex-col space-y-1">
+              <div className="font-medium text-gray-900 text-sm sm:text-base py-1">
+                Downloads
+              </div>
+              <div className="pl-4 flex flex-col space-y-1">
+                <a
+                  href="/download-app"
+                  className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
+                >
+                  Download App
+                </a>
+                <a
+                  href="/certificate"
+                  className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
+                >
+                  Download Certificate
+                </a>
+                <a
+                  href="/idcard"
+                  className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
+                >
+                  Download ID Card
+                </a>
+              </div>
+            </div>
             {session ? (
               <>
                 <Link
