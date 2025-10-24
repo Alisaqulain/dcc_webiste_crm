@@ -217,9 +217,12 @@ const Header = () => {
               Home
             </a>
             <div className="flex flex-col space-y-1">
-              <span className="font-medium text-gray-900 text-sm sm:text-base">
+              <Link
+                href="/courses"
+                className="font-medium text-gray-900 hover:text-red-600 text-sm sm:text-base"
+              >
                 All Courses
-              </span>
+              </Link>
               <div className="pl-4 flex flex-col space-y-1">
                 <a
                   href="/BronzeBundle"
