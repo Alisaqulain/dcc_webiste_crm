@@ -12,6 +12,8 @@ export default function EditCoursePage() {
   const [course, setCourse] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -94,6 +96,8 @@ export default function EditCoursePage() {
             validUntil: courseData.discount?.validUntil ? new Date(courseData.discount.validUntil).toISOString().split('T')[0] : ''
           }
         });
+        
+        setUploadedImage(courseData.thumbnail);
       } else {
         alert('Error fetching course');
         router.push('/admin/courses');
@@ -104,6 +108,49 @@ export default function EditCoursePage() {
       router.push('/admin/courses');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setUploadedImage(result.url);
+        setFormData(prev => ({ ...prev, thumbnail: result.url }));
+      } else {
+        alert('Upload failed: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -315,14 +362,33 @@ export default function EditCoursePage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail URL *</label>
-                <input
-                  type="url"
-                  required
-                  value={formData.thumbnail}
-                  onChange={(e) => setFormData(prev => ({ ...prev, thumbnail: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">Course Thumbnail *</label>
+                
+                {/* Image Preview */}
+                {(uploadedImage || formData.thumbnail) && (
+                  <div className="mb-4">
+                    <img
+                      src={uploadedImage || formData.thumbnail}
+                      alt="Course thumbnail preview"
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                    />
+                  </div>
+                )}
+
+                {/* Upload Section */}
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={isUploading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                  />
+                  {isUploading && (
+                    <p className="text-sm text-blue-600 mt-1">Uploading...</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">Max file size: 5MB. Supported formats: JPG, PNG, GIF, WebP</p>
+                </div>
               </div>
             </div>
 

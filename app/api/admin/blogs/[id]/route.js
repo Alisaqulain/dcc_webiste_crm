@@ -25,17 +25,30 @@ export async function GET(request, { params }) {
     try {
       verifyAdminToken(request);
     } catch (authError) {
+      console.log('Auth error:', authError.message);
       return Response.json({ message: authError.message }, { status: 401 });
     }
     
     await connectDB();
     
     const { id } = await params;
+    console.log('Fetching blog with ID:', id);
+    
     const blog = await Blog.findById(id);
+    console.log('Blog found:', !!blog);
 
     if (!blog) {
+      console.log('Blog not found for ID:', id);
       return Response.json({ message: 'Blog post not found' }, { status: 404 });
     }
+
+    console.log('Blog data being returned:', {
+      id: blog._id,
+      title: blog.title,
+      status: blog.status,
+      isFeatured: blog.isFeatured,
+      publishedAt: blog.publishedAt
+    });
 
     return Response.json({ blog });
   } catch (error) {

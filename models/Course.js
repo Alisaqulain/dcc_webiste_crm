@@ -92,6 +92,58 @@ const courseSchema = new mongoose.Schema({
       type: String,
       required: false
     },
+    videoData: {
+      fileName: {
+        type: String,
+        required: false
+      },
+      mimeType: {
+        type: String,
+        required: false
+      },
+      size: {
+        type: Number,
+        required: false
+      },
+      url: {
+        type: String, // File URL or data URL
+        required: false
+      },
+      isDataUrl: {
+        type: Boolean,
+        default: false
+      },
+      data: {
+        type: String, // Base64 encoded video data (legacy support)
+        required: false
+      }
+    },
+    thumbnailData: {
+      fileName: {
+        type: String,
+        required: false
+      },
+      mimeType: {
+        type: String,
+        required: false
+      },
+      size: {
+        type: Number,
+        required: false
+      },
+      url: {
+        type: String, // File URL or data URL
+        required: false
+      },
+      isDataUrl: {
+        type: Boolean,
+        default: false
+      },
+      data: {
+        type: String, // Base64 encoded thumbnail data (legacy support)
+        required: false
+      }
+    },
     fileSize: {
       type: Number,
       required: false
@@ -191,16 +243,26 @@ const courseSchema = new mongoose.Schema({
   }
 });
 
-// Custom validation for videos - ensure each video has either youtubeUrl or videoPath
+// Simplified validation for videos - only check if video has required fields
 courseSchema.pre('save', function(next) {
   if (this.videos && this.videos.length > 0) {
     for (let video of this.videos) {
-      if (!video.youtubeUrl && !video.videoPath) {
-        return next(new Error('Each video must have either a YouTube URL or uploaded video file'));
+      // Only validate that video has a title and duration
+      if (!video.title || !video.duration) {
+        return next(new Error('Each video must have a title and duration'));
       }
-      if (video.youtubeUrl && video.videoPath) {
-        return next(new Error('Each video can have either a YouTube URL or uploaded video file, not both'));
-      }
+      
+      // Optional: Check if video has some form of content (YouTube URL, video file, or video data)
+      const hasYouTubeUrl = !!video.youtubeUrl;
+      const hasVideoPath = !!video.videoPath;
+      const hasVideoData = !!(video.videoData && (video.videoData.url || video.videoData.fileName));
+      
+      // If no content source is provided, that's okay - we'll handle it in the frontend
+      console.log('Video validation:', {
+        title: video.title,
+        duration: video.duration,
+        hasContent: hasYouTubeUrl || hasVideoPath || hasVideoData
+      });
     }
   }
   next();

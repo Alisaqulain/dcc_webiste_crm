@@ -364,6 +364,7 @@ export default function CourseVideosPage() {
       {/* Add/Edit Video Modal */}
       {(showAddModal || editingVideo) && (
         <VideoModal
+          courseId={courseId}
           video={editingVideo}
           onClose={() => {
             setShowAddModal(false);
@@ -377,7 +378,7 @@ export default function CourseVideosPage() {
 }
 
 // Video Modal Component
-function VideoModal({ video, onClose, onSave }) {
+function VideoModal({ courseId, video, onClose, onSave }) {
   const [formData, setFormData] = useState({
     title: video?.title || '',
     description: video?.description || '',
@@ -440,7 +441,7 @@ function VideoModal({ video, onClose, onSave }) {
       if (formData.thumbnailFile) {
         uploadFormData.append('thumbnail', formData.thumbnailFile);
       }
-      uploadFormData.append('courseId', window.location.pathname.split('/')[3]);
+      uploadFormData.append('courseId', courseId);
       uploadFormData.append('title', formData.title);
       uploadFormData.append('description', formData.description);
       uploadFormData.append('duration', formData.duration);

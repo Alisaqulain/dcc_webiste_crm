@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
 import connectDB from '@/lib/mongodb';
 import Course from '@/models/Course';
 import jwt from 'jsonwebtoken';
-import { generateVideoThumbnail } from '@/lib/videoThumbnail';
-import { generateVideoThumbnailFallback, isFFmpegAvailable } from '@/lib/videoThumbnailFallback';
+import { storageService } from '@/lib/storage';
 
 // Verify admin token
 const verifyAdminToken = (request) => {
@@ -53,9 +50,25 @@ export async function POST(request) {
     const duration = formData.get('duration');
     const isPreview = formData.get('isPreview') === 'true';
 
+    // Debug logging
+    console.log('Video upload request received:', {
+      hasFile: !!file,
+      courseId,
+      title,
+      description,
+      duration,
+      isPreview
+    });
+
     if (!file || !courseId || !title || !duration) {
+      console.log('Missing required fields:', {
+        hasFile: !!file,
+        courseId,
+        title,
+        duration
+      });
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: video file, courseId, title, and duration are required' },
         { status: 400 }
       );
     }
@@ -77,77 +90,63 @@ export async function POST(request) {
       );
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'videos');
-    await mkdir(uploadsDir, { recursive: true });
+    // Upload video using storage service
+    const videoUploadResult = await storageService.uploadFile(file, 'videos');
+    
+    // Create simple video data structure
+    const videoData = {
+      fileName: videoUploadResult.filename,
+      mimeType: file.type,
+      size: file.size,
+      url: videoUploadResult.url,
+      isDataUrl: videoUploadResult.isDataUrl
+    };
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 15);
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${timestamp}_${randomString}.${fileExtension}`;
-    const filePath = join(uploadsDir, fileName);
-
-    // Save file
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+    console.log('Video uploaded successfully:', {
+      title,
+      fileName: videoData.fileName,
+      hasUrl: !!videoData.url,
+      size: videoData.size
+    });
 
     // Handle thumbnail
-    let thumbnailPath = null;
+    let thumbnailData = null;
     
     if (thumbnailFile) {
       // Use custom uploaded thumbnail
       try {
-        const thumbnailDir = join(process.cwd(), 'public', 'uploads', 'thumbnails');
-        const thumbnailFileName = `custom_${timestamp}_${randomString}.${thumbnailFile.name.split('.').pop()}`;
-        const thumbnailFullPath = join(thumbnailDir, thumbnailFileName);
+        const thumbnailUploadResult = await storageService.uploadFile(thumbnailFile, 'thumbnails');
         
-        // Save custom thumbnail
-        const thumbnailBytes = await thumbnailFile.arrayBuffer();
-        const thumbnailBuffer = Buffer.from(thumbnailBytes);
-        await writeFile(thumbnailFullPath, thumbnailBuffer);
+        thumbnailData = {
+          fileName: thumbnailUploadResult.filename,
+          mimeType: thumbnailFile.type,
+          size: thumbnailFile.size,
+          url: thumbnailUploadResult.url,
+          isDataUrl: thumbnailUploadResult.isDataUrl
+        };
         
-        thumbnailPath = `/uploads/thumbnails/${thumbnailFileName}`;
-        console.log('Custom thumbnail uploaded:', thumbnailPath);
+        console.log('Custom thumbnail processed');
       } catch (thumbnailError) {
-        console.error('Error saving custom thumbnail:', thumbnailError);
+        console.error('Error processing custom thumbnail:', thumbnailError);
         // Continue without thumbnail - don't fail the upload
       }
     } else {
-      // Generate thumbnail from video
-      try {
-        const thumbnailDir = join(process.cwd(), 'public', 'uploads', 'thumbnails');
-        const thumbnailFileName = `${timestamp}_${randomString}.jpg`;
-        const thumbnailFullPath = join(thumbnailDir, thumbnailFileName);
-        
-        // Check if FFmpeg is available
-        const ffmpegAvailable = await isFFmpegAvailable();
-        
-        if (ffmpegAvailable) {
-          await generateVideoThumbnail(filePath, thumbnailFullPath);
-          thumbnailPath = `/uploads/thumbnails/${thumbnailFileName}`;
-          console.log('FFmpeg thumbnail generated:', thumbnailPath);
-        } else {
-          console.log('FFmpeg not available, using fallback thumbnail');
-          const fallbackPath = await generateVideoThumbnailFallback(filePath, thumbnailFullPath);
-          thumbnailPath = fallbackPath.replace('/public', '');
-          console.log('Fallback thumbnail generated:', thumbnailPath);
-        }
-      } catch (thumbnailError) {
-        console.error('Error generating thumbnail:', thumbnailError);
-        // Continue without thumbnail - don't fail the upload
-      }
+      // For deployment, we'll skip thumbnail generation for now
+      // In production, you should use a cloud service for thumbnail generation
+      console.log('Thumbnail generation skipped in deployment mode');
     }
 
     // Find course and add video
+    console.log('Looking for course with ID:', courseId);
     const course = await Course.findById(courseId);
     if (!course) {
+      console.log('Course not found with ID:', courseId);
       return NextResponse.json(
         { error: 'Course not found' },
         { status: 404 }
       );
     }
+    console.log('Course found:', course.title);
 
     // Get the next order number
     const nextOrder = course.videos.length > 0 
@@ -157,9 +156,8 @@ export async function POST(request) {
     const newVideo = {
       title,
       description: description || '',
-      videoPath: `/uploads/videos/${fileName}`,
-      youtubeUrl: undefined, // Explicitly set to undefined for uploaded videos
-      thumbnail: thumbnailPath,
+      videoData: videoData,
+      thumbnailData: thumbnailData,
       duration,
       order: nextOrder,
       isPreview,
@@ -167,6 +165,13 @@ export async function POST(request) {
       fileSize: file.size,
       mimeType: file.type
     };
+
+    console.log('Creating new video:', {
+      title: newVideo.title,
+      description: newVideo.description,
+      duration: newVideo.duration,
+      hasVideoData: !!newVideo.videoData
+    });
 
     course.videos.push(newVideo);
     await course.save();
