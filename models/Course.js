@@ -79,13 +79,34 @@ const courseSchema = new mongoose.Schema({
     },
     youtubeUrl: {
       type: String,
-      required: true,
+      required: false,
       validate: {
         validator: function(v) {
+          if (!v) return true; // Allow empty values
           return /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/.test(v);
         },
         message: 'Please provide a valid YouTube URL'
       }
+    },
+    videoPath: {
+      type: String,
+      required: false
+    },
+    fileSize: {
+      type: Number,
+      required: false
+    },
+    mimeType: {
+      type: String,
+      required: false
+    },
+    uploadedAt: {
+      type: Date,
+      required: false
+    },
+    thumbnail: {
+      type: String,
+      required: false
     },
     duration: {
       type: String, // e.g., "15:30"
@@ -168,6 +189,21 @@ const courseSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+});
+
+// Custom validation for videos - ensure each video has either youtubeUrl or videoPath
+courseSchema.pre('save', function(next) {
+  if (this.videos && this.videos.length > 0) {
+    for (let video of this.videos) {
+      if (!video.youtubeUrl && !video.videoPath) {
+        return next(new Error('Each video must have either a YouTube URL or uploaded video file'));
+      }
+      if (video.youtubeUrl && video.videoPath) {
+        return next(new Error('Each video can have either a YouTube URL or uploaded video file, not both'));
+      }
+    }
+  }
+  next();
 });
 
 // Update the updatedAt field before saving

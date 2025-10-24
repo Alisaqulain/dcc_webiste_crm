@@ -51,28 +51,9 @@ export default function CourseVideosPage() {
   };
 
   const handleAddVideo = async (videoData) => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(`/api/admin/courses/${courseId}/videos`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(videoData)
-      });
-
-      if (response.ok) {
-        fetchCourseVideos();
-        setShowAddModal(false);
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Error adding video');
-      }
-    } catch (error) {
-      console.error('Error adding video:', error);
-      alert('Error adding video');
-    }
+    // This function is no longer used since we only support video uploads
+    // Video uploads are handled directly in the form submission
+    console.log('handleAddVideo called - this should not happen with video uploads');
   };
 
   const handleUpdateVideo = async (videoId, videoData) => {
@@ -122,6 +103,35 @@ export default function CourseVideosPage() {
     } catch (error) {
       console.error('Error deleting video:', error);
       alert('Error deleting video');
+    }
+  };
+
+  const handleRegenerateThumbnail = async (videoId) => {
+    if (!confirm('Are you sure you want to regenerate the thumbnail for this video?')) return;
+
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch('/api/admin/regenerate-thumbnail', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ courseId, videoId })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Thumbnail regenerated:', result.thumbnail);
+        fetchCourseVideos(); // Refresh the list to show new thumbnail
+        alert('Thumbnail regenerated successfully!');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Error regenerating thumbnail');
+      }
+    } catch (error) {
+      console.error('Error regenerating thumbnail:', error);
+      alert('Error regenerating thumbnail');
     }
   };
 
@@ -192,10 +202,36 @@ export default function CourseVideosPage() {
                   <div className="flex items-start space-x-4">
                     {/* Video Thumbnail */}
                     <div className="flex-shrink-0">
-                      <div className="w-32 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <svg className="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
+                      <div className="w-32 h-20 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden relative">
+                        {video.thumbnail ? (
+                          <img
+                            src={video.thumbnail}
+                            alt={video.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback to default icon if thumbnail fails to load
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div 
+                          className={`w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center ${
+                            video.thumbnail ? 'hidden' : 'flex'
+                          }`}
+                        >
+                          <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </div>
+                        {/* Play overlay */}
+                        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                          <div className="w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -204,6 +240,9 @@ export default function CourseVideosPage() {
                       <div className="flex items-center space-x-2 mb-2">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           #{video.order}
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          Uploaded Video
                         </span>
                         {video.isPreview && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -225,14 +264,14 @@ export default function CourseVideosPage() {
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <span>Duration: {video.duration}</span>
                         <span>•</span>
-                        <a
-                          href={video.youtubeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          View on YouTube
-                        </a>
+                        <span className="text-purple-600 font-medium">
+                          Secure Uploaded Video
+                        </span>
+                        {video.fileSize && (
+                          <span className="text-gray-400">
+                            • {(video.fileSize / (1024 * 1024)).toFixed(1)} MB
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -259,6 +298,19 @@ export default function CourseVideosPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
+
+                      {/* Regenerate Thumbnail */}
+                      {video.videoPath && (
+                        <button
+                          onClick={() => handleRegenerateThumbnail(video._id)}
+                          className="p-2 text-green-600 hover:text-green-800"
+                          title="Regenerate thumbnail"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        </button>
+                      )}
 
                       {/* Edit */}
                       <button
@@ -329,7 +381,8 @@ function VideoModal({ video, onClose, onSave }) {
   const [formData, setFormData] = useState({
     title: video?.title || '',
     description: video?.description || '',
-    youtubeUrl: video?.youtubeUrl || '',
+    videoFile: null,
+    thumbnailFile: null,
     duration: video?.duration || '',
     isPreview: video?.isPreview || false
   });
@@ -341,13 +394,80 @@ function VideoModal({ video, onClose, onSave }) {
     setIsSubmitting(true);
 
     try {
-      if (video) {
-        await onSave(video._id, formData);
+      // Validate file upload
+      if (!formData.videoFile) {
+        alert('Please select a video file to upload');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate file size (500MB max)
+      const maxSize = 500 * 1024 * 1024; // 500MB
+      if (formData.videoFile.size > maxSize) {
+        alert('File size too large. Maximum size is 500MB');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate file type
+      if (!formData.videoFile.type.startsWith('video/')) {
+        alert('Please select a valid video file');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate thumbnail file if provided
+      if (formData.thumbnailFile) {
+        // Validate thumbnail file size (5MB max)
+        const maxThumbnailSize = 5 * 1024 * 1024; // 5MB
+        if (formData.thumbnailFile.size > maxThumbnailSize) {
+          alert('Thumbnail file size too large. Maximum size is 5MB');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Validate thumbnail file type
+        if (!formData.thumbnailFile.type.startsWith('image/')) {
+          alert('Please select a valid image file for thumbnail');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Handle video file upload
+      const uploadFormData = new FormData();
+      uploadFormData.append('video', formData.videoFile);
+      if (formData.thumbnailFile) {
+        uploadFormData.append('thumbnail', formData.thumbnailFile);
+      }
+      uploadFormData.append('courseId', window.location.pathname.split('/')[3]);
+      uploadFormData.append('title', formData.title);
+      uploadFormData.append('description', formData.description);
+      uploadFormData.append('duration', formData.duration);
+      uploadFormData.append('isPreview', formData.isPreview);
+
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch('/api/admin/video-upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: uploadFormData
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Video uploaded successfully:', result);
+        onClose();
+        // Refresh the page to show the new video
+        window.location.reload();
       } else {
-        await onSave(formData);
+        const error = await response.json();
+        alert(error.error || 'Error uploading video');
       }
     } catch (error) {
       console.error('Error saving video:', error);
+      alert('Error saving video: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -396,18 +516,90 @@ function VideoModal({ video, onClose, onSave }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">YouTube URL *</label>
-              <input
-                type="url"
-                required
-                value={formData.youtubeUrl}
-                onChange={(e) => setFormData(prev => ({ ...prev, youtubeUrl: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://www.youtube.com/watch?v=..."
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Enter the full YouTube URL (unlisted videos work best)
+              <label className="block text-sm font-medium text-gray-700 mb-2">Video File *</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => setFormData(prev => ({ ...prev, videoFile: e.target.files[0] }))}
+                  className="hidden"
+                  id="video-upload"
+                  required
+                />
+                <label htmlFor="video-upload" className="cursor-pointer">
+                  {formData.videoFile ? (
+                    <div className="text-green-600">
+                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="font-medium">{formData.videoFile.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {(formData.videoFile.size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-gray-500">
+                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                      <p className="font-medium">Click to upload video file</p>
+                      <p className="text-sm">or drag and drop</p>
+                    </div>
+                  )}
+                </label>
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                Supported formats: MP4, AVI, MOV, WMV, MKV (Max size: 500MB)
               </p>
+              {formData.videoFile && (
+                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                  ✓ File selected: {formData.videoFile.name} ({(formData.videoFile.size / (1024 * 1024)).toFixed(2)} MB)
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail Image (Optional)</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFormData(prev => ({ ...prev, thumbnailFile: e.target.files[0] }))}
+                  className="hidden"
+                  id="thumbnail-upload"
+                />
+                <label htmlFor="thumbnail-upload" className="cursor-pointer">
+                  {formData.thumbnailFile ? (
+                    <div className="text-green-600">
+                      <img
+                        src={URL.createObjectURL(formData.thumbnailFile)}
+                        alt="Thumbnail preview"
+                        className="w-24 h-16 mx-auto mb-2 object-cover rounded border"
+                      />
+                      <p className="font-medium">{formData.thumbnailFile.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {(formData.thumbnailFile.size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-gray-500">
+                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="font-medium">Click to upload thumbnail image</p>
+                      <p className="text-sm">or drag and drop</p>
+                    </div>
+                  )}
+                </label>
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                Supported formats: PNG, JPG, JPEG, GIF (Max size: 5MB)
+              </p>
+              {formData.thumbnailFile && (
+                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                  ✓ Thumbnail selected: {formData.thumbnailFile.name} ({(formData.thumbnailFile.size / (1024 * 1024)).toFixed(2)} MB)
+                </div>
+              )}
             </div>
 
             <div>
