@@ -21,10 +21,13 @@ const verifyAdminToken = (request) => {
 
 export async function POST(request) {
   try {
+    console.log('Video upload request started');
+    
     // Verify admin authentication
     try {
       verifyAdminToken(request);
     } catch (authError) {
+      console.log('Auth error:', authError.message);
       return NextResponse.json(
         { error: authError.message },
         { status: 401 }
@@ -33,6 +36,7 @@ export async function POST(request) {
     
     try {
       await connectDB();
+      console.log('Database connected');
     } catch (dbError) {
       console.error('Database connection error:', dbError);
       return NextResponse.json(
@@ -41,7 +45,24 @@ export async function POST(request) {
       );
     }
     
-    const formData = await request.formData();
+    console.log('Parsing form data...');
+    let formData;
+    try {
+      formData = await request.formData();
+      console.log('Form data parsed successfully');
+    } catch (parseError) {
+      console.error('Form data parsing error:', parseError);
+      if (parseError.message.includes('413') || parseError.message.includes('Payload Too Large')) {
+        return NextResponse.json(
+          { error: 'Video file is too large. Please use a video smaller than 100MB or compress it.' },
+          { status: 413 }
+        );
+      }
+      return NextResponse.json(
+        { error: 'Error parsing form data: ' + parseError.message },
+        { status: 400 }
+      );
+    }
     const file = formData.get('video');
     const thumbnailFile = formData.get('thumbnail');
     const courseId = formData.get('courseId');
@@ -53,6 +74,9 @@ export async function POST(request) {
     // Debug logging
     console.log('Video upload request received:', {
       hasFile: !!file,
+      fileSize: file ? file.size : 0,
+      fileType: file ? file.type : 'none',
+      fileSizeMB: file ? (file.size / (1024 * 1024)).toFixed(2) + 'MB' : '0MB',
       courseId,
       title,
       description,
@@ -81,11 +105,11 @@ export async function POST(request) {
       );
     }
 
-    // Validate file size (max 500MB)
-    const maxSize = 500 * 1024 * 1024; // 500MB
+    // Validate file size (max 100MB for now to avoid 413 errors)
+    const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: 'File size too large. Maximum size is 500MB' },
+        { error: 'File size too large. Maximum size is 100MB. Please compress your video or use a smaller file.' },
         { status: 400 }
       );
     }

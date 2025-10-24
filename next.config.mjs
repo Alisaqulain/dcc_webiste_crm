@@ -5,6 +5,12 @@ const nextConfig = {
   //   optimizeCss: true,
   // },
   
+  // API configuration for large file uploads
+  experimental: {
+    // Increase body size limit for API routes
+    serverComponentsExternalPackages: [],
+  },
+  
   // Image optimization
   images: {
     formats: ['image/webp', 'image/avif'],

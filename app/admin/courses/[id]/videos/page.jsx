@@ -402,10 +402,10 @@ function VideoModal({ courseId, video, onClose, onSave }) {
         return;
       }
 
-      // Validate file size (500MB max)
-      const maxSize = 500 * 1024 * 1024; // 500MB
+      // Validate file size (100MB max to avoid 413 errors)
+      const maxSize = 100 * 1024 * 1024; // 100MB
       if (formData.videoFile.size > maxSize) {
-        alert('File size too large. Maximum size is 500MB');
+        alert('File size too large. Maximum size is 100MB. Please compress your video or use a smaller file.');
         setIsSubmitting(false);
         return;
       }
@@ -464,18 +464,31 @@ function VideoModal({ courseId, video, onClose, onSave }) {
         window.location.reload();
       } else {
         let errorMessage = 'Error uploading video';
-        try {
-          const error = await response.json();
-          errorMessage = error.error || errorMessage;
-        } catch (jsonError) {
-          // If response is not JSON, try to get text
+        
+        // Handle specific error codes
+        if (response.status === 413) {
+          errorMessage = 'Video file is too large! Please use a video smaller than 100MB or compress it.';
+        } else if (response.status === 400) {
           try {
-            const errorText = await response.text();
-            console.error('Non-JSON error response:', errorText);
-            errorMessage = `Server error: ${response.status} ${response.statusText}`;
-          } catch (textError) {
-            console.error('Could not parse error response:', textError);
-            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+            const error = await response.json();
+            errorMessage = error.error || 'Invalid video file or missing required fields';
+          } catch (jsonError) {
+            errorMessage = 'Invalid video file or missing required fields';
+          }
+        } else {
+          try {
+            const error = await response.json();
+            errorMessage = error.error || errorMessage;
+          } catch (jsonError) {
+            // If response is not JSON, try to get text
+            try {
+              const errorText = await response.text();
+              console.error('Non-JSON error response:', errorText);
+              errorMessage = `Server error: ${response.status} ${response.statusText}`;
+            } catch (textError) {
+              console.error('Could not parse error response:', textError);
+              errorMessage = `Server error: ${response.status} ${response.statusText}`;
+            }
           }
         }
         alert(errorMessage);
@@ -548,8 +561,13 @@ function VideoModal({ courseId, video, onClose, onSave }) {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <p className="font-medium">{formData.videoFile.name}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className={`text-sm ${formData.videoFile.size > 80 * 1024 * 1024 ? 'text-red-500' : 'text-gray-500'}`}>
                         {(formData.videoFile.size / (1024 * 1024)).toFixed(2)} MB
+                        {formData.videoFile.size > 80 * 1024 * 1024 && (
+                          <span className="block text-xs text-red-600 mt-1">
+                            ⚠️ File is large, may cause upload issues
+                          </span>
+                        )}
                       </p>
                     </div>
                   ) : (
@@ -564,7 +582,10 @@ function VideoModal({ courseId, video, onClose, onSave }) {
                 </label>
               </div>
               <p className="mt-2 text-sm text-gray-500">
-                Supported formats: MP4, AVI, MOV, WMV, MKV (Max size: 500MB)
+                Supported formats: MP4, AVI, MOV, WMV, MKV (Max size: 100MB)
+              </p>
+              <p className="mt-1 text-xs text-red-600">
+                ⚠️ Large files may cause upload errors. Consider compressing your video.
               </p>
               {formData.videoFile && (
                 <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
