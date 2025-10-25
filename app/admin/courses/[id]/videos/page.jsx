@@ -444,8 +444,15 @@ function VideoModal({ courseId, video, onClose, onSave }) {
         fileType: formData.videoFile.type
       });
 
-      // Check if we should use chunked upload (for files > 10MB)
-      const shouldUseChunked = shouldUseChunkedUpload(formData.videoFile, 10 * 1024 * 1024);
+      // Check if we should use chunked upload (for files > 5MB due to Vercel limits)
+      const shouldUseChunked = shouldUseChunkedUpload(formData.videoFile, 5 * 1024 * 1024);
+      
+      console.log('Upload method decision:', {
+        fileSize: formData.videoFile.size,
+        fileSizeMB: fileSizeMB,
+        threshold: '5MB',
+        shouldUseChunked: shouldUseChunked
+      });
       
       if (shouldUseChunked) {
         console.log('Using chunked upload for large file');
