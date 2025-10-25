@@ -107,9 +107,19 @@ export async function POST(request) {
 
     // Validate file size (max 100MB for now to avoid 413 errors)
     const maxSize = 100 * 1024 * 1024; // 100MB
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    console.log('API file size validation:', {
+      fileSize: file.size,
+      fileSizeMB: fileSizeMB,
+      maxSize: maxSize,
+      maxSizeMB: '100MB',
+      isOverLimit: file.size > maxSize
+    });
+    
     if (file.size > maxSize) {
+      console.log('File rejected for being too large:', fileSizeMB + 'MB');
       return NextResponse.json(
-        { error: 'File size too large. Maximum size is 100MB. Please compress your video or use a smaller file.' },
+        { error: `File size too large. Your file is ${fileSizeMB}MB, but maximum size is 100MB. Please compress your video or use a smaller file.` },
         { status: 400 }
       );
     }

@@ -404,8 +404,19 @@ function VideoModal({ courseId, video, onClose, onSave }) {
 
       // Validate file size (100MB max to avoid 413 errors)
       const maxSize = 100 * 1024 * 1024; // 100MB
+      const fileSizeMB = (formData.videoFile.size / (1024 * 1024)).toFixed(2);
+      console.log('File size validation:', {
+        fileSize: formData.videoFile.size,
+        fileSizeMB: fileSizeMB,
+        maxSize: maxSize,
+        maxSizeMB: '100MB',
+        isOverLimit: formData.videoFile.size > maxSize,
+        fileName: formData.videoFile.name,
+        fileType: formData.videoFile.type
+      });
+      
       if (formData.videoFile.size > maxSize) {
-        alert('File size too large. Maximum size is 100MB. Please compress your video or use a smaller file.');
+        alert(`File size too large. Your file is ${fileSizeMB}MB, but maximum size is 100MB. Please compress your video or use a smaller file.`);
         setIsSubmitting(false);
         return;
       }
