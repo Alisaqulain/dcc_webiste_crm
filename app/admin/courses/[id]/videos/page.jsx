@@ -415,11 +415,25 @@ function VideoModal({ courseId, video, onClose, onSave }) {
         fileType: formData.videoFile.type
       });
       
+      // Additional debugging
+      console.log('File object details:', {
+        name: formData.videoFile.name,
+        size: formData.videoFile.size,
+        type: formData.videoFile.type,
+        lastModified: formData.videoFile.lastModified,
+        sizeInBytes: formData.videoFile.size,
+        sizeInKB: (formData.videoFile.size / 1024).toFixed(2),
+        sizeInMB: (formData.videoFile.size / (1024 * 1024)).toFixed(2)
+      });
+      
       if (formData.videoFile.size > maxSize) {
+        console.log('File rejected by frontend validation - too large');
         alert(`File size too large. Your file is ${fileSizeMB}MB, but maximum size is 100MB. Please compress your video or use a smaller file.`);
         setIsSubmitting(false);
         return;
       }
+      
+      console.log('File passed frontend validation');
 
       // Validate file type
       if (!formData.videoFile.type.startsWith('video/')) {

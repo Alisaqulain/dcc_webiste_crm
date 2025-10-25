@@ -48,11 +48,37 @@ export async function POST(request) {
     console.log('Parsing form data...');
     let formData;
     try {
+      console.log('Starting form data parsing...');
+      
+      // Check content length first
+      const contentLength = request.headers.get('content-length');
+      console.log('Content-Length header:', contentLength);
+      
+      if (contentLength) {
+        const sizeInMB = parseInt(contentLength) / (1024 * 1024);
+        console.log('Request size:', sizeInMB.toFixed(2) + 'MB');
+        
+        if (sizeInMB > 100) {
+          console.log('Request too large based on Content-Length header');
+          return NextResponse.json(
+            { error: 'Video file is too large. Please use a video smaller than 100MB or compress it.' },
+            { status: 413 }
+          );
+        }
+      }
+      
       formData = await request.formData();
       console.log('Form data parsed successfully');
     } catch (parseError) {
       console.error('Form data parsing error:', parseError);
+      console.error('Parse error details:', {
+        message: parseError.message,
+        name: parseError.name,
+        stack: parseError.stack
+      });
+      
       if (parseError.message.includes('413') || parseError.message.includes('Payload Too Large')) {
+        console.log('413 error detected during form parsing');
         return NextResponse.json(
           { error: 'Video file is too large. Please use a video smaller than 100MB or compress it.' },
           { status: 413 }
@@ -77,12 +103,26 @@ export async function POST(request) {
       fileSize: file ? file.size : 0,
       fileType: file ? file.type : 'none',
       fileSizeMB: file ? (file.size / (1024 * 1024)).toFixed(2) + 'MB' : '0MB',
+      fileName: file ? file.name : 'none',
       courseId,
       title,
       description,
       duration,
       isPreview
     });
+
+    // Additional file debugging
+    if (file) {
+      console.log('File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified,
+        sizeInBytes: file.size,
+        sizeInKB: (file.size / 1024).toFixed(2),
+        sizeInMB: (file.size / (1024 * 1024)).toFixed(2)
+      });
+    }
 
     if (!file || !courseId || !title || !duration) {
       console.log('Missing required fields:', {
