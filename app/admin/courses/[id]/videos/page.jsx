@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { ChunkedUploader, shouldUseChunkedUpload, getOptimalChunkSize } from '@/lib/chunkedUpload';
 
 export default function CourseVideosPage() {
   const router = useRouter();
@@ -402,39 +403,6 @@ function VideoModal({ courseId, video, onClose, onSave }) {
         return;
       }
 
-      // Validate file size (100MB max to avoid 413 errors)
-      const maxSize = 100 * 1024 * 1024; // 100MB
-      const fileSizeMB = (formData.videoFile.size / (1024 * 1024)).toFixed(2);
-      console.log('File size validation:', {
-        fileSize: formData.videoFile.size,
-        fileSizeMB: fileSizeMB,
-        maxSize: maxSize,
-        maxSizeMB: '100MB',
-        isOverLimit: formData.videoFile.size > maxSize,
-        fileName: formData.videoFile.name,
-        fileType: formData.videoFile.type
-      });
-      
-      // Additional debugging
-      console.log('File object details:', {
-        name: formData.videoFile.name,
-        size: formData.videoFile.size,
-        type: formData.videoFile.type,
-        lastModified: formData.videoFile.lastModified,
-        sizeInBytes: formData.videoFile.size,
-        sizeInKB: (formData.videoFile.size / 1024).toFixed(2),
-        sizeInMB: (formData.videoFile.size / (1024 * 1024)).toFixed(2)
-      });
-      
-      if (formData.videoFile.size > maxSize) {
-        console.log('File rejected by frontend validation - too large');
-        alert(`File size too large. Your file is ${fileSizeMB}MB, but maximum size is 100MB. Please compress your video or use a smaller file.`);
-        setIsSubmitting(false);
-        return;
-      }
-      
-      console.log('File passed frontend validation');
-
       // Validate file type
       if (!formData.videoFile.type.startsWith('video/')) {
         alert('Please select a valid video file');
@@ -460,70 +428,135 @@ function VideoModal({ courseId, video, onClose, onSave }) {
         }
       }
 
-      // Handle video file upload
-      const uploadFormData = new FormData();
-      uploadFormData.append('video', formData.videoFile);
-      if (formData.thumbnailFile) {
-        uploadFormData.append('thumbnail', formData.thumbnailFile);
-      }
-      uploadFormData.append('courseId', courseId);
-      uploadFormData.append('title', formData.title);
-      uploadFormData.append('description', formData.description);
-      uploadFormData.append('duration', formData.duration);
-      uploadFormData.append('isPreview', formData.isPreview);
-
+      // Get admin token
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('/api/admin/video-upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: uploadFormData
+      if (!token) {
+        alert('Please log in to upload videos');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const fileSizeMB = (formData.videoFile.size / (1024 * 1024)).toFixed(2);
+      console.log('Video upload started:', {
+        fileName: formData.videoFile.name,
+        fileSize: formData.videoFile.size,
+        fileSizeMB: fileSizeMB,
+        fileType: formData.videoFile.type
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Video uploaded successfully:', result);
-        onClose();
-        // Refresh the page to show the new video
-        window.location.reload();
+      // Check if we should use chunked upload (for files > 10MB)
+      const shouldUseChunked = shouldUseChunkedUpload(formData.videoFile, 10 * 1024 * 1024);
+      
+      if (shouldUseChunked) {
+        console.log('Using chunked upload for large file');
+        await handleChunkedUpload(token);
       } else {
-        let errorMessage = 'Error uploading video';
-        
-        // Handle specific error codes
-        if (response.status === 413) {
-          errorMessage = 'Video file is too large! Please use a video smaller than 100MB or compress it.';
-        } else if (response.status === 400) {
-          try {
-            const error = await response.json();
-            errorMessage = error.error || 'Invalid video file or missing required fields';
-          } catch (jsonError) {
-            errorMessage = 'Invalid video file or missing required fields';
-          }
-        } else {
-          try {
-            const error = await response.json();
-            errorMessage = error.error || errorMessage;
-          } catch (jsonError) {
-            // If response is not JSON, try to get text
-            try {
-              const errorText = await response.text();
-              console.error('Non-JSON error response:', errorText);
-              errorMessage = `Server error: ${response.status} ${response.statusText}`;
-            } catch (textError) {
-              console.error('Could not parse error response:', textError);
-              errorMessage = `Server error: ${response.status} ${response.statusText}`;
-            }
-          }
-        }
-        alert(errorMessage);
+        console.log('Using regular upload for small file');
+        await handleRegularUpload(token);
       }
+
     } catch (error) {
-      console.error('Error saving video:', error);
-      alert('Error saving video: ' + error.message);
+      console.error('Error uploading video:', error);
+      alert('Error uploading video: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleRegularUpload = async (token) => {
+    // Create form data for upload
+    const uploadFormData = new FormData();
+    uploadFormData.append('video', formData.videoFile);
+    uploadFormData.append('courseId', courseId);
+    uploadFormData.append('title', formData.title);
+    uploadFormData.append('description', formData.description);
+    uploadFormData.append('duration', formData.duration);
+    uploadFormData.append('isPreview', formData.isPreview);
+
+    if (formData.thumbnailFile) {
+      uploadFormData.append('thumbnail', formData.thumbnailFile);
+    }
+
+    console.log('Uploading video via regular upload...');
+    const response = await fetch('/api/admin/video-upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: uploadFormData
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('Video uploaded successfully:', result);
+      onClose();
+      window.location.reload();
+    } else {
+      let errorMessage = 'Error uploading video';
+
+      if (response.status === 413) {
+        errorMessage = 'Video file is too large! Please use a video smaller than 100MB or compress it.';
+      } else if (response.status === 400) {
+        try {
+          const error = await response.json();
+          errorMessage = error.error || 'Invalid video file or missing required fields';
+        } catch (jsonError) {
+          errorMessage = 'Invalid video file or missing required fields';
+        }
+      } else {
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+        } catch (jsonError) {
+          try {
+            const errorText = await response.text();
+            console.error('Non-JSON error response:', errorText);
+            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          } catch (textError) {
+            console.error('Could not parse error response:', textError);
+            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          }
+        }
+      }
+      alert(errorMessage);
+    }
+  };
+
+  const handleChunkedUpload = async (token) => {
+    const chunkSize = getOptimalChunkSize(formData.videoFile.size);
+    console.log(`Using chunked upload with ${chunkSize} byte chunks`);
+
+    const uploader = new ChunkedUploader(formData.videoFile, {
+      chunkSize: chunkSize,
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      onProgress: (progress, message) => {
+        console.log(`Upload progress: ${progress.toFixed(1)}% - ${message}`);
+        // You could update a progress bar here
+      },
+      onError: (error) => {
+        console.error('Chunked upload error:', error);
+        throw error;
+      },
+      onSuccess: (result) => {
+        console.log('Chunked upload completed successfully:', result);
+        onClose();
+        window.location.reload();
+      }
+    });
+
+    // Override getAdditionalFormData to include our form data
+    uploader.getAdditionalFormData = () => ({
+      courseId: courseId,
+      title: formData.title,
+      description: formData.description,
+      duration: formData.duration,
+      isPreview: formData.isPreview.toString(),
+      ...(formData.thumbnailFile && { thumbnail: formData.thumbnailFile })
+    });
+
+    await uploader.upload();
   };
 
   return (
