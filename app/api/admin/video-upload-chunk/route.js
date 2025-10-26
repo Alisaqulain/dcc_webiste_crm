@@ -3,6 +3,7 @@ import connectDB from '@/lib/mongodb';
 import Course from '@/models/Course';
 import jwt from 'jsonwebtoken';
 import { storageService } from '@/lib/storage';
+import mongoose from 'mongoose';
 
 // Verify admin token
 const verifyAdminToken = (request) => {
@@ -18,7 +19,9 @@ const verifyAdminToken = (request) => {
   }
 };
 
-// Store for temporary chunk data (in production, use Redis or database)
+// In-memory chunk storage for the request lifecycle
+// Note: This works for single function invocations
+// For better reliability, consider using Redis or S3 for production
 const chunkStore = new Map();
 
 export async function POST(request) {
@@ -73,8 +76,23 @@ export async function POST(request) {
       fileName,
       fileType,
       fileSize,
-      chunkSize: chunk.size
+      chunkSize: chunk.size,
+      courseId,
+      hasMetadata: !!(courseId && title && duration)
     });
+
+    // Validate required fields are present
+    if (chunkIndex === 0 && (!courseId || !title || !duration)) {
+      console.error('Missing required metadata on first chunk:', {
+        hasCourseId: !!courseId,
+        hasTitle: !!title,
+        hasDuration: !!duration
+      });
+      return NextResponse.json(
+        { error: 'Missing required fields: courseId, title, and duration are required' },
+        { status: 400 }
+      );
+    }
 
     // Store chunk
     const chunkKey = `${fileName}-${chunkIndex}`;
