@@ -52,6 +52,21 @@ export async function POST(request) {
     const duration = formData.get('duration');
     const isPreview = formData.get('isPreview') === 'true';
 
+    console.log('Chunk data received:', {
+      chunkIndex,
+      totalChunks,
+      fileName,
+      fileType,
+      fileSize,
+      courseId,
+      title,
+      description,
+      duration,
+      isPreview,
+      hasChunk: !!chunk,
+      chunkSize: chunk?.size || 0
+    });
+
     console.log('Chunk received:', {
       chunkIndex,
       totalChunks,
