@@ -20,6 +20,48 @@ You can start editing the page by modifying `app/page.js`. The page auto-updates
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Production Deployment
+
+### Important: Environment Variables
+
+Before deploying to production, you **MUST** update your environment variables, especially:
+
+- `NEXTAUTH_URL` - Change from `http://localhost:3000` to your production domain (e.g., `https://yourdomain.com`)
+- `NEXTAUTH_SECRET` - Use a strong, randomly generated secret
+- `MONGODB_URI` - Use your production database
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` - Update Google OAuth credentials
+
+### Quick Setup
+
+1. **Copy environment template:**
+   ```bash
+   cp env.example .env
+   ```
+
+2. **Update .env file** with your production values:
+   - Change `NEXTAUTH_URL` to your production domain
+   - Generate a secure `NEXTAUTH_SECRET` (use `openssl rand -base64 32`)
+   - Update all other credentials
+
+3. **Run the deployment script (optional):**
+   ```bash
+   chmod +x deploy-production.sh
+   ./deploy-production.sh
+   ```
+
+4. **Update Google OAuth credentials:**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Add your production domain to Authorized JavaScript origins
+   - Add callback URL: `https://yourdomain.com/api/auth/callback/google`
+
+5. **Build and start:**
+   ```bash
+   npm run build
+   npm start
+   ```
+
+For detailed production deployment instructions, see [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
