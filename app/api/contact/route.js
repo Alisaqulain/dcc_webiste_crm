@@ -128,11 +128,11 @@ Please respond to this inquiry within 24 hours.
           </p>
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/courses" 
+            <a href="${process.env.NEXTAUTH_URL || 'https://www.digitalcareercenter.com'}/courses" 
                style="background-color: #dc2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; margin: 5px;">
               Browse Courses
             </a>
-            <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/blog" 
+            <a href="${process.env.NEXTAUTH_URL || 'https://www.digitalcareercenter.com'}/blog" 
                style="background-color: #6b7280; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; margin: 5px;">
               Read Our Blog
             </a>

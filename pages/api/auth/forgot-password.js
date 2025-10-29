@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     await user.save();
 
     // Send password reset email
-    const resetLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+    const resetLink = `${process.env.NEXTAUTH_URL || 'https://www.digitalcareercenter.com'}/reset-password?token=${resetToken}`;
     
     const emailResult = await sendPasswordResetEmail(email, resetLink);
     

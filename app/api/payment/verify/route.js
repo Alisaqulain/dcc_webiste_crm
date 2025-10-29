@@ -104,7 +104,7 @@ export async function POST(request) {
             <h3>Refer & Earn Program:</h3>
             <p>Share your referral code with friends and earn 10% commission on their course purchases!</p>
             <p><strong>Your Referral Code:</strong> <span style="background: #dc2626; color: white; padding: 4px 8px; border-radius: 4px;">${user.referralCode || 'REF' + user._id.toString().slice(-6).toUpperCase()}</span></p>
-            <p>Share this code: <strong>${process.env.NEXTAUTH_URL}/signup?ref=${user.referralCode || 'REF' + user._id.toString().slice(-6).toUpperCase()}</strong></p>
+            <p>Share this code: <strong>${process.env.NEXTAUTH_URL || 'https://www.digitalcareercenter.com'}/signup?ref=${user.referralCode || 'REF' + user._id.toString().slice(-6).toUpperCase()}</strong></p>
           </div>
           
           <p>You can now access your course in the "My Courses" section.</p>
