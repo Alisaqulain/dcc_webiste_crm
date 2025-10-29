@@ -3,8 +3,9 @@ import mongoose from 'mongoose';
 const idCardSchema = new mongoose.Schema({
   studentName: {
     type: String,
-    required: true,
-    trim: true
+    required: false,
+    trim: true,
+    default: ''
   },
   rollNumber: {
     type: String,
@@ -14,8 +15,9 @@ const idCardSchema = new mongoose.Schema({
   },
   courseName: {
     type: String,
-    required: true,
-    trim: true
+    required: false,
+    trim: true,
+    default: ''
   },
   photo: {
     type: String,
@@ -31,9 +33,30 @@ const idCardSchema = new mongoose.Schema({
   }
 });
 
+// Use 'validate' hook to ensure fields are set BEFORE Mongoose validation runs
+idCardSchema.pre('validate', function(next) {
+  // Ensure optional fields have default values if not set (runs before validation)
+  if (this.studentName === undefined || this.studentName === null) {
+    this.studentName = '';
+  }
+  if (this.courseName === undefined || this.courseName === null) {
+    this.courseName = '';
+  }
+  next();
+});
+
 // Update the updatedAt field before saving
 idCardSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
+  
+  // Double check before save
+  if (this.studentName === undefined || this.studentName === null) {
+    this.studentName = '';
+  }
+  if (this.courseName === undefined || this.courseName === null) {
+    this.courseName = '';
+  }
+  
   next();
 });
 
@@ -43,6 +66,11 @@ idCardSchema.index({ studentName: 1 });
 idCardSchema.index({ courseName: 1 });
 idCardSchema.index({ createdAt: -1 });
 
-const IDCard = mongoose.models.IDCard || mongoose.model('IDCard', idCardSchema);
+// Delete the cached model if it exists to ensure schema changes take effect
+if (mongoose.models.IDCard) {
+  delete mongoose.models.IDCard;
+}
+
+const IDCard = mongoose.model('IDCard', idCardSchema);
 
 export default IDCard;

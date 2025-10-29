@@ -256,16 +256,65 @@ function CertificateModal({ certificate, onClose, onSave }) {
     duration: certificate?.duration || '',
     startDate: certificate?.startDate || '',
     endDate: certificate?.endDate || '',
-    rollNumber: certificate?.rollNumber || ''
+    rollNumber: certificate?.rollNumber || '',
+    photo: certificate?.photo || ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedPhoto, setUploadedPhoto] = useState(null);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setUploadedPhoto(result.url);
+        setFormData(prev => ({ ...prev, photo: result.url }));
+      } else {
+        alert('Upload failed: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      console.log('Submitting form data:', formData);
+      console.log('Photo in formData:', formData.photo);
+      
       if (certificate) {
         await onSave(certificate._id, formData);
       } else {
@@ -392,6 +441,37 @@ function CertificateModal({ certificate, onClose, onSave }) {
                   onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
+              </div>
+            </div>
+
+            {/* Student Photo Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Student Photo</label>
+              
+              {/* Photo Preview */}
+              {(uploadedPhoto || formData.photo) && (
+                <div className="mb-4">
+                  <img
+                    src={uploadedPhoto || formData.photo}
+                    alt="Student photo preview"
+                    className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                  />
+                </div>
+              )}
+
+              {/* Upload Section */}
+              <div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  disabled={isUploading}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
+                />
+                {isUploading && (
+                  <p className="text-sm text-red-600 mt-1">Uploading...</p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">Max file size: 5MB. Supported formats: JPG, PNG, GIF, WebP</p>
               </div>
             </div>
 

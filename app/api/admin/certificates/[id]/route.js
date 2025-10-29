@@ -39,7 +39,8 @@ export async function PUT(request, { params }) {
       duration,
       startDate,
       endDate,
-      rollNumber
+      rollNumber,
+      photo
     } = body;
 
     // Validate required fields
@@ -70,6 +71,9 @@ export async function PUT(request, { params }) {
       );
     }
 
+    console.log('Updating certificate with photo:', photo);
+    console.log('Photo type:', typeof photo);
+    
     // Update certificate
     certificate.studentName = studentName;
     certificate.parentName = parentName;
@@ -79,13 +83,37 @@ export async function PUT(request, { params }) {
     certificate.startDate = new Date(startDate);
     certificate.endDate = new Date(endDate);
     certificate.rollNumber = rollNumber;
+    
+    // Update photo - explicitly set the value
+    if (photo !== undefined && photo !== null) {
+      if (photo === '' || (typeof photo === 'string' && photo.trim() === '')) {
+        // If empty string, remove the photo field
+        certificate.photo = undefined;
+        certificate.markModified('photo');
+      } else {
+        // Set the photo value
+        certificate.photo = String(photo).trim();
+        certificate.markModified('photo');
+        console.log('Photo set to:', certificate.photo);
+      }
+    } else {
+      console.log('Photo undefined or null, keeping existing value');
+    }
 
     await certificate.save();
+    
+    // Reload from database to verify it was saved
+    const savedCertificate = await Certificate.findById(id);
+    console.log('Certificate updated. Photo in DB (reloaded):', savedCertificate?.photo);
+    console.log('Certificate updated. Photo in certificate object:', certificate.photo);
+    
+    const certificateObj = savedCertificate?.toObject ? savedCertificate.toObject() : savedCertificate;
+    console.log('Certificate toObject (from reloaded):', JSON.stringify(certificateObj, null, 2));
 
     return NextResponse.json({
       success: true,
       message: 'Certificate updated successfully',
-      certificate
+      certificate: certificateObj || (certificate.toObject ? certificate.toObject() : certificate)
     });
 
   } catch (error) {

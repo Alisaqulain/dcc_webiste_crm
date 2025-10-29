@@ -147,13 +147,7 @@ export default function AdminIDCardsPage() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Student Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Roll Number
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Course
+                      Roll Number / ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Photo
@@ -167,13 +161,7 @@ export default function AdminIDCardsPage() {
                   {idCards.map((idCard) => (
                     <tr key={idCard._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {idCard.studentName}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {idCard.rollNumber}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {idCard.courseName}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {idCard.photo ? (
@@ -253,19 +241,65 @@ export default function AdminIDCardsPage() {
 // ID Card Modal Component
 function IDCardModal({ idCard, onClose, onSave }) {
   const [formData, setFormData] = useState({
-    studentName: idCard?.studentName || '',
     rollNumber: idCard?.rollNumber || '',
-    courseName: idCard?.courseName || '',
-    photo: idCard?.photo || null
+    photo: idCard?.photo || ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedPhoto, setUploadedPhoto] = useState(null);
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setUploadedPhoto(result.url);
+        setFormData(prev => ({ ...prev, photo: result.url }));
+      } else {
+        alert('Upload failed: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
+      console.log('Submitting form data:', formData);
+      console.log('Photo in formData:', formData.photo);
+
       if (idCard) {
         await onSave(idCard._id, formData);
       } else {
@@ -276,17 +310,6 @@ function IDCardModal({ idCard, onClose, onSave }) {
       alert('Error saving ID card');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFormData(prev => ({ ...prev, photo: e.target.result }));
-      };
-      reader.readAsDataURL(file);
     }
   };
 
@@ -309,68 +332,42 @@ function IDCardModal({ idCard, onClose, onSave }) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Student Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.studentName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, studentName: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Enter student name"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Roll Number *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Roll Number / ID *</label>
                 <input
                   type="text"
                   required
                   value={formData.rollNumber}
                   onChange={(e) => setFormData(prev => ({ ...prev, rollNumber: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Enter roll number"
+                  placeholder="Enter roll number or ID"
                 />
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Course Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.courseName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, courseName: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Enter course name"
-                />
-              </div>
-
-              <div className="md:col-span-2">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Student Photo</label>
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    {formData.photo ? (
-                      <img
-                        src={formData.photo}
-                        alt="Student photo preview"
-                        className="w-20 h-20 rounded-full object-cover border-2 border-gray-300"
-                      />
-                    ) : (
-                      <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
-                        <span className="text-gray-400 text-sm">No Photo</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                {(uploadedPhoto || formData.photo) && (
+                  <div className="mb-4">
+                    <img
+                      src={uploadedPhoto || formData.photo}
+                      alt="Student photo preview"
+                      className="w-32 h-32 object-cover rounded-full border-2 border-gray-300"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Upload a clear photo of the student</p>
                   </div>
+                )}
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    disabled={isUploading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
+                  />
+                  {isUploading && (
+                    <p className="text-sm text-red-600 mt-1">Uploading...</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">Max file size: 5MB. Supported formats: JPG, PNG, GIF, WebP</p>
                 </div>
               </div>
             </div>

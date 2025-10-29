@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import Image from 'next/image';
 
 export default function CertificateDownloadPage() {
   const { rollNumber } = useParams();
@@ -18,6 +19,8 @@ export default function CertificateDownloadPage() {
       const response = await fetch(`/api/certificate/${rollNumber}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Certificate data:', data.certificate);
+        console.log('Photo URL:', data.certificate?.photo);
         setCertificate(data.certificate);
       } else {
         setError('Certificate not found');
@@ -30,113 +33,162 @@ export default function CertificateDownloadPage() {
     }
   };
 
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    try {
+      return new Date(date).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
   const handleDownload = () => {
+    if (!certificate) return;
+    
     // Create a new window with the certificate
     const printWindow = window.open('', '_blank');
+    const studentName = certificate.studentName || 'N/A';
+    const parentName = certificate.parentName || 'N/A';
+    const courseName = certificate.courseName || 'N/A';
+    const duration = certificate.duration || 0;
+    const startDate = formatDate(certificate.startDate);
+    const endDate = new Date(certificate.endDate).getFullYear();
+    const rollNum = certificate.rollNumber || 'N/A';
+    const photoUrl = certificate.photo || '';
+    
+    // Get the full URL for the certificate image
+    const imageUrl = window.location.origin + '/certificate1.jpg';
+    
+    // Write the HTML content
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Certificate - ${certificate.studentName}</title>
+          <title>Certificate - ${studentName}</title>
           <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
             body {
               font-family: Arial, sans-serif;
               margin: 0;
-              padding: 20px;
-              background: #f5f5f5;
-            }
-            .certificate {
+              padding: 0;
               background: white;
-              max-width: 800px;
-              margin: 0 auto;
-              padding: 40px;
-              border-radius: 10px;
-              box-shadow: 0 0 20px rgba(0,0,0,0.1);
-              text-align: center;
-            }
-            .header {
-              color: #dc2626;
-              font-size: 28px;
-              font-weight: bold;
-              margin-bottom: 10px;
-            }
-            .subtitle {
-              color: #666;
-              font-size: 18px;
-              margin-bottom: 30px;
-            }
-            .content {
-              margin: 40px 0;
-            }
-            .student-name {
-              font-size: 24px;
-              font-weight: bold;
-              color: #333;
-              margin: 20px 0;
-            }
-            .details {
-              font-size: 16px;
-              color: #555;
-              line-height: 1.6;
-              margin: 20px 0;
-            }
-            .dates {
               display: flex;
-              justify-content: space-between;
-              margin: 30px 0;
-              font-size: 14px;
-              color: #666;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
             }
-            .signature {
-              margin-top: 40px;
-              text-align: right;
+            .certificate-container {
+              position: relative;
+              width: 800px;
+              max-width: 100%;
+              aspect-ratio: 4/3;
+              margin: 20px auto;
             }
-            .signature-line {
-              border-top: 1px solid #333;
-              width: 200px;
-              margin: 10px 0 5px auto;
+            .certificate-image {
+              width: 100%;
+              height: 100%;
+              object-fit: contain;
+              display: block;
+              position: absolute;
+              top: 0;
+              left: 0;
             }
+            .certificate-overlay {
+              position: absolute;
+              font-weight: bold;
+              color: black;
+              z-index: 10;
+              white-space: nowrap;
+            }
+            /* Certificate Number */
+            .overlay-roll { top: 26.5%; left: 55.5%; font-size: 18px; }
+            /* Student Name */
+            .overlay-name { top: 45%; left: 60%; font-size: 22px; }
+            /* Parent Name */
+            .overlay-parent { top: 49%; left: 47%; font-size: 18px; }
+            /* Course Name */
+            .overlay-course { top: 53%; left: 50%; font-size: 18px; }
+            /* Duration */
+            .overlay-duration { top: 57%; left: 65%; font-size: 18px; }
+            /* Start Date */
+            .overlay-start-date { top: 62%; left: 45%; font-size: 16px; }
+            /* End Date */
+            .overlay-end-date { top: 62%; left: 65%; font-size: 16px; }
             @media print {
-              body { background: white; }
-              .certificate { box-shadow: none; }
+              body { 
+                background: white;
+                margin: 0;
+                padding: 0;
+              }
+              .certificate-container {
+                margin: 0;
+                width: 100%;
+                page-break-after: avoid;
+              }
             }
           </style>
         </head>
         <body>
-          <div class="certificate">
-            <div class="header">DIGITAL CAREER CENTER</div>
-            <div class="subtitle">Certificate of Completion</div>
-            
-            <div class="content">
-              <p class="details">
-                This is to certify that
-              </p>
-              <div class="student-name">${certificate.studentName}</div>
-              <p class="details">
-                ${certificate.relation} <strong>${certificate.parentName}</strong><br>
-                has successfully completed the course
-              </p>
-              <div class="student-name">${certificate.courseName}</div>
-              <p class="details">
-                Duration: ${certificate.duration} days
-              </p>
-            </div>
-            
-            <div class="dates">
-              <div>From: ${new Date(certificate.startDate).toLocaleDateString()}</div>
-              <div>To: ${new Date(certificate.endDate).toLocaleDateString()}</div>
-            </div>
-            
-            <div class="signature">
-              <div class="signature-line"></div>
-              <div>Authorized Signature</div>
-            </div>
+          <div class="certificate-container">
+            <img src="${imageUrl}" alt="Certificate" class="certificate-image" onload="window.printWhenReady = true; if (window.imageLoaded) window.printReady();" onerror="console.error('Image failed to load:', '${imageUrl}'); window.printWhenReady = true; if (window.imageLoaded) window.printReady();" />
+            ${photoUrl ? `<img src="${photoUrl.startsWith('http') || photoUrl.startsWith('data:') ? photoUrl : photoUrl.startsWith('/') ? photoUrl : '/' + photoUrl}" alt="Student photo" class="certificate-overlay" style="top: 25%; left: 80%; width: 130px; height: 120px; border-radius: 8px; object-fit: cover; border: 2px solid #ccc; z-index: 15;" onerror="this.style.display='none'; console.error('Photo failed to load:', '${photoUrl}');" />` : ''}
+            <div class="certificate-overlay overlay-roll">${rollNum}</div>
+            <div class="certificate-overlay overlay-name">${studentName}</div>
+            <div class="certificate-overlay overlay-parent">${parentName}</div>
+            <div class="certificate-overlay overlay-course">${courseName}</div>
+            <div class="certificate-overlay overlay-duration">${duration}</div>
+            <div class="certificate-overlay overlay-start-date">${startDate}</div>
+            <div class="certificate-overlay overlay-end-date">${endDate}</div>
           </div>
+          <script>
+            (function() {
+              var img = document.querySelector('.certificate-image');
+              var printReady = false;
+              
+              function tryPrint() {
+                if (printReady) {
+                  setTimeout(function() {
+                    window.print();
+                  }, 800);
+                }
+              }
+              
+              if (img) {
+                if (img.complete && img.naturalHeight !== 0) {
+                  printReady = true;
+                  tryPrint();
+                } else {
+                  img.onload = function() {
+                    printReady = true;
+                    tryPrint();
+                  };
+                  img.onerror = function() {
+                    console.error('Image failed to load:', '${imageUrl}');
+                    alert('Certificate image could not be loaded. Please check the image path.');
+                  };
+                }
+              }
+              
+              window.addEventListener('load', function() {
+                if (!printReady && img && img.complete) {
+                  printReady = true;
+                  tryPrint();
+                }
+              });
+            })();
+          </script>
         </body>
       </html>
     `);
     printWindow.document.close();
-    printWindow.print();
   };
 
   if (isLoading) {
@@ -173,37 +225,96 @@ export default function CertificateDownloadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-red-600 mb-2">DIGITAL CAREER CENTER</h1>
-            <h2 className="text-xl text-gray-600">Certificate of Completion</h2>
+    <div className="min-h-screen bg-gray-50 py-8 sm:py-12 md:py-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        {/* Certificate Display Section */}
+        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-12 mb-8">
+          {/* Certificate Image Container with Overlays */}
+          <div className="relative max-w-5xl mx-auto">
+            <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl p-4 sm:p-6 shadow-inner relative">
+              <div className="relative w-full aspect-[4/3]">
+                <Image
+                  src="/certificate1.jpg"
+                  alt="Digital Career Center Certificate"
+                  fill
+                  className="object-contain rounded-lg shadow-lg"
+                  priority
+                />
+                
+                {/* Overlay Elements - Positioned absolutely over the certificate image */}
+                {/* Student Photo - if available */}
+                {certificate.photo && (
+                  <>
+                    <img 
+                      src={certificate.photo.startsWith('http') || certificate.photo.startsWith('data:') ? certificate.photo : certificate.photo.startsWith('/') ? certificate.photo : `/${certificate.photo}`}
+                      alt="Student photo" 
+                      className='absolute z-10 rounded object-cover border-2 border-gray-300'
+                      style={{ 
+                        top: '25%', 
+                        left: '80%', 
+                        width: 'clamp(75px, 15vw, 140px)', 
+                        height: 'clamp(80px, 15vw, 140px)',
+                        backgroundColor: '#f3f4f6'
+                      }}
+                      onError={(e) => {
+                        console.error('Photo failed to load. Original URL:', certificate.photo);
+                        const attemptedUrl = certificate.photo.startsWith('http') || certificate.photo.startsWith('data:') ? certificate.photo : certificate.photo.startsWith('/') ? certificate.photo : `/${certificate.photo}`;
+                        console.error('Attempted URL:', attemptedUrl);
+                        e.target.style.border = '2px solid red';
+                        e.target.style.opacity = '0.5';
+                      }}
+                      onLoad={() => {
+                        console.log('Photo loaded successfully:', certificate.photo);
+                      }}
+                    />
+                    {/* Debug info - remove in production */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <div className="absolute top-4 left-4 z-20 bg-yellow-100 p-2 text-xs rounded">
+                        Photo: {certificate.photo ? 'Present' : 'Missing'}
           </div>
-
-          <div className="text-center mb-8">
-            <p className="text-lg text-gray-700 mb-4">This is to certify that</p>
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">{certificate.studentName}</h3>
-            <p className="text-lg text-gray-700 mb-2">
-              {certificate.relation} <strong>{certificate.parentName}</strong>
-            </p>
-            <p className="text-lg text-gray-700 mb-4">has successfully completed the course</p>
-            <h4 className="text-2xl font-bold text-gray-900 mb-4">{certificate.courseName}</h4>
-            <p className="text-lg text-gray-700">Duration: {certificate.duration} days</p>
+                    )}
+                  </>
+                )}
+                
+                {/* Certificate Number - positioned next to "Certificate No." label */}
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '26.5%', left: '55.5%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
+                  {certificate.rollNumber || 'N/A'}
+                </span>
+                
+                {/* Student Name - positioned right after "Mr./Ms." label */}
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '45%', left: '60%', fontSize: 'clamp(14px, 2vw, 24px)' }}>
+                  {certificate.studentName || 'N/A'}
+                </span>
+                
+                {/* Parent/Guardian Name - positioned right after "S/o, D/o, ." label */}
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '49%', left: '47%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
+                  {certificate.parentName || 'N/A'}
+                </span>
+                
+                {/* Course Name - positioned right after "in" */}
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '53%', left: '50%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
+                  {certificate.courseName || 'N/A'}
+                </span>
+                
+                {/* Duration - positioned right before "/ Days by" */}
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '57%', left: '65%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
+                  {certificate.duration || 0}
+                </span>
+                
+                {/* Start Date - positioned in date field (Dec 12, 2005 format) */}
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '62%', left: '45%', fontSize: 'clamp(10px, 1.5vw, 18px)' }}>
+                  {formatDate(certificate.startDate)}
+                </span>
+                
+                {/* End Date - positioned in date field (just year) */}
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '62%', left: '65%', fontSize: 'clamp(10px, 1.5vw, 18px)' }}>
+                  {new Date(certificate.endDate).getFullYear()}
+                </span>
           </div>
-
-          <div className="flex justify-between text-sm text-gray-600 mb-8">
-            <div>From: {new Date(certificate.startDate).toLocaleDateString()}</div>
-            <div>To: {new Date(certificate.endDate).toLocaleDateString()}</div>
-          </div>
-
-          <div className="text-right">
-            <div className="inline-block">
-              <div className="border-t border-gray-400 w-48 mb-2"></div>
-              <p className="text-sm text-gray-600">Authorized Signature</p>
             </div>
           </div>
 
+          {/* Download Button */}
           <div className="mt-8 text-center">
             <button
               onClick={handleDownload}

@@ -76,7 +76,7 @@ export default function CertificatePage() {
                   alt="Digital Career Center Certificate"
                   width={800}
                   height={600}
-                  className="w-full h-auto rounded-lg shadow-lg"
+                  className="w-full h-auto  shadow-lg"
                   priority
                 />
               </div>

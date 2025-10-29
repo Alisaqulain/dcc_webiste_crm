@@ -65,7 +65,8 @@ export async function POST(request) {
       duration,
       startDate,
       endDate,
-      rollNumber
+      rollNumber,
+      photo
     } = body;
 
     // Validate required fields
@@ -85,7 +86,11 @@ export async function POST(request) {
       );
     }
 
-    const certificate = new Certificate({
+    console.log('Creating certificate with photo:', photo);
+    console.log('Photo type:', typeof photo);
+    console.log('Photo value check:', !!photo);
+    
+    const certificateData = {
       studentName,
       parentName,
       relation,
@@ -94,14 +99,46 @@ export async function POST(request) {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       rollNumber
-    });
+    };
+    
+    // Always include photo field - set to undefined if not provided
+    if (photo !== undefined && photo !== null && photo !== '') {
+      const photoValue = String(photo).trim();
+      certificateData.photo = photoValue;
+      console.log('Photo added to certificateData:', certificateData.photo);
+      console.log('Certificate data object keys:', Object.keys(certificateData));
+    } else {
+      console.log('Photo not provided or empty. Photo value:', photo);
+    }
+
+    console.log('Certificate data before save:', JSON.stringify(certificateData, null, 2));
+    const certificate = new Certificate(certificateData);
+    
+    // Explicitly set photo if it exists (sometimes needed for mongoose)
+    if (certificateData.photo) {
+      certificate.photo = certificateData.photo;
+      certificate.markModified('photo');
+      console.log('Photo explicitly set on certificate:', certificate.photo);
+    }
+    
+    // Explicitly check photo after instantiation
+    console.log('Certificate photo after instantiation:', certificate.photo);
+    console.log('Certificate photo property:', certificate.get('photo'));
 
     await certificate.save();
+    
+    // Reload from database to verify it was saved
+    const savedCertificate = await Certificate.findById(certificate._id);
+    console.log('Certificate saved. Photo in DB (reloaded):', savedCertificate?.photo);
+    console.log('Certificate saved. Photo in certificate object:', certificate.photo);
+    
+    const certificateObj = savedCertificate?.toObject ? savedCertificate.toObject() : savedCertificate;
+    console.log('Certificate toObject (from reloaded):', JSON.stringify(certificateObj, null, 2));
 
     return NextResponse.json({
       success: true,
       message: 'Certificate created successfully',
-      certificate
+      certificate: certificateObj || (certificate.toObject ? certificate.toObject() : certificate)
     });
 
   } catch (error) {

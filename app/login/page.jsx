@@ -197,9 +197,9 @@ function LoginForm() {
 
         {/* Create Account Link */}
         <div className="text-center mt-6">
-          <a href="#" className="text-sm text-purple-600 hover:text-purple-800 transition-colors">
+          <Link href="/signup" className="text-sm text-purple-600 hover:text-purple-800 transition-colors">
             New User? Create an Account
-          </a>
+          </Link>
         </div>
       </div>
     </div>

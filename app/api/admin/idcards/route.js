@@ -58,16 +58,14 @@ export async function POST(request) {
     
     const body = await request.json();
     const {
-      studentName,
       rollNumber,
-      courseName,
       photo
     } = body;
 
     // Validate required fields
-    if (!studentName || !rollNumber || !courseName) {
+    if (!rollNumber) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Roll number is required' },
         { status: 400 }
       );
     }
@@ -81,14 +79,33 @@ export async function POST(request) {
       );
     }
 
-    const idCard = new IDCard({
-      studentName,
-      rollNumber,
-      courseName,
-      photo
+    // Create ID card with explicit defaults
+    const idCardData = {
+      rollNumber: rollNumber.trim(),
+      photo: (photo && photo.trim()) || '',
+      studentName: '',
+      courseName: ''
+    };
+
+    console.log('Creating ID card with data:', idCardData);
+
+    const idCard = new IDCard(idCardData);
+
+    // Explicitly set all fields to ensure they're present
+    idCard.studentName = idCard.studentName || '';
+    idCard.courseName = idCard.courseName || '';
+    idCard.photo = idCard.photo || '';
+
+    console.log('ID card before save:', {
+      studentName: idCard.studentName,
+      courseName: idCard.courseName,
+      rollNumber: idCard.rollNumber,
+      photo: idCard.photo
     });
 
     await idCard.save();
+
+    console.log('ID card saved successfully');
 
     return NextResponse.json({
       success: true,

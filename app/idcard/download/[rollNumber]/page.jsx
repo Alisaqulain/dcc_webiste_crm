@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import Image from 'next/image';
 
 export default function IDCardDownloadPage() {
   const { rollNumber } = useParams();
@@ -18,6 +19,8 @@ export default function IDCardDownloadPage() {
       const response = await fetch(`/api/idcard/${rollNumber}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('ID Card data:', data.idCard);
+        console.log('Photo URL:', data.idCard?.photo);
         setIDCard(data.idCard);
       } else {
         setError('ID card not found');
@@ -31,156 +34,100 @@ export default function IDCardDownloadPage() {
   };
 
   const handleDownload = () => {
-    // Create a new window with the ID card
+    if (!idCard) return;
+
+    const imageUrl = window.location.origin + '/id.jpg';
+    const photoUrl = idCard.photo || '';
+    const rollNum = idCard.rollNumber || 'N/A';
+
     const printWindow = window.open('', '_blank');
+    
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
-          <title>ID Card - ${idCard.studentName}</title>
+          <title>ID Card - ${rollNum}</title>
           <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
             body {
               font-family: Arial, sans-serif;
               margin: 0;
               padding: 20px;
               background: #f5f5f5;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 100vh;
             }
-            .id-card {
-              background: white;
+            .certificate-container {
+              position: relative;
               width: 400px;
               height: 600px;
               margin: 0 auto;
-              border-radius: 15px;
-              box-shadow: 0 0 20px rgba(0,0,0,0.1);
-              overflow: hidden;
-              position: relative;
             }
-            .header {
-              background: #dc2626;
-              color: white;
-              padding: 20px;
-              text-align: center;
-            }
-            .logo {
-              width: 60px;
-              height: 60px;
-              background: white;
-              border-radius: 50%;
-              margin: 0 auto 10px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-weight: bold;
-              color: #dc2626;
-              font-size: 18px;
-            }
-            .institution {
-              font-size: 18px;
-              font-weight: bold;
-            }
-            .body {
-              padding: 30px 20px;
-              text-align: center;
-              position: relative;
-            }
-            .photo-placeholder {
-              width: 120px;
-              height: 120px;
-              border-radius: 50%;
-              background: #f3f4f6;
-              margin: 0 auto 20px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              border: 3px solid #dc2626;
-              overflow: hidden;
-            }
-            .photo-placeholder img {
+            .certificate-image {
+              position: absolute;
+              top: 0;
+              left: 0;
               width: 100%;
               height: 100%;
-              object-fit: cover;
+              object-fit: contain;
             }
-            .student-name {
-              font-size: 24px;
+            .certificate-overlay {
+              position: absolute;
+              color: black;
               font-weight: bold;
-              color: #333;
-              margin-bottom: 10px;
-            }
-            .course {
-              font-size: 16px;
-              color: #666;
-              margin-bottom: 20px;
-            }
-            .roll-number {
-              font-size: 14px;
-              color: #666;
-              margin-bottom: 30px;
-            }
-            .qr-placeholder {
-              width: 80px;
-              height: 80px;
-              background: #f3f4f6;
-              margin: 0 auto 20px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              border: 1px solid #ddd;
-            }
-            .footer {
-              position: absolute;
-              bottom: 20px;
-              left: 0;
-              right: 0;
-              text-align: center;
-              font-size: 14px;
-              color: #666;
-            }
-            .blue-stripe {
-              position: absolute;
-              bottom: 0;
-              left: 0;
-              width: 100%;
-              height: 20px;
-              background: linear-gradient(45deg, #3b82f6, #1d4ed8);
             }
             @media print {
-              body { background: white; }
-              .id-card { box-shadow: none; }
+              body {
+                background: white;
+                padding: 0;
+              }
+              .certificate-container {
+                margin: 0;
+              }
             }
           </style>
         </head>
         <body>
-          <div class="id-card">
-            <div class="header">
-              <div class="logo">DCC</div>
-              <div class="institution">DIGITAL CAREER CENTER</div>
-            </div>
-            
-            <div class="body">
-              <div class="photo-placeholder">
-                ${idCard.photo ? `<img src="${idCard.photo}" alt="Student Photo">` : '<div style="color: #999;">Photo</div>'}
-              </div>
-              
-              <div class="student-name">${idCard.studentName}</div>
-              <div class="course">${idCard.courseName}</div>
-              <div class="roll-number">Roll No: ${idCard.rollNumber}</div>
-              
-              <div class="qr-placeholder">
-                <div style="color: #999; font-size: 12px;">QR Code</div>
-              </div>
-            </div>
-            
-            <div class="footer">
-              <div>DCC STUDENT</div>
-            </div>
-            
-            <div class="blue-stripe"></div>
+          <div class="certificate-container">
+            <img src="${imageUrl}" alt="ID Card" class="certificate-image" onload="window.printWhenReady = true; if (window.imageLoaded) window.printReady();" onerror="console.error('Image failed to load:', '${imageUrl}'); window.printWhenReady = true; if (window.imageLoaded) window.printReady();" />
+            ${photoUrl ? `<img src="${photoUrl.startsWith('http') || photoUrl.startsWith('data:') ? photoUrl : photoUrl.startsWith('/') ? photoUrl : '/' + photoUrl}" alt="Student photo" class="certificate-overlay" style="top: 24%; left: 50%; transform: translateX(-50%); width: 160px; height: 160px; border-radius: 50%; object-fit: cover; border: 3px solid #dc2626; z-index: 15;" onerror="this.style.display='none'; console.error('Photo failed to load:', '${photoUrl}');" />` : ''}
+            <div class="certificate-overlay" style="top: 92%; left: 33%; transform: translateX(-50%); font-size: 20px; font-weight: bold; text-align: center; z-index: 10;">${rollNum}</div>
           </div>
+          <script>
+            window.imageLoaded = false;
+            window.printWhenReady = false;
+            window.printReady = function() {
+              if (window.printWhenReady && window.imageLoaded) {
+                setTimeout(() => {
+                  window.print();
+                }, 500);
+              }
+            };
+            const img = document.querySelector('.certificate-image');
+            if (img.complete) {
+              window.imageLoaded = true;
+              if (window.printWhenReady) window.printReady();
+            } else {
+              img.onload = function() {
+                window.imageLoaded = true;
+                if (window.printWhenReady) window.printReady();
+              };
+              img.onerror = function() {
+                window.imageLoaded = true;
+                if (window.printWhenReady) window.printReady();
+              };
+            }
+          </script>
         </body>
       </html>
     `);
     printWindow.document.close();
-    printWindow.print();
   };
 
   if (isLoading) {
@@ -217,71 +164,80 @@ export default function IDCardDownloadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Digital Career Center</h1>
-            <h2 className="text-xl text-gray-600">Student ID Card</h2>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Digital Career Center</h1>
+          <h2 className="text-xl text-gray-600">Student ID Card</h2>
+        </div>
 
-          {/* ID Card Preview */}
-          <div className="flex justify-center mb-8">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 transform hover:scale-105 transition-transform duration-300 border-2 border-gray-200">
-              <div className="w-80 h-96 relative">
-                {/* Header */}
-                <div className="bg-red-600 text-white p-4 rounded-t-2xl text-center">
-                  <div className="w-16 h-16 bg-white rounded-full mx-auto mb-2 flex items-center justify-center">
-                    <span className="text-red-600 font-bold text-lg">DCC</span>
+        {/* ID Card Display */}
+        <div className="flex justify-center mb-8">
+          <div className="relative w-full max-w-[400px] aspect-[2/3]">
+            <Image
+              src="/id.jpg"
+              alt="ID Card Template"
+              fill
+              className="object-contain rounded-lg shadow-lg"
+              priority
+            />
+            
+            {/* Overlay Elements - Positioned absolutely over the ID card image */}
+            {/* Student Photo - Circular */}
+            {idCard.photo && (
+              <>
+                <img 
+                  src={idCard.photo.startsWith('http') || idCard.photo.startsWith('data:') ? idCard.photo : idCard.photo.startsWith('/') ? idCard.photo : `/${idCard.photo}`}
+                  alt="Student photo" 
+                  className='absolute z-10 rounded-full object-cover border-4 border-red-600'
+                  style={{ 
+                    top: '24%', 
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 'clamp(150px, 30vw, 160px)', 
+                    height: 'clamp(150px, 30vw, 160px)',
+                    backgroundColor: '#f3f4f6'
+                  }}
+                  onError={(e) => {
+                    console.error('Photo failed to load. Original URL:', idCard.photo);
+                    const attemptedUrl = idCard.photo.startsWith('http') || idCard.photo.startsWith('data:') ? idCard.photo : idCard.photo.startsWith('/') ? idCard.photo : `/${idCard.photo}`;
+                    console.error('Attempted URL:', attemptedUrl);
+                    e.target.style.border = '2px solid red';
+                    e.target.style.opacity = '0.5';
+                  }}
+                  onLoad={() => {
+                    console.log('Photo loaded successfully:', idCard.photo);
+                  }}
+                />
+                {/* Debug info - remove in production */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="absolute top-4 left-4 z-20 bg-yellow-100 p-2 text-xs rounded">
+                    Photo: {idCard.photo ? 'Present' : 'Missing'}
                   </div>
-                  <div className="font-bold text-lg">DIGITAL CAREER CENTER</div>
-                </div>
-                
-                {/* Body */}
-                <div className="p-6 text-center">
-                  <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-4 flex items-center justify-center overflow-hidden">
-                    {idCard.photo ? (
-                      <img
-                        src={idCard.photo}
-                        alt="Student photo"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-gray-400 text-sm">Photo</span>
-                    )}
-                  </div>
-                  
-                  <div className="text-xl font-bold text-gray-900 mb-2">{idCard.studentName}</div>
-                  <div className="text-sm text-gray-600 mb-1">{idCard.courseName}</div>
-                  <div className="text-xs text-gray-500 mb-4">Roll No: {idCard.rollNumber}</div>
-                  
-                  <div className="w-16 h-16 bg-gray-200 mx-auto mb-4 flex items-center justify-center">
-                    <span className="text-gray-400 text-xs">QR</span>
-                  </div>
-                </div>
-                
-                {/* Footer */}
-                <div className="bg-gray-100 p-2 text-center text-sm font-medium text-gray-700 rounded-b-2xl">
-                  DCC STUDENT
-                </div>
-              </div>
-            </div>
+                )}
+              </>
+            )}
+            
+            {/* Roll Number */}
+            <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '92%', left: '33%', transform: 'translateX(-50%)', fontSize: 'clamp(17px, 3vw, 20px)', textAlign: 'center' }}>
+               {idCard.rollNumber || 'N/A'}
+            </span>
           </div>
+        </div>
 
-          <div className="text-center">
-            <button
-              onClick={handleDownload}
-              className="bg-red-600 text-white px-8 py-3 rounded-lg hover:bg-red-700 transition-colors mr-4"
-            >
-              Download/Print ID Card
-            </button>
-            <a
-              href="/idcard"
-              className="bg-gray-600 text-white px-8 py-3 rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Back to ID Cards
-            </a>
-          </div>
+        <div className="text-center">
+          <button
+            onClick={handleDownload}
+            className="bg-red-600 text-white px-8 py-3 rounded-lg hover:bg-red-700 transition-colors mr-4"
+          >
+            Download/Print ID Card
+          </button>
+          <a
+            href="/idcard"
+            className="bg-gray-600 text-white px-8 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Back to ID Cards
+          </a>
         </div>
       </div>
     </div>

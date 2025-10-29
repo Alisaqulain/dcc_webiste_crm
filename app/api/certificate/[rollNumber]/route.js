@@ -24,9 +24,13 @@ export async function GET(request, { params }) {
       );
     }
 
+    // Convert to plain object to ensure all fields are included
+    const certificateData = certificate.toObject ? certificate.toObject() : certificate;
+    console.log('Certificate photo field:', certificateData.photo);
+
     return NextResponse.json({
       success: true,
-      certificate
+      certificate: certificateData
     });
 
   } catch (error) {

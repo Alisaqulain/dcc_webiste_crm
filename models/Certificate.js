@@ -41,6 +41,10 @@ const certificateSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
+  photo: {
+    type: String,
+    trim: true
+  },
   createdAt: {
     type: Date,
     default: Date.now

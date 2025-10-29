@@ -5,6 +5,9 @@ import jwt from 'jsonwebtoken';
 import { storageService } from '@/lib/storage';
 import mongoose from 'mongoose';
 
+// App Router: Set max duration for large uploads (optional, defaults vary by platform)
+export const maxDuration = 300; // 5 minutes
+
 // Verify admin token
 const verifyAdminToken = (request) => {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');

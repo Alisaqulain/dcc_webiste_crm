@@ -24,9 +24,13 @@ export async function GET(request, { params }) {
       );
     }
 
+    // Convert to plain object to ensure all fields are included
+    const idCardData = idCard.toObject ? idCard.toObject() : idCard;
+    console.log('ID Card photo field:', idCardData.photo);
+
     return NextResponse.json({
       success: true,
-      idCard
+      idCard: idCardData
     });
 
   } catch (error) {

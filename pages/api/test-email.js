@@ -38,7 +38,7 @@ export default async function handler(req, res) {
             message: 'Email is required for password reset test'
           });
         }
-        const testResetLink = `${process.env.NEXTAUTH_URL || 'https://www.digitalcareercenter.com'}/reset-password?token=test-token-123`;
+        const testResetLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password?token=test-token-123`;
         emailResult = await sendPasswordResetEmail(email, testResetLink);
         break;
 

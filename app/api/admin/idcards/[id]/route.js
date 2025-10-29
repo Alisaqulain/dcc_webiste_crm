@@ -32,16 +32,14 @@ export async function PUT(request, { params }) {
     const { id } = await params;
     const body = await request.json();
     const {
-      studentName,
       rollNumber,
-      courseName,
       photo
     } = body;
 
     // Validate required fields
-    if (!studentName || !rollNumber || !courseName) {
+    if (!rollNumber) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Roll number is required' },
         { status: 400 }
       );
     }
@@ -67,12 +65,15 @@ export async function PUT(request, { params }) {
     }
 
     // Update ID card
-    idCard.studentName = studentName;
     idCard.rollNumber = rollNumber;
-    idCard.courseName = courseName;
-    if (photo) {
+    if (photo !== undefined && photo !== null) {
       idCard.photo = photo;
+      idCard.markModified('photo');
     }
+    
+    // Ensure optional fields exist (for backwards compatibility)
+    if (!idCard.studentName) idCard.studentName = '';
+    if (!idCard.courseName) idCard.courseName = '';
 
     await idCard.save();
 
