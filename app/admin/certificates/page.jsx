@@ -248,6 +248,16 @@ export default function AdminCertificatesPage() {
 
 // Certificate Modal Component
 function CertificateModal({ certificate, onClose, onSave }) {
+  // Ensure any returned filename-only value becomes a valid path
+  const normalizeMediaUrl = (value) => {
+    if (!value) return '';
+    if (typeof value !== 'string') return '';
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http') || trimmed.startsWith('data:') || trimmed.startsWith('/')) {
+      return trimmed;
+    }
+    return `/uploads/${trimmed}`;
+  };
   const [formData, setFormData] = useState({
     studentName: certificate?.studentName || '',
     parentName: certificate?.parentName || '',
@@ -294,8 +304,9 @@ function CertificateModal({ certificate, onClose, onSave }) {
       const result = await response.json();
 
       if (result.success) {
-        setUploadedPhoto(result.url);
-        setFormData(prev => ({ ...prev, photo: result.url }));
+        const url = normalizeMediaUrl(result.url || result.filename);
+        setUploadedPhoto(url);
+        setFormData(prev => ({ ...prev, photo: url }));
       } else {
         alert('Upload failed: ' + result.message);
       }
@@ -452,7 +463,7 @@ function CertificateModal({ certificate, onClose, onSave }) {
               {(uploadedPhoto || formData.photo) && (
                 <div className="mb-4">
                   <img
-                    src={uploadedPhoto || formData.photo}
+                    src={uploadedPhoto || normalizeMediaUrl(formData.photo)}
                     alt="Student photo preview"
                     className="w-32 h-32 object-cover rounded-lg border border-gray-300"
                   />

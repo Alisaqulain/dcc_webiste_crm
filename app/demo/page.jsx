@@ -16,12 +16,12 @@ export default function DemoPage() {
 
           {/* Title */}
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-            Deployment Successful! 🚀
+            Deployment Successful!11 🚀
           </h1>
 
           {/* Subtitle */}
           <p className="text-lg text-gray-600 mb-8">
-            Your code has been successfully deployed and is live.
+            Your code has been successfully deployed and is live.10/30/2025 2.40
           </p>
 
           {/* Info Card */}
