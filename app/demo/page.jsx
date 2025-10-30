@@ -21,7 +21,7 @@ export default function DemoPage() {
 
           {/* Subtitle */}
           <p className="text-lg text-gray-600 mb-8">
-            Your code has been successfully deployed and is live.10/30/2025 2.40
+            Your code has been successfully deployed and is live.10/30/2025 3 fdns fnsd fsdnpm
           </p>
 
           {/* Info Card */}
