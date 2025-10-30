@@ -5,7 +5,7 @@ import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Image from 'next/image';
 import Head from 'next/head';
 
-const slides = [
+const defaultSlides = [
   {
     id: 1,
      image: "/banner3.png"
@@ -30,8 +30,9 @@ export default function HomePage() {
   const sliderRef = useRef(null);
   const autoPlayRef = useRef(null);
   const packageAutoPlayRef = useRef(null);
+  const [slides, setSlides] = useState(defaultSlides);
 
-  const packages = [
+  const defaultPackages = [
     {
       title: "Digital Starter Package (DSP)",
       courses: "4 Courses",
@@ -142,7 +143,7 @@ export default function HomePage() {
     },
   ];
 
-  const instructors = [
+  const defaultInstructors = [
     { name: "Mr Kaleem Sir", role: "Instructor", img: "/kaleem sir .png" },
     { name: "Mr Aasif Khan", role: "Instructor", img: "/my profile pic.png" },
     { name: "Mr Ibrahim", role: "Instructor", img: "/ibrahim finel pose.png" },
@@ -151,7 +152,7 @@ export default function HomePage() {
     { name: "Mr Arham", role: "Instructor", img: "/arham finel pose.png" },
   ];
 
-  const testimonials = [
+  const defaultTestimonials = [
     {
       id: 1,
       text: "This platform has helped me to overcome my fears and make the most out of given opportunities. If you wish to upskill yourself and acquire knowledge from top mentors then this is just the right platform for you.",
@@ -174,6 +175,30 @@ export default function HomePage() {
       rating: 5
     }
   ];
+
+  // Load editable homepage content
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/home', { cache: 'no-store' });
+        const data = await res.json();
+        const c = data?.content;
+        if (c) {
+          if (Array.isArray(c.heroSlides) && c.heroSlides.length) setSlides(c.heroSlides);
+          if (Array.isArray(c.packages) && c.packages.length) setPackages(c.packages);
+          if (Array.isArray(c.instructors) && c.instructors.length) setInstructors(c.instructors);
+          if (Array.isArray(c.testimonials) && c.testimonials.length) setTestimonials(c.testimonials);
+        }
+      } catch (e) {
+        // ignore and use defaults
+      }
+    };
+    load();
+  }, []);
+
+  const [packages, setPackages] = useState(defaultPackages);
+  const [instructors, setInstructors] = useState(defaultInstructors);
+  const [testimonials, setTestimonials] = useState(defaultTestimonials);
 
   const prevSlide = () => {
     setCurrent(current === 0 ? slides.length - 1 : current - 1);
@@ -876,7 +901,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right side - Person pointing */}
+            {/* Right side - Testimonial image */}
             <div className="flex-shrink-0 lg:w-1/3">
               <div className="relative">
                 <div className="w-48 h-48 sm:w-56 sm:h-56 md:w-94 md:h-94 mx-auto relative">
@@ -885,8 +910,8 @@ export default function HomePage() {
                   {/* Person image */}
                   <div className="absolute inset-4 rounded-full overflow-hidden">
                     <Image
-                      src="/girl.jpg"
-                      alt="Happy Student"
+                      src={(testimonials[currentTestimonial] && testimonials[currentTestimonial].image) ? testimonials[currentTestimonial].image : '/girl.jpg'}
+                      alt={testimonials[currentTestimonial]?.author || 'Happy Student'}
                       width={200}
                       height={200}
                       className="w-full h-full object-cover rounded-full"

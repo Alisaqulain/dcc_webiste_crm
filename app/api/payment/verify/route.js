@@ -1,6 +1,7 @@
 import connectDB from '@/lib/mongodb';
 import Course from '@/models/Course';
 import User from '@/models/User';
+import Referral from '@/models/Referral';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import crypto from 'crypto';
@@ -60,25 +61,36 @@ export async function POST(request) {
 
     // Handle referral system
     if (referralCode) {
-      const referrer = await User.findOne({ referralCode: referralCode });
+      const referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
       if (referrer && referrer.email !== user.email) {
-        // Add referral bonus (you can customize this)
-        referrer.referralEarnings = (referrer.referralEarnings || 0) + Math.round(course.price * 0.1); // 10% referral bonus
+        const commission = Math.round(course.price * 0.1); // 10%
+
+        // Create referral record
+        await Referral.create({
+          referrer: referrer._id,
+          referredUser: user._id,
+          referredEmail: user.email,
+          course: course._id,
+          amount: commission,
+          status: 'pending'
+        });
+
+        // Update aggregates
+        referrer.referralEarnings = (referrer.referralEarnings || 0) + commission;
         referrer.referralCount = (referrer.referralCount || 0) + 1;
         await referrer.save();
 
-        // Send referral bonus email to referrer
+        // Notify referrer
         await sendEmail({
           to: referrer.email,
           subject: 'Referral Bonus Earned! 🎉',
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #dc2626;">Congratulations! You've earned a referral bonus!</h2>
-              <p>Your friend <strong>${user.name || user.email}</strong> just purchased the course <strong>"${course.title}"</strong> using your referral code.</p>
-              <p><strong>Referral Bonus:</strong> ₹${Math.round(course.price * 0.1)}</p>
+              <p>Your friend <strong>${user.email}</strong> purchased <strong>"${course.title}"</strong> using your referral code.</p>
+              <p><strong>Referral Bonus:</strong> ₹${commission}</p>
               <p><strong>Total Referral Earnings:</strong> ₹${referrer.referralEarnings}</p>
-              <p>Keep sharing your referral code to earn more!</p>
-              <p>Your Referral Code: <strong>${referrer.referralCode}</strong></p>
+              <p>Track and withdraw from your profile referrals section.</p>
             </div>
           `
         });

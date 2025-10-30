@@ -33,13 +33,14 @@ export async function POST(request) {
       });
     }
 
-    // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Validate file size (configurable, default 20MB for KVM)
+    const maxMb = Number(process.env.UPLOAD_MAX_MB || 20);
+    const maxSize = maxMb * 1024 * 1024;
     if (file.size > maxSize) {
       console.error('Upload API: File too large', file.size);
       return NextResponse.json({ 
         success: false, 
-        message: 'File size too large. Maximum size is 5MB.' 
+        message: `File size too large. Maximum size is ${maxMb}MB.` 
       });
     }
 

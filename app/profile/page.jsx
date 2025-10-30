@@ -9,6 +9,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [referrals, setReferrals] = useState([]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -24,6 +25,11 @@ export default function ProfilePage() {
       if (response.ok) {
         const data = await response.json();
         setUserData(data);
+      }
+      const r = await fetch('/api/user/referrals');
+      if (r.ok) {
+        const d = await r.json();
+        setReferrals(d.referrals || []);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -141,6 +147,76 @@ export default function ProfilePage() {
               ) : (
                 <p className="text-gray-600">No courses purchased yet.</p>
               )}
+            </div>
+
+            {/* Refer & Earn */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Refer & Earn</h2>
+              <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Your Referral Code</label>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono bg-gray-100 px-3 py-2 rounded text-gray-900">{userData?.referralCode || userData?.referral?.code || 'N/A'}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Share Link</label>
+                  <input
+                    readOnly
+                    className="w-full border rounded px-3 py-2 text-sm"
+                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/signup?ref=${userData?.referralCode || userData?.referral?.code || ''}`}
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-3 border rounded">
+                  <div className="text-xs text-gray-500">Total Referrals</div>
+                  <div className="text-lg font-semibold">{userData?.referralCount || 0}</div>
+                </div>
+                <div className="p-3 border rounded">
+                  <div className="text-xs text-gray-500">Total Earnings</div>
+                  <div className="text-lg font-semibold">₹{userData?.referralEarnings || 0}</div>
+                </div>
+              </div>
+
+              <h3 className="font-semibold mb-2">Referral Purchases</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b">
+                      <th className="py-2 pr-4">Friend Email</th>
+                      <th className="py-2 pr-4">Course</th>
+                      <th className="py-2 pr-4">Amount</th>
+                      <th className="py-2 pr-4">Status</th>
+                      <th className="py-2">Withdraw</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {referrals.map((r, idx) => (
+                      <tr key={idx} className="border-b">
+                        <td className="py-2 pr-4">{r.referredEmail}</td>
+                        <td className="py-2 pr-4">{r.course?.title || '-'}</td>
+                        <td className="py-2 pr-4">₹{r.amount}</td>
+                        <td className="py-2 pr-4 capitalize">{r.status}</td>
+                        <td className="py-2">
+                          <a
+                            target="_blank"
+                            rel="noreferrer"
+                            href={`https://wa.me/${encodeURIComponent('918595117607')}?text=${encodeURIComponent(`Hi, I want to withdraw my referral earning ₹${r.amount} for friend ${r.referredEmail} (course: ${r.course?.title || ''}). My email: ${session?.user?.email}`)}`}
+                            className="text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded inline-block text-xs"
+                          >Withdraw</a>
+                        </td>
+                      </tr>
+                    ))}
+                    {referrals.length === 0 && (
+                      <tr>
+                        <td className="py-4 text-gray-500" colSpan={5}>No referrals yet. Share your link to start earning.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
