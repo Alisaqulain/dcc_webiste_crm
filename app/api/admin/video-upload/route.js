@@ -55,13 +55,14 @@ export async function POST(request) {
       console.log('Content-Length header:', contentLength);
       
       if (contentLength) {
+        const maxVideoSizeMB = Number(process.env.MAX_VIDEO_SIZE_MB || 2048); // Default 2GB
         const sizeInMB = parseInt(contentLength) / (1024 * 1024);
-        console.log('Request size:', sizeInMB.toFixed(2) + 'MB');
+        console.log('Request size:', sizeInMB.toFixed(2) + 'MB', 'Max allowed:', maxVideoSizeMB + 'MB');
         
-        if (sizeInMB > 100) {
+        if (sizeInMB > maxVideoSizeMB) {
           console.log('Request too large based on Content-Length header');
           return NextResponse.json(
-            { error: 'Video file is too large. Please use a video smaller than 100MB or compress it.' },
+            { error: `Video file is too large. Maximum size is ${maxVideoSizeMB}MB (${(maxVideoSizeMB / 1024).toFixed(1)}GB). Please compress your video or use a smaller file.` },
             { status: 413 }
           );
         }
@@ -145,21 +146,23 @@ export async function POST(request) {
       );
     }
 
-    // Validate file size (max 100MB for now to avoid 413 errors)
-    const maxSize = 100 * 1024 * 1024; // 100MB
+    // Validate file size - configurable via env var, default 2GB for videos
+    // Since videos are stored on filesystem (not MongoDB), we can allow larger files
+    const maxVideoSizeMB = Number(process.env.MAX_VIDEO_SIZE_MB || 2048); // Default 2GB
+    const maxSize = maxVideoSizeMB * 1024 * 1024;
     const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
     console.log('API file size validation:', {
       fileSize: file.size,
       fileSizeMB: fileSizeMB,
       maxSize: maxSize,
-      maxSizeMB: '100MB',
+      maxSizeMB: `${maxVideoSizeMB}MB`,
       isOverLimit: file.size > maxSize
     });
     
     if (file.size > maxSize) {
       console.log('File rejected for being too large:', fileSizeMB + 'MB');
       return NextResponse.json(
-        { error: `File size too large. Your file is ${fileSizeMB}MB, but maximum size is 100MB. Please compress your video or use a smaller file.` },
+        { error: `File size too large. Your file is ${fileSizeMB}MB, but maximum size is ${maxVideoSizeMB}MB (${(maxVideoSizeMB / 1024).toFixed(1)}GB). Please compress your video or use a smaller file.` },
         { status: 400 }
       );
     }
@@ -168,13 +171,23 @@ export async function POST(request) {
     const videoUploadResult = await storageService.uploadFile(file, 'videos');
     
     // Create simple video data structure
+    // IMPORTANT: Never store video data in MongoDB - only store file path/URL
     const videoData = {
       fileName: videoUploadResult.filename,
       mimeType: file.type,
       size: file.size,
       url: videoUploadResult.url,
-      isDataUrl: videoUploadResult.isDataUrl
+      isDataUrl: false // Force false - videos must be on filesystem
     };
+    
+    // If somehow a data URL was returned, reject it for videos
+    if (videoUploadResult.isDataUrl) {
+      console.error('ERROR: Video was uploaded as data URL - this will exceed MongoDB limit!');
+      return NextResponse.json(
+        { error: 'Video must be saved to filesystem, not as data URL. Please check server configuration.' },
+        { status: 500 }
+      );
+    }
 
     console.log('Video uploaded successfully:', {
       title,
@@ -227,11 +240,28 @@ export async function POST(request) {
       ? Math.max(...course.videos.map(v => v.order)) + 1 
       : 1;
 
+    // Create video object - ensure it's under 16MB MongoDB limit
+    // Only store metadata, not actual video data
     const newVideo = {
       title,
       description: description || '',
-      videoData: videoData,
-      thumbnailData: thumbnailData,
+      videoData: {
+        // Only store file metadata, not video data
+        fileName: videoData.fileName,
+        mimeType: videoData.mimeType,
+        size: videoData.size,
+        url: videoData.url,
+        isDataUrl: false
+        // DO NOT include: data (base64), or any large fields
+      },
+      thumbnailData: thumbnailData ? {
+        fileName: thumbnailData.fileName,
+        mimeType: thumbnailData.mimeType,
+        size: thumbnailData.size,
+        url: thumbnailData.url,
+        isDataUrl: thumbnailData.isDataUrl
+        // DO NOT include: data (base64)
+      } : null,
       duration,
       order: nextOrder,
       isPreview,
@@ -239,6 +269,17 @@ export async function POST(request) {
       fileSize: file.size,
       mimeType: file.type
     };
+    
+    // Verify video object size is reasonable (should be < 1MB)
+    const videoObjSize = JSON.stringify(newVideo).length;
+    console.log('Video object size:', videoObjSize, 'bytes');
+    if (videoObjSize > 1024 * 1024) { // 1MB safety check
+      console.error('ERROR: Video object too large, may cause MongoDB issues');
+      return NextResponse.json(
+        { error: 'Video metadata too large. Please check video data structure.' },
+        { status: 500 }
+      );
+    }
 
     console.log('Creating new video:', {
       title: newVideo.title,

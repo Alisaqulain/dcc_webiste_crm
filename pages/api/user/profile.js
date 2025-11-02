@@ -30,7 +30,14 @@ export default async function handler(req, res) {
       id: user._id,
       email: user.email,
       profile: user.profile,
-      referral: user.referral,
+      referralCode: user.referralCode,
+      referralEarnings: user.referralEarnings || 0,
+      referralCount: user.referralCount || 0,
+      referral: {
+        code: user.referralCode,
+        totalEarnings: user.referralEarnings || 0,
+        pendingEarnings: 0 // You can calculate this based on pending referral status if needed
+      },
       courses: user.courses.map(course => ({
         courseId: course.courseId,
         courseName: course.courseId?.name || 'Unknown Course',

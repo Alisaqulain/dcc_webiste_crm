@@ -29,18 +29,22 @@ export default function VideoPlayerPage() {
   const fetchCourseData = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/courses/${courseId}`);
+      const response = await fetch(`/api/courses/${courseId}?includeVideos=true`);
       
       if (response.ok) {
         const data = await response.json();
         setCourse(data.course);
         
         // Find the specific video
-        const foundVideo = data.course.videos.find(v => v._id === videoId);
-        if (foundVideo) {
-          setVideo(foundVideo);
+        if (data.course.videos && data.course.videos.length > 0) {
+          const foundVideo = data.course.videos.find(v => v._id === videoId);
+          if (foundVideo) {
+            setVideo(foundVideo);
+          } else {
+            setError('Video not found');
+          }
         } else {
-          setError('Video not found');
+          setError('No videos found for this course');
         }
       } else {
         setError('Course not found');

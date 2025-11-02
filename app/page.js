@@ -176,29 +176,35 @@ export default function HomePage() {
     }
   ];
 
+  const [packages, setPackages] = useState(defaultPackages);
+  const [instructors, setInstructors] = useState(defaultInstructors);
+  const [testimonials, setTestimonials] = useState(defaultTestimonials);
+
   // Load editable homepage content
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/home', { cache: 'no-store' });
+        const res = await fetch('/api/home?t=' + Date.now(), { cache: 'no-store' });
         const data = await res.json();
         const c = data?.content;
         if (c) {
           if (Array.isArray(c.heroSlides) && c.heroSlides.length) setSlides(c.heroSlides);
-          if (Array.isArray(c.packages) && c.packages.length) setPackages(c.packages);
+          if (Array.isArray(c.packages)) {
+            if (c.packages.length > 0) {
+              setPackages(c.packages);
+            }
+            // If packages array exists but is empty, keep defaults
+          }
           if (Array.isArray(c.instructors) && c.instructors.length) setInstructors(c.instructors);
           if (Array.isArray(c.testimonials) && c.testimonials.length) setTestimonials(c.testimonials);
         }
       } catch (e) {
+        console.error('Error loading homepage content:', e);
         // ignore and use defaults
       }
     };
     load();
   }, []);
-
-  const [packages, setPackages] = useState(defaultPackages);
-  const [instructors, setInstructors] = useState(defaultInstructors);
-  const [testimonials, setTestimonials] = useState(defaultTestimonials);
 
   const prevSlide = () => {
     setCurrent(current === 0 ? slides.length - 1 : current - 1);

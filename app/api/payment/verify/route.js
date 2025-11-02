@@ -47,12 +47,21 @@ export async function POST(request) {
     }
 
     // Check if user already has this course
-    if (user.courses.includes(courseId)) {
+
+    const existingCourse = user.courses.find(
+      c => c.courseId && c.courseId.toString() === courseId
+    );
+    if (existingCourse) {
       return Response.json({ message: 'Course already purchased' }, { status: 400 });
     }
 
-    // Add course to user's courses
-    user.courses.push(courseId);
+    // Add course to user's courses with proper structure
+    user.courses.push({
+      courseId: courseId,
+      purchasedAt: new Date(),
+      status: 'active',
+      progress: 0
+    });
     await user.save();
 
     // Update course enrollment count
@@ -60,9 +69,37 @@ export async function POST(request) {
     await course.save();
 
     // Handle referral system
+    // Priority: 1. referralCode from payment, 2. user's referredBy field
+    let referrer = null;
+    let referralCodeUsed = null;
+
+    // First, check if referralCode was passed during payment
     if (referralCode) {
-      const referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
+      referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
       if (referrer && referrer.email !== user.email) {
+        referralCodeUsed = referralCode.toUpperCase();
+      }
+    }
+    
+    // If no referral code from payment, check if user was referred by someone (from signup)
+    if (!referrer && user.referredBy) {
+      referrer = await User.findById(user.referredBy);
+      if (referrer && referrer.referralCode) {
+        referralCodeUsed = referrer.referralCode;
+      }
+    }
+
+    // Process referral if we have a valid referrer
+    if (referrer && referrer.email !== user.email) {
+      // Check if referral already exists for this course and user
+      const existingReferral = await Referral.findOne({
+        referrer: referrer._id,
+        referredUser: user._id,
+        course: course._id
+      });
+
+      // Only create referral if it doesn't already exist
+      if (!existingReferral) {
         const commission = Math.round(course.price * 0.1); // 10%
 
         // Create referral record
@@ -87,7 +124,7 @@ export async function POST(request) {
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h2 style="color: #dc2626;">Congratulations! You've earned a referral bonus!</h2>
-              <p>Your friend <strong>${user.email}</strong> purchased <strong>"${course.title}"</strong> using your referral code.</p>
+              <p>Your friend <strong>${user.email}</strong> purchased <strong>"${course.title}"</strong> using your referral code${referralCodeUsed ? ` (${referralCodeUsed})` : ''}.</p>
               <p><strong>Referral Bonus:</strong> ₹${commission}</p>
               <p><strong>Total Referral Earnings:</strong> ₹${referrer.referralEarnings}</p>
               <p>Track and withdraw from your profile referrals section.</p>

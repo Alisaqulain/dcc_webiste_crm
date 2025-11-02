@@ -7,6 +7,8 @@ export async function GET() {
 
     const doc = await Homepage.findOne({ slug: 'default' }).lean();
 
+    console.log('GET /api/home - Packages count:', doc?.packages?.length || 0);
+
     return Response.json({
       ok: true,
       content: doc || null

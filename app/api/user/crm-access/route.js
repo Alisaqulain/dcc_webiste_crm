@@ -10,12 +10,12 @@ export async function GET(request) {
     
     // Get user session
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return Response.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user with their courses
-    const user = await User.findOne({ email: session.user.email }).select('courses');
+    const user = await User.findById(session.user.id).select('courses');
     
     if (!user || !user.courses || user.courses.length === 0) {
       return Response.json({ hasCrmAccess: false });

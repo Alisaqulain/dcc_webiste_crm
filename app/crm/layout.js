@@ -1,12 +1,42 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
+import { useCrmAccess } from '../hooks/useCrmAccess';
 
 export default function CrmLayout({ children }) {
 	const pathname = usePathname();
+	const router = useRouter();
+	const { data: session, status } = useSession();
+	const { hasCrmAccess, isLoading: checkingAccess } = useCrmAccess();
 	const [isOpen, setIsOpen] = useState(true);
+
+	useEffect(() => {
+		if (status === 'loading' || checkingAccess) return;
+		
+		if (!session) {
+			router.push('/login?redirect=' + pathname);
+			return;
+		}
+
+		if (!hasCrmAccess) {
+			router.push('/profile?error=crm-access-required');
+			return;
+		}
+	}, [session, status, hasCrmAccess, checkingAccess, router, pathname]);
+
+	if (status === 'loading' || checkingAccess || !hasCrmAccess) {
+		return (
+			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
+				<div className="text-center">
+					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+					<p className="mt-4 text-gray-600">Checking access...</p>
+				</div>
+			</div>
+		);
+	}
 
 	const NavItem = ({ href, label, icon }) => {
 		const active = pathname === href;

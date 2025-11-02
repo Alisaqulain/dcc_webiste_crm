@@ -65,6 +65,7 @@ const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
 
     // CSS-based protection
     const style = document.createElement('style');
+    style.id = 'secure-video-styles';
     style.textContent = `
       .secure-video-container {
         -webkit-user-select: none;
@@ -73,6 +74,8 @@ const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
         user-select: none;
         -webkit-touch-callout: none;
         -webkit-tap-highlight-color: transparent;
+        position: relative;
+        overflow: hidden;
       }
       .secure-video-container * {
         -webkit-user-select: none;
@@ -82,6 +85,11 @@ const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
       }
       .secure-video-container video {
         pointer-events: auto;
+        -webkit-user-drag: none;
+        -khtml-user-drag: none;
+        -moz-user-drag: none;
+        -o-user-drag: none;
+        user-drag: none;
       }
       .secure-video-container video::-webkit-media-controls {
         display: none !important;
@@ -89,8 +97,29 @@ const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
       .secure-video-container video::-webkit-media-controls-enclosure {
         display: none !important;
       }
+      /* Prevent screenshots with CSS */
+      .secure-video-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10000;
+        pointer-events: none;
+        background: transparent;
+      }
+      /* Disable video download */
+      video {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+      }
     `;
-    document.head.appendChild(style);
+    if (!document.getElementById('secure-video-styles')) {
+      document.head.appendChild(style);
+    }
 
     return () => {
       video.removeEventListener('contextmenu', handleContextMenu);
@@ -101,18 +130,139 @@ const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     };
   }, []);
 
-  // Detect screen recording attempts
+  // Detect screen recording and screenshot attempts
   useEffect(() => {
+    // Detect screen recording attempts
     const detectScreenRecording = () => {
-      // Check for screen recording indicators
       if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-        // This is a basic detection - in production, you'd want more sophisticated methods
-        console.log('Screen recording detection active');
+        const originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
+        navigator.mediaDevices.getDisplayMedia = async (constraints) => {
+          console.warn('Screen recording attempt detected');
+          // You can add logic to pause video or show warning
+          alert('Screen recording is not allowed while watching this video.');
+          throw new Error('Screen recording not allowed');
+        };
       }
     };
 
+    // Detect screenshot attempts (Windows)
+    const detectScreenshot = (e) => {
+      // Detect Print Screen key
+      if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'PrintScreen')) {
+        e.preventDefault();
+        e.stopPropagation();
+        alert('Screenshots are not allowed while watching this video.');
+        return false;
+      }
+      
+      // Detect Win + Shift + S (Windows Snipping Tool)
+      if (e.key === 's' && e.shiftKey && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        e.stopPropagation();
+        alert('Screenshots are not allowed while watching this video.');
+        return false;
+      }
+    };
+
+    // Detect right-click context menu
+    const preventContextMenu = (e) => {
+      e.preventDefault();
+      alert('Right-click is disabled for video protection.');
+      return false;
+    };
+
+    // Detect common screenshot shortcuts
+    const preventScreenshot = (e) => {
+      // Ctrl+Shift+S, Win+Shift+S, etc.
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+        e.preventDefault();
+        e.stopPropagation();
+        alert('Screenshots are not allowed.');
+        return false;
+      }
+      
+      // Print Screen key
+      if (e.key === 'PrintScreen') {
+        e.preventDefault();
+        e.stopPropagation();
+        alert('Screenshots are not allowed.');
+        return false;
+      }
+    };
+
+    // Add watermarks/overlay to prevent screenshots
+    const addProtectionOverlay = () => {
+      const overlay = document.createElement('div');
+      overlay.id = 'video-protection-overlay';
+      overlay.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 9999;
+        background: transparent;
+        user-select: none;
+      `;
+      
+      // Add watermark with user info
+      const watermark = document.createElement('div');
+      watermark.textContent = session?.user?.email || 'Protected Content';
+      watermark.style.cssText = `
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 12px;
+        pointer-events: none;
+        user-select: none;
+      `;
+      overlay.appendChild(watermark);
+      
+      const container = containerRef.current;
+      if (container) {
+        container.style.position = 'relative';
+        container.appendChild(overlay);
+      }
+      
+      return () => {
+        if (overlay.parentNode) {
+          overlay.parentNode.removeChild(overlay);
+        }
+      };
+    };
+
     detectScreenRecording();
-  }, []);
+    
+    // Add event listeners
+    document.addEventListener('keydown', preventScreenshot);
+    document.addEventListener('keydown', detectScreenshot);
+    document.addEventListener('contextmenu', preventContextMenu);
+    
+    const removeOverlay = addProtectionOverlay();
+
+    // Detect if video element is being copied/saved
+    const video = videoRef.current;
+    if (video) {
+      video.addEventListener('copy', (e) => {
+        e.preventDefault();
+        alert('Copying video content is not allowed.');
+      });
+      
+      video.addEventListener('dragstart', (e) => {
+        e.preventDefault();
+        return false;
+      });
+    }
+
+    return () => {
+      document.removeEventListener('keydown', preventScreenshot);
+      document.removeEventListener('keydown', detectScreenshot);
+      document.removeEventListener('contextmenu', preventContextMenu);
+      if (removeOverlay) removeOverlay();
+    };
+  }, [session]);
 
   // Handle video loading
   const handleLoadStart = () => {
@@ -150,8 +300,47 @@ const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   };
 
   const handleError = (e) => {
-    console.error('Video error:', e);
-    setError('Failed to load video. Please try again.');
+    const video = videoRef.current;
+    let errorDetails = 'Failed to load video. Please try again.';
+    
+    if (video) {
+      const errorCode = video.error;
+      if (errorCode) {
+        switch (errorCode.code) {
+          case 1: // MEDIA_ERR_ABORTED
+            errorDetails = 'Video loading was aborted. Please try again.';
+            break;
+          case 2: // MEDIA_ERR_NETWORK
+            errorDetails = 'Network error. Please check your connection and try again.';
+            break;
+          case 3: // MEDIA_ERR_DECODE
+            errorDetails = 'Video format error. Please contact support.';
+            break;
+          case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+            errorDetails = 'Video format not supported or source not found.';
+            break;
+          default:
+            errorDetails = `Video error (code: ${errorCode.code}). Please try again.`;
+        }
+      }
+      
+      console.error('Video error details:', {
+        errorCode: errorCode?.code,
+        errorMessage: errorCode?.message,
+        src: video.src,
+        networkState: video.networkState,
+        readyState: video.readyState,
+        video: {
+          title: video.title,
+          courseId,
+          videoId: video._id
+        }
+      });
+    } else {
+      console.error('Video error (no video element):', e);
+    }
+    
+    setError(errorDetails);
     setIsLoading(false);
     setAttempts(prev => prev + 1);
   };

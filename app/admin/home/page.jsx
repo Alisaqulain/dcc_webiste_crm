@@ -77,6 +77,14 @@ export default function AdminHomeEditorPage() {
     });
   };
 
+  const updatePackages = (updater) => {
+    setContent((prev) => {
+      const next = { ...prev, packages: updater([...(prev?.packages || [])]) };
+      setJsonDraft(JSON.stringify(next, null, 2));
+      return next;
+    });
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError('');
@@ -354,6 +362,197 @@ export default function AdminHomeEditorPage() {
                 onClick={handleSave}
                 disabled={saving}
               >{saving ? 'Saving...' : 'Save Slides & Testimonials'}</button>
+            </div>
+          </div>
+
+          {/* Packages Form */}
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold mb-3">Our Exclusive Packages</h2>
+            <div className="space-y-4">
+              {(content?.packages || []).map((p, i) => (
+                <div key={i} className="border rounded p-3 space-y-2 bg-white shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium">Title</label>
+                      <input
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        value={p.title || ''}
+                        onChange={(e) => updatePackages((arr) => {
+                          const copy = [...arr];
+                          copy[i] = { ...copy[i], title: e.target.value };
+                          return copy;
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Courses</label>
+                      <input
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        value={p.courses || ''}
+                        onChange={(e) => updatePackages((arr) => {
+                          const copy = [...arr];
+                          copy[i] = { ...copy[i], courses: e.target.value };
+                          return copy;
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-sm font-medium">Hours</label>
+                      <input
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        value={p.hours || ''}
+                        onChange={(e) => updatePackages((arr) => {
+                          const copy = [...arr];
+                          copy[i] = { ...copy[i], hours: e.target.value };
+                          return copy;
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Enrollments</label>
+                      <input
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        value={p.enrollments || ''}
+                        onChange={(e) => updatePackages((arr) => {
+                          const copy = [...arr];
+                          copy[i] = { ...copy[i], enrollments: e.target.value };
+                          return copy;
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Link</label>
+                      <input
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        value={p.link || ''}
+                        onChange={(e) => updatePackages((arr) => {
+                          const copy = [...arr];
+                          copy[i] = { ...copy[i], link: e.target.value };
+                          return copy;
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium">Price</label>
+                      <input
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        value={p.price || ''}
+                        onChange={(e) => updatePackages((arr) => {
+                          const copy = [...arr];
+                          copy[i] = { ...copy[i], price: e.target.value };
+                          return copy;
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Old Price</label>
+                      <input
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        value={p.oldPrice || ''}
+                        onChange={(e) => updatePackages((arr) => {
+                          const copy = [...arr];
+                          copy[i] = { ...copy[i], oldPrice: e.target.value };
+                          return copy;
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Features (one per line)</label>
+                    <textarea
+                      className="w-full border rounded px-3 py-2 text-sm"
+                      rows={3}
+                      value={(p.features || []).join('\n')}
+                      onChange={(e) => updatePackages((arr) => {
+                        const copy = [...arr];
+                        copy[i] = { ...copy[i], features: e.target.value.split('\n').filter(f => f.trim()) };
+                        return copy;
+                      })}
+                      placeholder="Feature 1&#10;Feature 2&#10;Feature 3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium">Image URL</label>
+                      <input
+                        className="w-full border rounded px-3 py-2 text-sm"
+                        value={p.image || ''}
+                        onChange={(e) => updatePackages((arr) => {
+                          const copy = [...arr];
+                          copy[i] = { ...copy[i], image: e.target.value };
+                          return copy;
+                        })}
+                      />
+                      <div className="mt-2 flex items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              setUploadingIndex(i);
+                              const url = await uploadImage(file);
+                              updatePackages((arr) => {
+                                const copy = [...arr];
+                                copy[i] = { ...copy[i], image: url };
+                                return copy;
+                              });
+                            } catch (err) {
+                              alert(err.message);
+                            } finally {
+                              setUploadingIndex(null);
+                              e.target.value = '';
+                            }
+                          }}
+                          className="text-sm"
+                        />
+                        {uploadingIndex === i && <span className="text-xs text-gray-500">Uploading…</span>}
+                        {p.image && (
+                          <button
+                            className="text-red-600 text-xs"
+                            onClick={() => updatePackages((arr) => {
+                              const copy = [...arr];
+                              copy[i] = { ...copy[i], image: '' };
+                              return copy;
+                            })}
+                          >Clear Image</button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      {p.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.image} alt={p.title || `package-${i}`} className="w-24 h-24 rounded object-cover" />
+                      ) : (
+                        <div className="w-24 h-24 rounded bg-gray-100 flex items-center justify-center text-xs text-gray-400">No image</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="text-xs text-gray-500">Package #{i + 1}</div>
+                    <button
+                      className="text-red-600 text-sm"
+                      onClick={() => updatePackages((arr) => arr.filter((_, idx) => idx !== i))}
+                    >Remove</button>
+                  </div>
+                </div>
+              ))}
+              <button
+                className="bg-gray-800 hover:bg-black text-white px-3 py-2 rounded text-sm"
+                onClick={() => updatePackages((arr) => [...arr, { title: '', courses: '', hours: '', enrollments: '', price: '', oldPrice: '', features: [], image: '', link: '' }])}
+              >Add Package</button>
+            </div>
+            <div className="mt-3">
+              <button
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                onClick={handleSave}
+                disabled={saving}
+              >{saving ? 'Saving...' : 'Save Packages'}</button>
             </div>
           </div>
         </div>

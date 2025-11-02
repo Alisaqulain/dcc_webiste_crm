@@ -28,14 +28,22 @@ export async function GET(request) {
     const courseIds = user.courses.map(c => c.courseId);
 
     // Fetch course details for purchased courses
+    // Include videos count but not full video data for listing page
     const courses = await Course.find({
       _id: { $in: courseIds },
       isPublished: true
     })
-    .select('-videos') // Exclude videos for performance
+    .select('title description shortDescription thumbnail price category level duration instructor rating videos')
     .lean();
 
-    return Response.json({ courses });
+    // Only include video count and basic info, not full video data
+    const coursesWithVideoCount = courses.map(course => ({
+      ...course,
+      videoCount: course.videos?.length || 0,
+      videos: undefined // Remove full video data to reduce payload
+    }));
+
+    return Response.json({ courses: coursesWithVideoCount });
   } catch (error) {
     console.error('Error fetching user courses:', error);
     return Response.json(

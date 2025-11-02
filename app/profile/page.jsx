@@ -1,15 +1,17 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
 
-export default function ProfilePage() {
+function ProfileContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [referrals, setReferrals] = useState([]);
+  const [hasCrmAccess, setHasCrmAccess] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -30,6 +32,12 @@ export default function ProfilePage() {
       if (r.ok) {
         const d = await r.json();
         setReferrals(d.referrals || []);
+      }
+      
+      const crmRes = await fetch('/api/user/crm-access');
+      if (crmRes.ok) {
+        const crmData = await crmRes.json();
+        setHasCrmAccess(crmData.hasCrmAccess || false);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -60,6 +68,18 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
+        {/* Error Message for CRM Access */}
+        {searchParams?.get('error') === 'crm-access-required' && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg mb-4">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              CRM access required. Please purchase a CRM course to access CRM features.
+            </div>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
           <div className="flex items-center justify-between">
@@ -102,12 +122,14 @@ export default function ProfilePage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
                       <p className="text-gray-900">{userData.profile?.state || 'Not provided'}</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Referral Code</label>
-                      <p className="text-gray-900 font-mono bg-gray-100 px-3 py-1 rounded">
-                        {userData.referral?.code || 'Not available'}
-                      </p>
-                    </div>
+                    {userData?.courses && userData.courses.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Referral Code</label>
+                        <p className="text-gray-900 font-mono bg-gray-100 px-3 py-1 rounded">
+                          {userData.referralCode || userData.referral?.code || 'Not available'}
+                        </p>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Member Since</label>
                       <p className="text-gray-900">
@@ -149,75 +171,84 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Refer & Earn */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Refer & Earn</h2>
-              <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Your Referral Code</label>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono bg-gray-100 px-3 py-2 rounded text-gray-900">{userData?.referralCode || userData?.referral?.code || 'N/A'}</span>
+            {/* Refer & Earn - Only show if user has purchased at least one course */}
+            {userData?.courses && userData.courses.length > 0 && userData?.referralCode && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Refer & Earn</h2>
+                <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Your Referral Code</label>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono bg-gray-100 px-3 py-2 rounded text-gray-900">{userData?.referralCode || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Share Link</label>
+                    <input
+                      readOnly
+                      className="w-full border rounded px-3 py-2 text-sm"
+                      value={`https://digitalcareercenter.com/signup?ref=${userData?.referralCode || ''}`}
+                    />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Share Link</label>
-                  <input
-                    readOnly
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    value={`${typeof window !== 'undefined' ? window.location.origin : ''}/signup?ref=${userData?.referralCode || userData?.referral?.code || ''}`}
-                  />
-                </div>
-              </div>
 
-              <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-3 border rounded">
-                  <div className="text-xs text-gray-500">Total Referrals</div>
-                  <div className="text-lg font-semibold">{userData?.referralCount || 0}</div>
+                <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-3 border rounded">
+                    <div className="text-xs text-gray-500">Total Referrals</div>
+                    <div className="text-lg font-semibold">{userData?.referralCount || 0}</div>
+                  </div>
+                  <div className="p-3 border rounded">
+                    <div className="text-xs text-gray-500">Total Earnings</div>
+                    <div className="text-lg font-semibold">₹{userData?.referralEarnings || 0}</div>
+                  </div>
                 </div>
-                <div className="p-3 border rounded">
-                  <div className="text-xs text-gray-500">Total Earnings</div>
-                  <div className="text-lg font-semibold">₹{userData?.referralEarnings || 0}</div>
-                </div>
-              </div>
 
-              <h3 className="font-semibold mb-2">Referral Purchases</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="text-left border-b">
-                      <th className="py-2 pr-4">Friend Email</th>
-                      <th className="py-2 pr-4">Course</th>
-                      <th className="py-2 pr-4">Amount</th>
-                      <th className="py-2 pr-4">Status</th>
-                      <th className="py-2">Withdraw</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {referrals.map((r, idx) => (
-                      <tr key={idx} className="border-b">
-                        <td className="py-2 pr-4">{r.referredEmail}</td>
-                        <td className="py-2 pr-4">{r.course?.title || '-'}</td>
-                        <td className="py-2 pr-4">₹{r.amount}</td>
-                        <td className="py-2 pr-4 capitalize">{r.status}</td>
-                        <td className="py-2">
-                          <a
-                            target="_blank"
-                            rel="noreferrer"
-                            href={`https://wa.me/${encodeURIComponent('918595117607')}?text=${encodeURIComponent(`Hi, I want to withdraw my referral earning ₹${r.amount} for friend ${r.referredEmail} (course: ${r.course?.title || ''}). My email: ${session?.user?.email}`)}`}
-                            className="text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded inline-block text-xs"
-                          >Withdraw</a>
-                        </td>
+                <h3 className="font-semibold mb-2">Referral Purchases</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-left border-b">
+                        <th className="py-2 pr-4">Friend Email</th>
+                        <th className="py-2 pr-4">Course</th>
+                        <th className="py-2 pr-4">Amount</th>
+                        <th className="py-2 pr-4">Status</th>
+                        <th className="py-2">Withdraw</th>
                       </tr>
-                    ))}
-                    {referrals.length === 0 && (
-                      <tr>
-                        <td className="py-4 text-gray-500" colSpan={5}>No referrals yet. Share your link to start earning.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {referrals.map((r, idx) => (
+                        <tr key={idx} className="border-b">
+                          <td className="py-2 pr-4">{r.referredEmail}</td>
+                          <td className="py-2 pr-4">{r.course?.title || '-'}</td>
+                          <td className="py-2 pr-4">₹{r.amount}</td>
+                          <td className="py-2 pr-4 capitalize">{r.status}</td>
+                          <td className="py-2">
+                            {r.status === 'paid' ? (
+                              <button
+                                disabled
+                                className="text-gray-500 bg-gray-300 cursor-not-allowed px-3 py-1 rounded inline-block text-xs"
+                              >Withdraw</button>
+                            ) : (
+                              <a
+                                target="_blank"
+                                rel="noreferrer"
+                                href={`https://wa.me/917417302165?text=${encodeURIComponent(`Hi, I want to withdraw my referral earning ₹${r.amount} for friend ${r.referredEmail} (course: ${r.course?.title || ''}). My email: ${session?.user?.email}`)}`}
+                                className="text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded inline-block text-xs"
+                              >Withdraw</a>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {referrals.length === 0 && (
+                        <tr>
+                          <td className="py-4 text-gray-500" colSpan={5}>No referrals yet. Share your link to start earning.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -253,39 +284,69 @@ export default function ProfilePage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
               <div className="space-y-3">
-                <button
-                  onClick={() => router.push('/crm')}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
-                >
-                  Go to CRM Dashboard
-                </button>
-                <button
-                  onClick={() => router.push('/crm/referral-program')}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors"
-                >
-                  Referral Program
-                </button>
-                <button
-                  onClick={() => router.push('/crm/payment-center')}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors"
-                >
-                  Payment Center
-                </button>
+                {hasCrmAccess ? (
+                  <>
+                    <button
+                      onClick={() => router.push('/crm')}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
+                    >
+                      Go to CRM Dashboard
+                    </button>
+                    <button
+                      onClick={() => router.push('/crm/referral-program')}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors"
+                    >
+                      Referral Program
+                    </button>
+                    <button
+                      onClick={() => router.push('/crm/payment-center')}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors"
+                    >
+                      Payment Center
+                    </button>
+                  </>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-600 mb-3">
+                      Purchase a CRM course to access CRM features
+                    </p>
+                    <button
+                      onClick={() => router.push('/courses')}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors"
+                    >
+                      Browse Courses
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
+            
+            {/* Delete Account */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Settings</h3>
+              <button
+                onClick={() => {
+                  const whatsappUrl = `https://wa.me/917417302165?text=${encodeURIComponent(`Hi, I want to delete my account. Email: ${session?.user?.email}`)}`;
+                  window.open(whatsappUrl, '_blank');
+                }}
+                className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors"
+              >
+                Delete Account
+              </button>
+            </div>
 
-            {/* Referral Link */}
-            {userData?.referral?.code && (
+            {/* Referral Link - Only show if user has purchased at least one course */}
+            {userData?.courses && userData.courses.length > 0 && userData?.referralCode && (
               <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-sm p-6 text-white">
                 <h3 className="text-lg font-semibold mb-3">Your Referral Link</h3>
                 <div className="bg-white bg-opacity-20 rounded-lg p-3 mb-3">
                   <code className="text-sm break-all">
-                    {typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/signup?ref={userData.referral.code}
+                    https://digitalcareercenter.com/signup?ref={userData.referralCode}
                   </code>
                 </div>
                 <button
                   onClick={() => {
-                    const link = `${typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'}/signup?ref=${userData.referral.code}`;
+                    const link = `https://digitalcareercenter.com/signup?ref=${userData.referralCode}`;
                     navigator.clipboard.writeText(link);
                     alert('Referral link copied to clipboard!');
                   }}
@@ -302,4 +363,17 @@ export default function ProfilePage() {
   );
 }
 
-
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    }>
+      <ProfileContent />
+    </Suspense>
+  );
+}

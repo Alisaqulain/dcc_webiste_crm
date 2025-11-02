@@ -6,10 +6,7 @@ const nextConfig = {
   // },
   
   // API configuration for large file uploads
-  experimental: {
-    // Increase body size limit for API routes
-    serverComponentsExternalPackages: [],
-  },
+  serverExternalPackages: [],
   
   // Image optimization
   images: {

@@ -47,11 +47,23 @@ export async function PUT(request) {
       texts: body.texts || []
     };
 
+    console.log('Saving homepage content:', {
+      packagesCount: update.packages.length,
+      slidesCount: update.heroSlides.length,
+      testimonialsCount: update.testimonials.length
+    });
+
     const doc = await Homepage.findOneAndUpdate(
       { slug: 'default' },
       { $set: update },
       { upsert: true, new: true }
     ).lean();
+
+    console.log('Saved homepage content:', {
+      packagesCount: doc?.packages?.length || 0,
+      slidesCount: doc?.heroSlides?.length || 0,
+      testimonialsCount: doc?.testimonials?.length || 0
+    });
 
     return Response.json({ ok: true, content: doc });
   } catch (error) {
