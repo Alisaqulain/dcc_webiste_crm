@@ -3,26 +3,13 @@ import { NextResponse } from 'next/server';
 
 export default withAuth(
   async function middleware(req) {
-    // For CRM routes, check if user has purchased CRM course
-    if (req.nextUrl.pathname.startsWith('/crm')) {
-      if (!req.nextauth.token) {
-        return NextResponse.redirect(new URL('/login?redirect=' + req.nextUrl.pathname, req.url));
-      }
-
-      // CRM access will be checked in the layout component
-      // Middleware only checks authentication
-      return NextResponse.next();
-    }
+    // Allow all routes - CRM access is checked in the layout component
     return NextResponse.next();
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Allow access to CRM routes only if user is authenticated
-        // Detailed CRM course check happens in layout
-        if (req.nextUrl.pathname.startsWith('/crm')) {
-          return !!token;
-        }
+        // Allow all routes - authentication and access checks happen in components
         return true;
       },
     },
@@ -30,7 +17,7 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ['/crm/:path*']
+  matcher: [] // Empty matcher - no routes are blocked by middleware
 };
 
 

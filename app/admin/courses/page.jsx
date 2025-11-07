@@ -4,6 +4,24 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+// Helper function to normalize course thumbnail URL
+const getCourseThumbnail = (thumbnail) => {
+  if (!thumbnail) return null;
+  
+  // If it's already a full URL, return as is
+  if (thumbnail.startsWith('http://') || thumbnail.startsWith('https://')) {
+    return thumbnail;
+  }
+  
+  // If it starts with /, it's a relative path
+  if (thumbnail.startsWith('/')) {
+    return thumbnail;
+  }
+  
+  // Otherwise, assume it's in public folder and add leading slash
+  return `/${thumbnail}`;
+};
+
 export default function CoursesPage() {
   const router = useRouter();
   const [courses, setCourses] = useState([]);
@@ -12,8 +30,7 @@ export default function CoursesPage() {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterLevel, setFilterLevel] = useState('');
   const [filterPublished, setFilterPublished] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalCourses, setTotalCourses] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
 
   const categories = [
@@ -37,14 +54,15 @@ export default function CoursesPage() {
     }
     
     fetchCourses();
-  }, [router, currentPage, searchTerm, filterCategory, filterLevel, filterPublished]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, searchTerm, filterCategory, filterLevel, filterPublished]);
 
   const fetchCourses = async () => {
     try {
+      setIsLoading(true);
       const token = localStorage.getItem('adminToken');
       const params = new URLSearchParams({
-        page: currentPage,
-        limit: 10,
+        limit: 0, // 0 means fetch all courses (no limit)
         ...(searchTerm && { search: searchTerm }),
         ...(filterCategory && { category: filterCategory }),
         ...(filterLevel && { level: filterLevel }),
@@ -59,16 +77,28 @@ export default function CoursesPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setCourses(data.courses);
-        setTotalPages(data.pagination.totalPages);
+        setCourses(data.courses || []);
+        setTotalCourses(data.pagination?.totalCourses || data.courses?.length || 0);
       } else {
-        const error = await response.json();
+        let error;
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            error = await response.json();
+          } else {
+            const text = await response.text();
+            console.error('Server returned non-JSON:', text.substring(0, 200));
+            error = { message: `Server error: ${response.status} ${response.statusText}` };
+          }
+        } catch (e) {
+          error = { message: `Failed to parse error response: ${response.status}` };
+        }
         console.error('Error fetching courses:', error);
-        alert('Error fetching courses: ' + error.message);
+        alert('Error fetching courses: ' + (error.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
-      alert('Error fetching courses: ' + error.message);
+      alert('Error fetching courses: ' + (error.message || 'Network error'));
     } finally {
       setIsLoading(false);
     }
@@ -237,8 +267,8 @@ export default function CoursesPage() {
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-12 w-12">
                             <img
-                              className="h-12 w-12 rounded-lg object-cover"
-                              src={course.thumbnail}
+                              className="h-12 w-12 rounded-lg object-cover bg-gray-200"
+                              src={getCourseThumbnail(course.thumbnail) || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="48" height="48"%3E%3Crect width="48" height="48" fill="%23e5e7eb"/%3E%3C/svg%3E'}
                               alt={course.title}
                             />
                           </div>
@@ -322,51 +352,15 @@ export default function CoursesPage() {
             </table>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-              <div className="flex-1 flex justify-between sm:hidden">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-gray-700">
-                    Page <span className="font-medium">{currentPage}</span> of{' '}
-                    <span className="font-medium">{totalPages}</span>
-                  </p>
-                </div>
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      Next
-                    </button>
-                  </nav>
-                </div>
-              </div>
+          {/* Course Count */}
+          {courses.length > 0 && (
+            <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+              <p className="text-sm text-gray-700">
+                Showing <span className="font-medium">{courses.length}</span> course{courses.length !== 1 ? 's' : ''} 
+                {totalCourses > courses.length && (
+                  <span> of <span className="font-medium">{totalCourses}</span> total</span>
+                )}
+              </p>
             </div>
           )}
         </div>
@@ -378,6 +372,7 @@ export default function CoursesPage() {
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
             setShowAddModal(false);
+            // Refresh courses list
             fetchCourses();
           }}
         />
@@ -451,6 +446,17 @@ function AddCourseModal({ onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Validate required fields before submission
+    if (!formData.title || !formData.description || !formData.price || 
+        !formData.category || !formData.level || !formData.instructor?.name || 
+        !formData.thumbnail) {
+      alert('Please fill in all required fields: title, description, price, category, level, instructor name, and thumbnail');
+      setIsSubmitting(false);
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
@@ -482,9 +488,13 @@ function AddCourseModal({ onClose, onSuccess }) {
       });
       
       if (response.ok) {
+        const result = await response.json();
+        console.log('Course created successfully:', result);
+        alert('Course created successfully!');
         onSuccess();
       } else {
         const error = await response.json();
+        console.error('Error creating course:', error);
         alert(error.message || 'Error creating course');
       }
     } catch (error) {
@@ -512,7 +522,16 @@ function AddCourseModal({ onClose, onSuccess }) {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form 
+            onSubmit={handleSubmit} 
+            className="space-y-6"
+            onKeyDown={(e) => {
+              // Prevent form submission on Enter key except in textarea
+              if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+              }
+            }}
+          >
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -637,14 +656,38 @@ function AddCourseModal({ onClose, onSuccess }) {
 
             {/* CRM Access Option */}
             <div className="flex items-center">
-              <label className="flex items-center">
+              <label 
+                className="flex items-center cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={formData.hasCrmAccess}
-                  onChange={(e) => setFormData(prev => ({ ...prev, hasCrmAccess: e.target.checked }))}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setFormData(prev => ({ ...prev, hasCrmAccess: e.target.checked }));
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer mr-2"
                 />
-                <span className="ml-2 text-sm text-gray-700">Include CRM Access (Users who purchase this course will see CRM option in navbar)</span>
+                <span 
+                  className="text-sm text-gray-700 cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFormData(prev => ({ ...prev, hasCrmAccess: !prev.hasCrmAccess }));
+                  }}
+                >
+                  Include CRM Access (Users who purchase this course will see CRM option in navbar)
+                </span>
               </label>
             </div>
 

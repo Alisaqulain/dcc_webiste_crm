@@ -10,14 +10,23 @@ export async function GET(request) {
     
     // Get user session
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return Response.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user with their courses
-    const user = await User.findById(session.user.id).select('courses');
+    // Find user by ID or email (fallback)
+    let user = null;
+    if (session.user.id) {
+      user = await User.findById(session.user.id).select('courses');
+    } else if (session.user.email) {
+      user = await User.findOne({ email: session.user.email }).select('courses');
+    }
+
+    if (!user) {
+      return Response.json({ message: 'User not found' }, { status: 404 });
+    }
     
-    if (!user || !user.courses || user.courses.length === 0) {
+    if (!user.courses || user.courses.length === 0) {
       return Response.json({ hasCrmAccess: false });
     }
 

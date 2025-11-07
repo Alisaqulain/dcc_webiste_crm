@@ -188,6 +188,7 @@ export async function POST(request) {
         description: firstChunk.description || '',
         videoData: videoData,
         thumbnailData: thumbnailData,
+        thumbnail: thumbnailData?.url || null, // Also set simple thumbnail field for compatibility
         duration: firstChunk.duration,
         order: nextOrder,
         isPreview: firstChunk.isPreview,

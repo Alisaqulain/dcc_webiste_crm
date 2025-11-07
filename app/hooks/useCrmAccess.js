@@ -19,11 +19,26 @@ export const useCrmAccess = () => {
       }
 
       try {
-        const response = await fetch('/api/user/crm-access');
+        const response = await fetch('/api/user/crm-access', {
+          credentials: 'include', // Ensure cookies are sent with request
+          cache: 'no-store' // Don't cache the response
+        });
+        
         if (response.ok) {
           const data = await response.json();
-          setHasCrmAccess(data.hasCrmAccess);
+          setHasCrmAccess(data.hasCrmAccess || false);
+          // Log for debugging
+          if (data.hasCrmAccess) {
+            console.log('CRM access granted. Courses:', data.crmCourses);
+          } else {
+            console.log('CRM access denied. User has courses but none have CRM access.');
+          }
+        } else if (response.status === 401) {
+          // Unauthorized - session expired
+          console.warn('Session expired while checking CRM access');
+          setHasCrmAccess(false);
         } else {
+          console.error('Error checking CRM access:', response.status, response.statusText);
           setHasCrmAccess(false);
         }
       } catch (error) {

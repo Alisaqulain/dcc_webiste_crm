@@ -87,7 +87,7 @@ export default function RootLayout({ children }) {
         <meta name="msapplication-TileColor" content="#dc2626" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         
-        {/* JSON-LD Structured Data */}
+        {/* JSON-LD Structured Data - Organization */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -164,6 +164,32 @@ export default function RootLayout({ children }) {
                     }
                   }
                 ]
+              }
+            })
+          }}
+        />
+        {/* JSON-LD Structured Data - WebSite */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Digital Career Center",
+              "url": "https://domainisdigitalcareercenter.com",
+              "description": "Digital Career Center - Transform Your Career with Expert-Led Digital Skills Courses",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": {
+                  "@type": "EntryPoint",
+                  "urlTemplate": "https://domainisdigitalcareercenter.com/search?q={search_term_string}"
+                },
+                "query-input": "required name=search_term_string"
+              },
+              "publisher": {
+                "@type": "EducationalOrganization",
+                "name": "Digital Career Center",
+                "url": "https://domainisdigitalcareercenter.com"
               }
             })
           }}

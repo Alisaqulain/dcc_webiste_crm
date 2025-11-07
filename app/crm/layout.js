@@ -12,22 +12,65 @@ export default function CrmLayout({ children }) {
 	const { data: session, status } = useSession();
 	const { hasCrmAccess, isLoading: checkingAccess } = useCrmAccess();
 	const [isOpen, setIsOpen] = useState(true);
+	const [userData, setUserData] = useState(null);
+	const [currentTime, setCurrentTime] = useState('');
+
+	// Fetch user data
+	useEffect(() => {
+		if (session) {
+			fetch('/api/user/profile')
+				.then(res => res.json())
+				.then(data => setUserData(data))
+				.catch(err => console.error('Error fetching user data:', err));
+		}
+	}, [session]);
+
+	// Update current time
+	useEffect(() => {
+		const updateTime = () => {
+			const now = new Date();
+			const hours = now.getHours();
+			const minutes = now.getMinutes();
+			const ampm = hours >= 12 ? 'pm' : 'am';
+			const displayHours = hours % 12 || 12;
+			const displayMinutes = minutes.toString().padStart(2, '0');
+			setCurrentTime(`${displayHours}:${displayMinutes}${ampm}`);
+		};
+		updateTime();
+		const interval = setInterval(updateTime, 60000); // Update every minute
+		return () => clearInterval(interval);
+	}, []);
+
+	// Get user initials
+	const getUserInitials = () => {
+		if (session?.user?.name) {
+			const names = session.user.name.split(' ');
+			return names.map(n => n[0]).join('').toUpperCase().slice(0, 2);
+		}
+		return 'U';
+	};
 
 	useEffect(() => {
+		// Wait for session and access check to complete
 		if (status === 'loading' || checkingAccess) return;
 		
+		// If no session, redirect to login
 		if (!session) {
-			router.push('/login?redirect=' + pathname);
+			// Use callbackUrl for NextAuth compatibility
+			router.push('/login?callbackUrl=' + encodeURIComponent(pathname));
 			return;
 		}
 
-		if (!hasCrmAccess) {
+		// If session exists but no CRM access, redirect to profile with message
+		// Only redirect if we've confirmed they don't have access (not still loading)
+		if (!checkingAccess && !hasCrmAccess) {
 			router.push('/profile?error=crm-access-required');
 			return;
 		}
 	}, [session, status, hasCrmAccess, checkingAccess, router, pathname]);
 
-	if (status === 'loading' || checkingAccess || !hasCrmAccess) {
+	// Show loading state while checking session or access
+	if (status === 'loading' || checkingAccess) {
 		return (
 			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
 				<div className="text-center">
@@ -36,6 +79,31 @@ export default function CrmLayout({ children }) {
 				</div>
 			</div>
 		);
+	}
+
+	// Show loading if session exists but we're still verifying access
+	// Only show error if we've confirmed they don't have access
+	if (session && !checkingAccess && !hasCrmAccess) {
+		return (
+			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
+				<div className="text-center">
+					<div className="text-red-600 text-2xl mb-4">⚠️</div>
+					<p className="text-lg font-semibold text-gray-900 mb-2">Access Denied</p>
+					<p className="text-gray-600 mb-4">You need to purchase a course with CRM access to use this feature.</p>
+					<button
+						onClick={() => router.push('/profile')}
+						className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+					>
+						Go to Profile
+					</button>
+				</div>
+			</div>
+		);
+	}
+
+	// If no session and not loading, redirect will happen in useEffect
+	if (!session && status !== 'loading') {
+		return null;
 	}
 
 	const NavItem = ({ href, label, icon }) => {
@@ -105,18 +173,22 @@ export default function CrmLayout({ children }) {
 						</button>
 						<div className="flex items-center gap-3">
 							<div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-								<span className="text-white font-bold">MA</span>
+								<span className="text-white font-bold">{getUserInitials()}</span>
 							</div>
 							<div>
-								<h1 className="font-semibold text-sm md:text-base text-gray-900">Welcome: MOHD ASIF K.</h1>
-								<p className="text-xs text-gray-500">Affiliate: #220575</p>
+								<h1 className="font-semibold text-sm md:text-base text-gray-900">
+									Welcome: {session?.user?.name?.toUpperCase() || 'User'}
+								</h1>
+								<p className="text-xs text-gray-500">
+									Affiliate: #{userData?.referralCode || session?.user?.referralCode || 'N/A'}
+								</p>
 							</div>
 						</div>
 					</div>
 					<div className="flex items-center gap-4">
 						<div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
 							<span className="w-2 h-2 bg-green-500 rounded-full"></span>
-							<span>Server Time: 5:09am</span>
+							<span>Server Time: {currentTime || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
 						</div>
 						
 					</div>

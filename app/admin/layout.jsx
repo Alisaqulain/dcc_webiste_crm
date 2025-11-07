@@ -35,6 +35,7 @@ export default function AdminLayout({ children }) {
     { name: 'Check User', href: '/admin/check-user', icon: 'users' },
     { name: 'Courses', href: '/admin/courses', icon: 'courses' },
     { name: 'Referrals', href: '/admin/referrals', icon: 'users' },
+    { name: 'Leads', href: '/admin/leads', icon: 'users' },
     { name: 'Blogs', href: '/admin/blogs', icon: 'blogs' },
     { name: 'Analytics', href: '/admin/analytics', icon: 'analytics' },
     { name: 'Settings', href: '/admin/settings', icon: 'settings' },

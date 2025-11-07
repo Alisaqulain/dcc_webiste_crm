@@ -3,53 +3,39 @@
 import { FaGraduationCap, FaUsers, FaAward, FaGlobe, FaLightbulb, FaRocket, FaHeart, FaShieldAlt, FaTrophy, FaHandshake } from 'react-icons/fa';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import Head from 'next/head';
 
 export default function AboutPage() {
+  // About page structured data
+  const aboutSchema = {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    "name": "About Digital Career Center",
+    "description": "Learn about Digital Career Center, a leading digital skills training institute in Muzaffarnagar since 2018.",
+    "url": "https://domainisdigitalcareercenter.com/about",
+    "mainEntity": {
+      "@type": "EducationalOrganization",
+      "name": "Digital Career Center",
+      "foundingDate": "2018",
+      "description": "Digital Career Center is a leading institute in Muzaffarnagar, dedicated to empowering students and professionals with practical digital skills.",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "1st Floor, Raja Ji Market, Near M.B Public School, Mimlana Road",
+        "addressLocality": "Muzaffarnagar",
+        "addressRegion": "Uttar Pradesh",
+        "postalCode": "251002",
+        "addressCountry": "IN"
+      }
+    }
+  };
+
   return (
     <>
-      <Head>
-        <title>About Us - Digital Career Center | Leading Digital Skills Training Institute</title>
-        <meta name="description" content="Learn about Digital Career Center, a leading digital skills training institute in Muzaffarnagar since 2018. Discover our mission, vision, values, and success stories." />
-        <meta name="keywords" content="about digital career center, digital skills institute Muzaffarnagar, computer training center, digital marketing institute, career development" />
-        <meta property="og:title" content="About Us - Digital Career Center | Leading Digital Skills Training Institute" />
-        <meta property="og:description" content="Learn about Digital Career Center, a leading digital skills training institute in Muzaffarnagar since 2018. Discover our mission, vision, values, and success stories." />
-        <meta property="og:url" content="https://domainisdigitalcareercenter.com/about" />
-        <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://domainisdigitalcareercenter.com/logo.png" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="About Us - Digital Career Center | Leading Digital Skills Training Institute" />
-        <meta name="twitter:description" content="Learn about Digital Career Center, a leading digital skills training institute in Muzaffarnagar since 2018. Discover our mission, vision, values, and success stories." />
-        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/logo.png" />
-        <link rel="canonical" href="https://domainisdigitalcareercenter.com/about" />
-        
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "AboutPage",
-              "name": "About Digital Career Center",
-              "description": "Learn about Digital Career Center, a leading digital skills training institute in Muzaffarnagar since 2018.",
-              "url": "https://domainisdigitalcareercenter.com/about",
-              "mainEntity": {
-                "@type": "EducationalOrganization",
-                "name": "Digital Career Center",
-                "foundingDate": "2018",
-                "description": "Digital Career Center is a leading institute in Muzaffarnagar, dedicated to empowering students and professionals with practical digital skills.",
-                "address": {
-                  "@type": "PostalAddress",
-                  "streetAddress": "1st Floor, Raja Ji Market, Near M.B Public School, Mimlana Road",
-                  "addressLocality": "Muzaffarnagar",
-                  "addressRegion": "Uttar Pradesh",
-                  "postalCode": "251002",
-                  "addressCountry": "IN"
-                }
-              }
-            })
-          }}
-        />
-      </Head>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(aboutSchema)
+        }}
+      />
       <div className="min-h-screen bg-gray-50">
       
         {/* Hero Section */}

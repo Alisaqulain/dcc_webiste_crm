@@ -6,6 +6,24 @@ import Image from "next/image";
 import Link from "next/link";
 import PaymentModal from "../components/PaymentModal";
 
+// Helper function to normalize course thumbnail URL
+const getCourseThumbnail = (thumbnail) => {
+  if (!thumbnail) return null;
+  
+  // If it's already a full URL, return as is
+  if (thumbnail.startsWith('http://') || thumbnail.startsWith('https://')) {
+    return thumbnail;
+  }
+  
+  // If it starts with /, it's a relative path
+  if (thumbnail.startsWith('/')) {
+    return thumbnail;
+  }
+  
+  // Otherwise, assume it's in public folder and add leading slash
+  return `/${thumbnail}`;
+};
+
 const CoursesPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -163,13 +181,22 @@ const CoursesPage = () => {
             {courses.map((course) => (
               <div key={course._id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
                 {/* Course Image */}
-                <div className="relative h-48 w-full">
-                  <Image
-                    src={course.thumbnail}
-                    alt={course.title}
-                    fill
-                    className="object-cover"
-                  />
+                <div className="relative h-48 w-full bg-gray-200">
+                  {getCourseThumbnail(course.thumbnail) ? (
+                    <Image
+                      src={getCourseThumbnail(course.thumbnail)}
+                      alt={course.title}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  )}
                   {course.isFeatured && (
                     <div className="absolute top-4 left-4 bg-red-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
                       Featured

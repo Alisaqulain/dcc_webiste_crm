@@ -5,10 +5,12 @@ import { signIn, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { update: updateSession } = useSession();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,7 +38,25 @@ function LoginForm() {
       });
 
       if (result?.ok) {
-        router.push('/profile');
+        // Refresh session to ensure it's available
+        await updateSession();
+        // Small delay to ensure session is set
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Check for redirect or callbackUrl parameter (NextAuth uses callbackUrl)
+        const redirectPath = searchParams.get('redirect') || searchParams.get('callbackUrl');
+        // Extract path from absolute URL if needed
+        let finalPath = '/profile';
+        if (redirectPath) {
+          try {
+            // If it's an absolute URL, extract the path
+            const url = new URL(redirectPath, window.location.origin);
+            finalPath = url.pathname;
+          } catch {
+            // If it's already a relative path, use it directly
+            finalPath = redirectPath.startsWith('/') ? redirectPath : '/' + redirectPath;
+          }
+        }
+        router.push(finalPath);
       } else {
         setError('Invalid email or password');
       }
@@ -50,7 +70,21 @@ function LoginForm() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      await signIn('google', { callbackUrl: '/profile' });
+      // Check for redirect or callbackUrl parameter (NextAuth uses callbackUrl)
+      const redirectPath = searchParams.get('redirect') || searchParams.get('callbackUrl');
+      // Extract path from absolute URL if needed
+      let callbackUrl = '/profile';
+      if (redirectPath) {
+        try {
+          // If it's an absolute URL, extract the path
+          const url = new URL(redirectPath, window.location.origin);
+          callbackUrl = url.pathname;
+        } catch {
+          // If it's already a relative path, use it directly
+          callbackUrl = redirectPath.startsWith('/') ? redirectPath : '/' + redirectPath;
+        }
+      }
+      await signIn('google', { callbackUrl });
     } catch (error) {
       setError('Google login failed. Please try again.');
     } finally {

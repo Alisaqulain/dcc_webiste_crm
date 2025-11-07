@@ -1,70 +1,156 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+
 export default function TrainingVideosPage() {
-	const moreVideos = [
-		{ title: 'School Management Excel Dashboard', meta: 'Learn Power BI • 2 years ago', thumb: '/seos.jpg' },
-		{ title: 'Power BI Tutorial for Beginners', meta: 'Learn Power Query • 3 years ago', thumb: '/googles.jpg' },
-		{ title: 'How to use Microsoft Power BI', meta: 'Learn Power BI • 2 years ago', thumb: '/seos.jpg' },
-		{ title: 'Power BI Dashboard Tips', meta: 'Learn Power BI • 2 years ago', thumb: '/googles.jpg' },
-	];
+	const { data: session } = useSession();
+	const router = useRouter();
+	const [videos, setVideos] = useState([]);
+	const [courses, setCourses] = useState([]);
+	const [selectedVideo, setSelectedVideo] = useState(null);
+	const [isLoading, setIsLoading] = useState(true);
+
+	useEffect(() => {
+		const fetchVideos = async () => {
+			try {
+				const response = await fetch('/api/crm/training-videos');
+				if (response.ok) {
+					const data = await response.json();
+					setVideos(data.videos || []);
+					setCourses(data.courses || []);
+					if (data.videos && data.videos.length > 0) {
+						setSelectedVideo(data.videos[0]);
+					}
+				}
+			} catch (error) {
+				console.error('Error fetching videos:', error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		if (session) {
+			fetchVideos();
+		}
+	}, [session]);
+
+	// Extract YouTube video ID from URL
+	const getYouTubeEmbedUrl = (url) => {
+		if (!url) return null;
+		const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+		const match = url.match(regExp);
+		return match && match[2].length === 11 ? `https://www.youtube.com/embed/${match[2]}?rel=0` : null;
+	};
+
+	if (isLoading) {
+		return (
+			<div className="flex items-center justify-center min-h-screen">
+				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+			</div>
+		);
+	}
+
+	if (!selectedVideo && videos.length === 0) {
+		return (
+			<div className="space-y-6">
+				<div className="bg-white border rounded-md p-6 text-center">
+					<h2 className="text-lg font-semibold mb-2">No Training Videos Available</h2>
+					<p className="text-sm text-gray-600">Purchase a course to access training videos.</p>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 				<div className="lg:col-span-2 bg-white border rounded-md overflow-hidden">
-					<div className="aspect-video bg-black">
-						<iframe
-							title="Intro to DSP"
-							className="w-full h-full"
-							src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0"
-							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-							allowFullScreen
-						/>
-					</div>
-					<div className="p-3 border-t">
-						<div className="font-semibold text-sm">#1st Day | About ~ What is DSP (Digital Starter Pack)</div>
-						<div className="mt-2 flex items-center gap-2 text-sm">
-							<button className="px-3 py-1 rounded-full bg-gray-900 text-white">Join</button>
-							<button className="px-3 py-1 rounded-full border">Subscribe</button>
-							<button className="px-3 py-1 rounded-full border">Share</button>
-						</div>
-					</div>
+					{selectedVideo && (
+						<>
+							<div className="aspect-video bg-black">
+								{selectedVideo.youtubeUrl ? (
+									<iframe
+										title={selectedVideo.title}
+										className="w-full h-full"
+										src={getYouTubeEmbedUrl(selectedVideo.youtubeUrl)}
+										allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+										allowFullScreen
+									/>
+								) : (
+									<div className="w-full h-full flex items-center justify-center text-white">
+										<p>Video not available</p>
+									</div>
+								)}
+							</div>
+							<div className="p-3 border-t">
+								<div className="font-semibold text-sm">{selectedVideo.title}</div>
+								{selectedVideo.description && (
+									<div className="text-xs text-gray-600 mt-1">{selectedVideo.description}</div>
+								)}
+								<div className="text-xs text-gray-500 mt-1">Course: {selectedVideo.courseTitle} • Duration: {selectedVideo.duration}</div>
+								<div className="mt-3">
+									<button
+										onClick={() => router.push('/my-courses')}
+										className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+									>
+										Watch Video in My Courses
+									</button>
+								</div>
+							</div>
+						</>
+					)}
 				</div>
 
 				<div className="space-y-3">
 					<div className="text-sm font-semibold">More Videos</div>
-					<div className="bg-white border rounded-md divide-y">
-						{moreVideos.map((v, i) => (
-							<div key={i} className="flex gap-3 p-2">
-								<div className="w-28 h-16 bg-gray-200 rounded overflow-hidden flex items-center justify-center">
-									<img src={v.thumb} alt={v.title} className="h-full object-cover" />
+					<div className="bg-white border rounded-md divide-y max-h-[600px] overflow-y-auto">
+						{videos.length > 0 ? (
+							videos.map((v, i) => (
+								<div 
+									key={i} 
+									className={`flex gap-3 p-2 cursor-pointer hover:bg-gray-50 ${selectedVideo?.id === v.id ? 'bg-blue-50' : ''}`}
+									onClick={() => setSelectedVideo(v)}
+								>
+									<div className="w-28 h-16 bg-gray-200 rounded overflow-hidden flex items-center justify-center flex-shrink-0">
+										{v.courseThumbnail ? (
+											<img src={v.courseThumbnail} alt={v.title} className="h-full w-full object-cover" />
+										) : (
+											<span className="text-xs text-gray-400">No thumbnail</span>
+										)}
+									</div>
+									<div className="min-w-0">
+										<div className="text-sm font-medium truncate">{v.title}</div>
+										<div className="text-xs text-gray-500 truncate">{v.courseTitle} • {v.duration}</div>
+									</div>
 								</div>
-								<div className="min-w-0">
-									<div className="text-sm font-medium truncate">{v.title}</div>
-									<div className="text-xs text-gray-500 truncate">{v.meta}</div>
-								</div>
-							</div>
-						))}
+							))
+						) : (
+							<div className="p-4 text-center text-sm text-gray-500">No videos available</div>
+						)}
 					</div>
 				</div>
 			</div>
 
-			<div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-				{[
-					{ title: 'Tally prime Full Course', img: '/E1.png' },
-					{ title: 'Web Designing Full Course', img: '/seo.png' },
-					{ title: 'DSP Special Earning Course', img: '/dsp.png' },
-					{ title: 'Tally prime Full Course', img: '/F1.png' },
-					{ title: 'Web Designing Full Course', img: '/G1.png' },
-				].map((c, idx) => (
-					<div key={idx} className="bg-white border rounded-md p-3 text-center">
-						<div className="h-28 w-full bg-gray-100 rounded mb-2 flex items-center justify-center overflow-hidden">
-							<img src={c.img} alt={c.title} className="h-full object-contain" />
+			{courses.length > 0 && (
+				<div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+					{courses.map((c) => (
+						<div key={c.id} className="bg-white border rounded-md p-3 text-center">
+							<div className="h-28 w-full bg-gray-100 rounded mb-2 flex items-center justify-center overflow-hidden">
+								{c.thumbnail ? (
+									<img src={c.thumbnail} alt={c.title} className="h-full w-full object-cover" />
+								) : (
+									<span className="text-xs text-gray-400">No image</span>
+								)}
+							</div>
+							<div className="text-sm font-semibold">{c.title}</div>
+							<div className="text-xs text-gray-500 mt-1">{c.videoCount} videos</div>
 						</div>
-						<div className="text-sm font-semibold">{c.title}</div>
-					</div>
-				))}
-			</div>
+					))}
+				</div>
+			)}
 		</div>
 	);
 }

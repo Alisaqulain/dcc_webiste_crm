@@ -262,6 +262,7 @@ export async function POST(request) {
         isDataUrl: thumbnailData.isDataUrl
         // DO NOT include: data (base64)
       } : null,
+      thumbnail: thumbnailData?.url || null, // Also set simple thumbnail field for compatibility
       duration,
       order: nextOrder,
       isPreview,

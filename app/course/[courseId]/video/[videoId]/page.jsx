@@ -39,8 +39,30 @@ export default function VideoPlayerPage() {
         if (data.course.videos && data.course.videos.length > 0) {
           const foundVideo = data.course.videos.find(v => v._id === videoId);
           if (foundVideo) {
+            console.log('Video found:', {
+              videoId: foundVideo._id,
+              title: foundVideo.title,
+              hasVideoData: !!foundVideo.videoData,
+              videoDataUrl: foundVideo.videoData?.url,
+              videoDataFileName: foundVideo.videoData?.fileName,
+              isDataUrl: foundVideo.videoData?.isDataUrl,
+              hasVideoPath: !!foundVideo.videoPath,
+              videoPath: foundVideo.videoPath,
+              allVideosData: data.course.videos.map(v => ({
+                id: v._id,
+                title: v.title,
+                hasVideoData: !!v.videoData,
+                videoDataUrl: v.videoData?.url,
+                videoDataFileName: v.videoData?.fileName
+              }))
+            });
             setVideo(foundVideo);
           } else {
+            console.error('Video not found in course:', {
+              videoId,
+              courseId,
+              availableVideoIds: data.course.videos.map(v => v._id)
+            });
             setError('Video not found');
           }
         } else {

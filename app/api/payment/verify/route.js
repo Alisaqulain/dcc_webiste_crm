@@ -100,7 +100,7 @@ export async function POST(request) {
 
       // Only create referral if it doesn't already exist
       if (!existingReferral) {
-        const commission = Math.round(course.price * 0.1); // 10%
+        const commission = Math.round(course.price * 0.5); // 50%
 
         // Create referral record
         await Referral.create({
@@ -151,7 +151,7 @@ export async function POST(request) {
           
           <div style="background: #e7f3ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3>Refer & Earn Program:</h3>
-            <p>Share your referral code with friends and earn 10% commission on their course purchases!</p>
+            <p>Share your referral code with friends and earn 50% commission on their course purchases!</p>
             <p><strong>Your Referral Code:</strong> <span style="background: #dc2626; color: white; padding: 4px 8px; border-radius: 4px;">${user.referralCode || 'REF' + user._id.toString().slice(-6).toUpperCase()}</span></p>
             <p>Share this code: <strong>${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/signup?ref=${user.referralCode || 'REF' + user._id.toString().slice(-6).toUpperCase()}</strong></p>
           </div>

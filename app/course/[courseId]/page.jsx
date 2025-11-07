@@ -6,6 +6,24 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
 
+// Helper function to normalize course thumbnail URL
+const getCourseThumbnail = (thumbnail) => {
+  if (!thumbnail) return null;
+  
+  // If it's already a full URL, return as is
+  if (thumbnail.startsWith('http://') || thumbnail.startsWith('https://')) {
+    return thumbnail;
+  }
+  
+  // If it starts with /, it's a relative path
+  if (thumbnail.startsWith('/')) {
+    return thumbnail;
+  }
+  
+  // Otherwise, assume it's in public folder and add leading slash
+  return `/${thumbnail}`;
+};
+
 export default function CourseDetailPage() {
   const { courseId } = useParams();
   const router = useRouter();
@@ -82,11 +100,48 @@ export default function CourseDetailPage() {
     );
   }
 
+  // Course schema for SEO
+  const courseSchema = course ? {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    "name": course.title,
+    "description": course.description || `${course.title} - Learn from Digital Career Center`,
+    "provider": {
+      "@type": "EducationalOrganization",
+      "name": "Digital Career Center",
+      "url": "https://domainisdigitalcareercenter.com"
+    },
+    "instructor": {
+      "@type": "Person",
+      "name": course.instructor?.name || "Digital Career Center"
+    },
+    "courseCode": course._id,
+    "educationalLevel": course.level || "Beginner",
+    "courseCategory": course.category || "Digital Skills",
+    "timeRequired": course.duration || "PT1H",
+    "image": course.thumbnail ? (course.thumbnail.startsWith('http') ? course.thumbnail : `https://domainisdigitalcareercenter.com${course.thumbnail}`) : "https://domainisdigitalcareercenter.com/logo.png",
+    "offers": {
+      "@type": "Offer",
+      "price": course.price || 0,
+      "priceCurrency": "INR",
+      "availability": "https://schema.org/InStock"
+    }
+  } : null;
+
   // Sort videos by order
   const sortedVideos = course.videos ? [...course.videos].sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+      {courseSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(courseSchema)
+          }}
+        />
+      )}
+      <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -115,13 +170,22 @@ export default function CourseDetailPage() {
           {/* Course Info Card */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-lg overflow-hidden sticky top-8">
-              <div className="relative h-48 w-full">
-                <Image
-                  src={course.thumbnail}
-                  alt={course.title}
-                  fill
-                  className="object-cover"
-                />
+              <div className="relative h-48 w-full bg-gray-200">
+                {getCourseThumbnail(course.thumbnail) ? (
+                  <Image
+                    src={getCourseThumbnail(course.thumbnail)}
+                    alt={course.title}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
               </div>
               <div className="p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">{course.title}</h2>
@@ -229,5 +293,6 @@ export default function CourseDetailPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

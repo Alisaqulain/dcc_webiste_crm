@@ -96,6 +96,22 @@ export default function FAQPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
+  // Generate FAQ schema for SEO
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqData.flatMap(category => 
+      category.questions.map(q => ({
+        "@type": "Question",
+        "name": q.question,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": q.answer
+        }
+      }))
+    )
+  };
+
   const toggleItem = (categoryIndex, questionIndex) => {
     const key = `${categoryIndex}-${questionIndex}`;
     setOpenItems(prev => ({
@@ -117,8 +133,15 @@ export default function FAQPage() {
   const categories = ['All', ...faqData.map(cat => cat.category)];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqSchema)
+        }}
+      />
+      <div className="min-h-screen bg-gray-50">
+        {/* Header Section */}
       <div className="bg-gradient-to-r from-red-600 to-red-700 text-white py-16">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center">
@@ -241,5 +264,6 @@ export default function FAQPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

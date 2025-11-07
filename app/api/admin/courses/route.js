@@ -30,13 +30,15 @@ export async function GET(request) {
     
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page')) || 1;
-    const limit = parseInt(searchParams.get('limit')) || 10;
+    const limitParam = searchParams.get('limit');
+    const limit = limitParam ? parseInt(limitParam) : 10;
     const search = searchParams.get('search') || '';
     const category = searchParams.get('category') || '';
     const level = searchParams.get('level') || '';
     const isPublished = searchParams.get('isPublished') || '';
+    // Sort by newest first by default so new courses appear at top
     const sortBy = searchParams.get('sortBy') || 'createdAt';
-    const sortOrder = searchParams.get('sortOrder') || 'desc';
+    const sortOrder = searchParams.get('sortOrder') || 'desc'; // Newest first
 
     const query = {};
     
@@ -67,27 +69,38 @@ export async function GET(request) {
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
-    const courses = await Course.find(query)
-      .sort(sortOptions)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .lean();
-
     const total = await Course.countDocuments(query);
+
+    // If limit is 0 or undefined, fetch all courses (no pagination)
+    let courses;
+    if (limit === 0) {
+      courses = await Course.find(query)
+        .sort(sortOptions)
+        .lean();
+    } else {
+      courses = await Course.find(query)
+        .sort(sortOptions)
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .lean();
+    }
 
     return Response.json({
       courses,
       pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(total / limit),
+        currentPage: limit === 0 ? 1 : parseInt(page),
+        totalPages: limit === 0 ? 1 : Math.ceil(total / limit),
         totalCourses: total,
-        hasNext: page < Math.ceil(total / limit),
-        hasPrev: page > 1
+        hasNext: limit === 0 ? false : page < Math.ceil(total / limit),
+        hasPrev: limit === 0 ? false : page > 1
       }
     });
   } catch (error) {
     console.error('API Error:', error);
-    return Response.json({ message: error.message }, { status: 401 });
+    return Response.json({ 
+      message: error.message || 'Failed to fetch courses',
+      error: error.stack 
+    }, { status: 500 });
   }
 }
 
