@@ -6,7 +6,11 @@ const nextConfig = {
   // },
   
   // API configuration for large file uploads
-  serverExternalPackages: [],
+  // Mark large packages as external to reduce bundle size
+  serverExternalPackages: ['fluent-ffmpeg'],
+  
+  // Output configuration for standalone builds (better for KVM)
+  output: 'standalone',
   
   // Image optimization
   images: {

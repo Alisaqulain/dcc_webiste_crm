@@ -19,6 +19,9 @@ export default function EditCoursePage() {
     title: '',
     description: '',
     shortDescription: '',
+    viewMore: '',
+    banner: '',
+    perks: [''],
     price: '',
     originalPrice: '',
     category: '',
@@ -73,6 +76,9 @@ export default function EditCoursePage() {
           title: courseData.title || '',
           description: courseData.description || '',
           shortDescription: courseData.shortDescription || '',
+          viewMore: courseData.viewMore || '',
+          banner: courseData.banner || '',
+          perks: courseData.perks?.length > 0 ? courseData.perks : [''],
           price: courseData.price?.toString() || '',
           originalPrice: courseData.originalPrice?.toString() || '',
           category: courseData.category || '',
@@ -167,6 +173,7 @@ export default function EditCoursePage() {
         features: formData.features.filter(f => f.trim() !== ''),
         requirements: formData.requirements.filter(r => r.trim() !== ''),
         whatYouWillLearn: formData.whatYouWillLearn.filter(w => w.trim() !== ''),
+        perks: formData.perks.filter(p => p.trim() !== ''),
         tags: formData.tags.filter(t => t.trim() !== ''),
         price: parseFloat(formData.price),
         originalPrice: formData.originalPrice ? parseFloat(formData.originalPrice) : undefined,
@@ -412,6 +419,64 @@ export default function EditCoursePage() {
                 placeholder="Brief description for course cards..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                View More Content <span className="text-red-600">*</span>
+              </label>
+              <textarea
+                rows={8}
+                value={formData.viewMore}
+                onChange={(e) => setFormData(prev => ({ ...prev, viewMore: e.target.value }))}
+                placeholder="Enter additional details, extra information, or any other content you want to show in the View More modal..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                <strong>Important:</strong> The "View More" modal will display ALL course information including description, banner, perks, features, requirements, what you'll learn, instructor details, AND this additional content. This field is for any extra details you want to add.
+              </p>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Banner</label>
+              <textarea
+                rows={3}
+                value={formData.banner}
+                onChange={(e) => setFormData(prev => ({ ...prev, banner: e.target.value }))}
+                placeholder="Enter banner text or promotional message for this course..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">Banner text that will be displayed prominently on the course card.</p>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Perks</label>
+              {formData.perks.map((perk, index) => (
+                <div key={index} className="flex space-x-2 mb-2">
+                  <input
+                    type="text"
+                    value={perk}
+                    onChange={(e) => updateArrayItem('perks', index, e.target.value)}
+                    placeholder="Enter a perk (e.g., Free Certificate, Lifetime Access)..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeArrayItem('perks', index)}
+                    className="px-3 py-2 text-red-600 hover:text-red-800"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addArrayItem('perks')}
+                className="text-blue-600 hover:text-blue-800 text-sm"
+              >
+                + Add Perk
+              </button>
+              <p className="text-xs text-gray-500 mt-1">Special perks or benefits that come with this course.</p>
             </div>
           </div>
 

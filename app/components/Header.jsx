@@ -1,38 +1,32 @@
 // src/components/Header.jsx
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useCrmAccess } from '../hooks/useCrmAccess';
 
 const Header = () => {
   const { data: session, status } = useSession();
   const { hasCrmAccess } = useCrmAccess();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [coursesOpen, setCoursesOpen] = useState(false);
   const [downloadsOpen, setDownloadsOpen] = useState(false);
   const [closeTimeout, setCloseTimeout] = useState(null);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/' });
   };
 
-  // Handle courses dropdown hover enter
-  const handleCoursesMouseEnter = () => {
-    if (closeTimeout) {
-      clearTimeout(closeTimeout);
-      setCloseTimeout(null);
-    }
-    setCoursesOpen(true);
-  };
-
-  // Handle courses dropdown hover leave (with delay)
-  const handleCoursesMouseLeave = () => {
-    const timeout = setTimeout(() => {
-      setCoursesOpen(false);
-    }, 300); // 300ms delay to close
-    setCloseTimeout(timeout);
+  // Close mobile menu handler
+  const closeMobileMenu = () => {
+    setMenuOpen(false);
   };
 
   // Handle downloads dropdown hover enter
@@ -75,68 +69,13 @@ const Header = () => {
           Home
         </a>
 
-        {/* Courses Dropdown */}
-        <div
-          className="relative"
-          onMouseEnter={handleCoursesMouseEnter}
-          onMouseLeave={handleCoursesMouseLeave}
+        {/* All Courses Link */}
+        <Link
+          href="/courses"
+          className="text-gray-900 font-medium hover:text-red-600 transition-colors"
         >
-          <div className="flex items-center">
-            <Link
-              href="/courses"
-              className="text-gray-900 font-medium hover:text-red-600 transition-colors"
-            >
-              All Courses
-            </Link>
-            <button
-              className="ml-1 text-gray-900 font-medium hover:text-red-600 transition-colors"
-              aria-haspopup="menu"
-              aria-expanded={coursesOpen}
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* Courses Dropdown Menu */}
-          <div
-            className={`absolute transition-all duration-300 ease-out transform bg-white shadow-md rounded-md mt-2 w-48 border border-red-200 z-20
-              ${
-                coursesOpen
-                  ? "opacity-100 scale-100"
-                  : "opacity-0 scale-95 pointer-events-none"
-              }`}
-          >
-            {[
-              { name: "Digital Starter Package", href: "/BronzeBundle" },
-              { name: "Advance Basic Computer", href: "/silver" },
-              { name: "Search Engine Optimization", href: "/gold" },
-              { name: "Hindi Typing", href: "/platinum" },
-              { name: "Youtube Ads", href: "/Diamond" },
-              { name: "Google Ads", href: "/dcc" },
-            ].map((item, idx) => (
-              <a
-                key={idx}
-                href={item.href}
-                className="block px-4 py-2 text-[12px] text-gray-900 hover:bg-red-50 hover:text-red-600 transition-colors"
-                onClick={() => setCoursesOpen(false)}
-              >
-                {item.name}
-              </a>
-            ))}
-          </div>
-        </div>
+          All Courses
+        </Link>
 
         <a
           href="/blog"
@@ -281,58 +220,21 @@ const Header = () => {
           <nav className="flex flex-col p-4 space-y-3">
             <a
               href="/"
+              onClick={closeMobileMenu}
               className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
             >
               Home
             </a>
-            <div className="flex flex-col space-y-1">
-              <Link
-                href="/courses"
-                className="font-medium text-gray-900 hover:text-red-600 text-sm sm:text-base"
-              >
-                All Courses
-              </Link>
-              <div className="pl-4 flex flex-col space-y-1">
-                <a
-                  href="/BronzeBundle"
-                  className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
-                >
-                  Digital Starter Package
-                </a>
-                <a
-                  href="/silver"
-                  className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
-                >
-                  Advance Basic Computer
-                </a>
-                <a
-                  href="/gold"
-                  className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
-                >
-                  Search Engine Optimization
-                </a>
-                <a
-                  href="/platinum"
-                  className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
-                >
-                  Hindi Typing
-                </a>
-                <a
-                  href="/Diamond"
-                  className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
-                >
-                  Youtube Ads
-                </a>
-                <a
-                  href="/dcc"
-                  className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
-                >
-                  Google Ads
-                </a>
-              </div>
-            </div>
+            <Link
+              href="/courses"
+              onClick={closeMobileMenu}
+              className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
+            >
+              All Courses
+            </Link>
             <a
               href="/blog"
+              onClick={closeMobileMenu}
               className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
             >
               Blog
@@ -346,18 +248,21 @@ const Header = () => {
               <div className="pl-4 flex flex-col space-y-1">
                 <a
                   href="/download-app"
+                  onClick={closeMobileMenu}
                   className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
                 >
                   Download App
                 </a>
                 <a
                   href="/certificate"
+                  onClick={closeMobileMenu}
                   className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
                 >
                   Download Certificate
                 </a>
                 <a
                   href="/idcard"
+                  onClick={closeMobileMenu}
                   className="text-xs sm:text-sm text-gray-700 hover:text-red-600 py-1"
                 >
                   Download ID Card
@@ -368,18 +273,21 @@ const Header = () => {
               <>
                 <Link
                   href="/my-courses"
+                  onClick={closeMobileMenu}
                   className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
                 >
                   My Courses
                 </Link>
                 <Link
                   href="/referral"
+                  onClick={closeMobileMenu}
                   className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
                 >
                   Refer & Earn
                 </Link>
                 <Link
                   href="/profile"
+                  onClick={closeMobileMenu}
                   className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
                 >
                   My Profile
@@ -387,13 +295,17 @@ const Header = () => {
                 {hasCrmAccess && (
                   <Link
                     href="/crm"
+                    onClick={closeMobileMenu}
                     className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
                   >
                     CRM
                   </Link>
                 )}
                 <button
-                  onClick={handleLogout}
+                  onClick={() => {
+                    closeMobileMenu();
+                    handleLogout();
+                  }}
                   className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-full shadow-md text-center mt-2 text-sm"
                 >
                   Logout
@@ -401,11 +313,11 @@ const Header = () => {
               </>
             ) : (
               <div className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-full shadow-md text-center mt-2">
-                <Link href="/login" className="hover:underline text-sm">
+                <Link href="/login" onClick={closeMobileMenu} className="hover:underline text-sm">
                   Login
                 </Link>{" "}
                 /{" "}
-                <Link href="/signup" className="hover:underline text-sm">
+                <Link href="/signup" onClick={closeMobileMenu} className="hover:underline text-sm">
                   Signup
                 </Link>
               </div>

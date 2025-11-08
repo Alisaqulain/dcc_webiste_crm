@@ -277,7 +277,7 @@ export default function CertificateDownloadPage() {
                 )}
                 
                 {/* Certificate Number - positioned next to "Certificate No." label */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '26.5%', left: '55.5%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '28%', left: '55.5%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
                   {certificate.rollNumber || 'N/A'}
                 </span>
                 
@@ -287,12 +287,12 @@ export default function CertificateDownloadPage() {
                 </span>
                 
                 {/* Parent/Guardian Name - positioned right after "S/o, D/o, ." label */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '49%', left: '47%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '50.5%', left: '47%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
                   {certificate.parentName || 'N/A'}
                 </span>
                 
                 {/* Course Name - positioned right after "in" */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '53%', left: '50%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '54.5%', left: '50%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
                   {certificate.courseName || 'N/A'}
                 </span>
                 

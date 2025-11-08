@@ -35,6 +35,8 @@ const CoursesPage = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showViewMoreModal, setShowViewMoreModal] = useState(false);
+  const [viewMoreCourse, setViewMoreCourse] = useState(null);
 
   const categories = [
     "Digital Marketing",
@@ -89,6 +91,11 @@ const CoursesPage = () => {
     setSelectedCourse(null);
     // Show success message or redirect
     router.push('/my-courses');
+  };
+
+  const handleViewMore = (course) => {
+    setViewMoreCourse(course);
+    setShowViewMoreModal(true);
   };
 
   if (isLoading) {
@@ -215,6 +222,13 @@ const CoursesPage = () => {
 
                 {/* Course Content */}
                 <div className="p-6">
+                  {/* Banner */}
+                  {course.banner && (
+                    <div className="mb-3 px-3 py-2 bg-red-50 border-l-4 border-red-600 rounded">
+                      <p className="text-sm font-medium text-red-800">{course.banner}</p>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-500">{course.category}</span>
                     <div className="flex items-center">
@@ -236,6 +250,25 @@ const CoursesPage = () => {
                   <p className="text-gray-600 text-sm mb-4 line-clamp-3">
                     {course.shortDescription || course.description}
                   </p>
+
+                  {/* Perks */}
+                  {course.perks && course.perks.length > 0 && (
+                    <div className="mb-4">
+                      <div className="flex flex-wrap gap-2">
+                        {course.perks.map((perk, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                          >
+                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            {perk}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
@@ -272,22 +305,36 @@ const CoursesPage = () => {
                   )}
 
                   {/* Price and Purchase */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-2xl font-bold text-gray-900">
-                        ₹{course.price?.toLocaleString()}
-                      </span>
-                      {course.originalPrice && course.originalPrice > course.price && (
-                        <span className="text-sm text-gray-500 line-through">
-                          ₹{course.originalPrice.toLocaleString()}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-2xl font-bold text-gray-900">
+                          ₹{course.price?.toLocaleString()}
                         </span>
-                      )}
+                        {course.originalPrice && course.originalPrice > course.price && (
+                          <span className="text-sm text-gray-500 line-through">
+                            ₹{course.originalPrice.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handlePurchase(course)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        {session ? 'Purchase' : 'Login to Purchase'}
+                      </button>
                     </div>
                     <button
-                      onClick={() => handlePurchase(course)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                      onClick={() => handleViewMore(course)}
+                      className={`w-full px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                        course.viewMore
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-not-allowed opacity-60'
+                      }`}
+                      disabled={!course.viewMore}
+                      title={!course.viewMore ? 'No additional content available' : 'View more details about this course'}
                     >
-                      {session ? 'Purchase' : 'Login to Purchase'}
+                      {course.viewMore ? 'View More' : 'View More (No content)'}
                     </button>
                   </div>
                 </div>
@@ -318,6 +365,178 @@ const CoursesPage = () => {
           }}
           onSuccess={handlePaymentSuccess}
         />
+      )}
+
+      {/* View More Modal */}
+      {showViewMoreModal && viewMoreCourse && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
+              <h2 className="text-2xl font-bold text-gray-900">{viewMoreCourse.title}</h2>
+              <button
+                onClick={() => {
+                  setShowViewMoreModal(false);
+                  setViewMoreCourse(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              {/* Banner */}
+              {viewMoreCourse.banner && (
+                <div className="px-4 py-3 bg-red-50 border-l-4 border-red-600 rounded">
+                  <p className="text-sm font-medium text-red-800">{viewMoreCourse.banner}</p>
+                </div>
+              )}
+
+              {/* Course Info Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Category</p>
+                  <p className="text-sm font-medium text-gray-900">{viewMoreCourse.category}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Level</p>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    viewMoreCourse.level === 'Beginner' ? 'bg-green-100 text-green-800' :
+                    viewMoreCourse.level === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {viewMoreCourse.level}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Duration</p>
+                  <p className="text-sm font-medium text-gray-900">{viewMoreCourse.duration}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Price</p>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg font-bold text-gray-900">₹{viewMoreCourse.price?.toLocaleString()}</span>
+                    {viewMoreCourse.originalPrice && viewMoreCourse.originalPrice > viewMoreCourse.price && (
+                      <span className="text-sm text-gray-500 line-through">₹{viewMoreCourse.originalPrice.toLocaleString()}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Instructor */}
+              {viewMoreCourse.instructor && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Instructor</p>
+                  <p className="text-sm font-medium text-gray-900">{viewMoreCourse.instructor.name}</p>
+                  {viewMoreCourse.instructor.bio && (
+                    <p className="text-sm text-gray-600 mt-1">{viewMoreCourse.instructor.bio}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Full Description */}
+              {viewMoreCourse.description && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{viewMoreCourse.description}</p>
+                </div>
+              )}
+
+              {/* Perks */}
+              {viewMoreCourse.perks && viewMoreCourse.perks.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Perks & Benefits</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {viewMoreCourse.perks.map((perk, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        {perk}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Features */}
+              {viewMoreCourse.features && viewMoreCourse.features.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Course Features</h3>
+                  <ul className="space-y-2">
+                    {viewMoreCourse.features.map((feature, index) => (
+                      <li key={index} className="flex items-start">
+                        <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-gray-700">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* What You Will Learn */}
+              {viewMoreCourse.whatYouWillLearn && viewMoreCourse.whatYouWillLearn.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">What You Will Learn</h3>
+                  <ul className="space-y-2">
+                    {viewMoreCourse.whatYouWillLearn.map((item, index) => (
+                      <li key={index} className="flex items-start">
+                        <svg className="w-5 h-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-gray-700">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Requirements */}
+              {viewMoreCourse.requirements && viewMoreCourse.requirements.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Requirements</h3>
+                  <ul className="space-y-2">
+                    {viewMoreCourse.requirements.map((requirement, index) => (
+                      <li key={index} className="flex items-start">
+                        <svg className="w-5 h-5 text-orange-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-gray-700">{requirement}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* View More Content */}
+              {viewMoreCourse.viewMore && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Additional Details</h3>
+                  <div className="whitespace-pre-wrap text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg">
+                    {viewMoreCourse.viewMore}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex justify-end z-10">
+              <button
+                onClick={() => {
+                  setShowViewMoreModal(false);
+                  setViewMoreCourse(null);
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

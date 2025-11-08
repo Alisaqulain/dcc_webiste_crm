@@ -16,6 +16,18 @@ const courseSchema = new mongoose.Schema({
     trim: true,
     maxlength: 200
   },
+  viewMore: {
+    type: String,
+    trim: true
+  },
+  banner: {
+    type: String,
+    trim: true
+  },
+  perks: [{
+    type: String,
+    trim: true
+  }],
   price: {
     type: Number,
     required: true,
