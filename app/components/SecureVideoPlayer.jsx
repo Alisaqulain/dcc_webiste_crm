@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   const { data: session } = useSession();
+  const router = useRouter();
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -1080,12 +1082,33 @@ const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   };
 
   const getVideoUrl = () => {
-    if (!session || !video?._id || !courseId) {
-      console.warn('Cannot get video URL:', { hasSession: !!session, videoId: video?._id, courseId });
+    // Check if video is a preview (free to watch)
+    const isPreview = video?.isPreview === true;
+    
+    // For preview videos, session is not required
+    // For paid videos, session is required
+    if (!isPreview && !session) {
+      console.warn('Cannot get video URL - session required for non-preview videos:', { 
+        hasSession: !!session, 
+        videoId: video?._id, 
+        courseId,
+        isPreview 
+      });
       return null;
     }
+    
+    if (!video?._id || !courseId) {
+      console.warn('Cannot get video URL - missing video ID or course ID:', { 
+        hasSession: !!session, 
+        videoId: video?._id, 
+        courseId,
+        isPreview 
+      });
+      return null;
+    }
+    
     const url = `/api/video/stream/${courseId}/${video._id}`;
-    console.log('Video URL:', url);
+    console.log('Video URL:', url, { isPreview, hasSession: !!session });
     return url;
   };
 
@@ -1118,13 +1141,29 @@ const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     return undefined;
   };
 
-  if (!session) {
+  // Check if video is a preview (free to watch)
+  const isPreview = video?.isPreview === true;
+  
+  // If not logged in and not a preview video, show login prompt
+  if (!session && !isPreview) {
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : `/course/${courseId}/video/${video?._id}`;
+    const loginUrl = `/login?redirect=${encodeURIComponent(currentPath)}`;
+    
     return (
-      <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Please log in to watch this video</p>
-          <button className="bg-red-600 text-white px-4 py-2 rounded-lg">
-            Login Required
+      <div className="flex items-center justify-center h-full min-h-[400px] bg-gray-100 rounded-lg">
+        <div className="text-center p-8">
+          <div className="mb-4">
+            <svg className="w-16 h-16 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">Login Required</h3>
+          <p className="text-gray-600 mb-6">Please log in to watch this video</p>
+          <button 
+            onClick={() => router.push(loginUrl)}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+          >
+            Login to Watch
           </button>
         </div>
       </div>

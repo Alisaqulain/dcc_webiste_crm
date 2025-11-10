@@ -25,13 +25,18 @@ export async function GET(request, { params }) {
       }
     }
     
-    // Include videos only if user has access and requested
+    // Include videos if user has access and requested, OR if includeVideos is true (to show preview videos)
     let course;
-    if (hasAccess && includeVideos) {
+    if (includeVideos) {
       course = await Course.findById(courseId).lean();
       // Sort videos by order
       if (course.videos) {
         course.videos.sort((a, b) => (a.order || 0) - (b.order || 0));
+        
+        // If user doesn't have access, filter to show only preview videos
+        if (!hasAccess) {
+          course.videos = course.videos.filter(v => v.isPreview === true);
+        }
       }
     } else {
       course = await Course.findById(courseId)

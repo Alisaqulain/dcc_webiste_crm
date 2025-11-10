@@ -48,40 +48,9 @@ export async function GET(request, { params }) {
       timestamp: new Date().toISOString()
     });
 
-    // Check if user is authenticated
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      console.error('Video stream request without session:', {
-        courseId,
-        videoId,
-        headers: {
-          authorization: request.headers.get('authorization') ? 'present' : 'missing',
-          cookie: request.headers.get('cookie') ? 'present' : 'missing'
-        }
-      });
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { 
-          status: 401,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-            'Access-Control-Allow-Headers': 'Range, Cookie',
-          }
-        }
-      );
-    }
-    
-    console.log('Video stream authenticated:', {
-      userId: session.user.id,
-      email: session.user.email,
-      courseId,
-      videoId
-    });
-
     await connectDB();
 
-    // Find course and video
+    // Find course and video first to check if it's a preview video
     const course = await Course.findById(courseId);
     if (!course) {
       return NextResponse.json(
@@ -122,6 +91,7 @@ export async function GET(request, { params }) {
     console.log('Video found:', {
       videoId,
       videoTitle: video.title,
+      isPreview: video.isPreview,
       hasVideoData: !!video.videoData,
       videoDataUrl: video.videoData?.url,
       videoDataFileName: video.videoData?.fileName,
@@ -130,39 +100,84 @@ export async function GET(request, { params }) {
       videoPath: video.videoPath
     });
 
-    // Check if user has access to this course
-    const user = await User.findById(session.user.id);
+    // Check if this is a preview video (free to watch)
+    const isPreviewVideo = video.isPreview === true;
     
-    if (!user || !user.courses) {
-      return NextResponse.json(
-        { error: 'Access denied. Please purchase this course.' },
-        { 
-          status: 403,
+    // Check authentication - only required for non-preview videos
+    const session = await getServerSession(authOptions);
+    
+    if (!isPreviewVideo) {
+      // For non-preview videos, authentication is required
+      if (!session) {
+        console.error('Video stream request without session for non-preview video:', {
+          courseId,
+          videoId,
           headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-            'Access-Control-Allow-Headers': 'Range',
+            authorization: request.headers.get('authorization') ? 'present' : 'missing',
+            cookie: request.headers.get('cookie') ? 'present' : 'missing'
           }
-        }
-      );
-    }
-
-    const hasAccess = user.courses.some(
-      c => c.courseId && c.courseId.toString() === courseId
-    );
-
-    if (!hasAccess) {
-      return NextResponse.json(
-        { error: 'Access denied. Please purchase this course to watch videos.' },
-        { 
-          status: 403,
-          headers: {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-            'Access-Control-Allow-Headers': 'Range',
+        });
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { 
+            status: 401,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+              'Access-Control-Allow-Headers': 'Range, Cookie',
+            }
           }
-        }
+        );
+      }
+      
+      console.log('Video stream authenticated:', {
+        userId: session.user.id,
+        email: session.user.email,
+        courseId,
+        videoId
+      });
+      
+      // Check if user has access to this course
+      const user = await User.findById(session.user.id);
+      
+      if (!user || !user.courses) {
+        return NextResponse.json(
+          { error: 'Access denied. Please purchase this course.' },
+          { 
+            status: 403,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+              'Access-Control-Allow-Headers': 'Range',
+            }
+          }
+        );
+      }
+
+      const hasAccess = user.courses.some(
+        c => c.courseId && c.courseId.toString() === courseId
       );
+
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: 'Access denied. Please purchase this course to watch videos.' },
+          { 
+            status: 403,
+            headers: {
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+              'Access-Control-Allow-Headers': 'Range',
+            }
+          }
+        );
+      }
+    } else {
+      // Preview videos are accessible without authentication
+      console.log('Preview video access - no authentication required:', {
+        courseId,
+        videoId,
+        videoTitle: video.title
+      });
     }
 
     // Handle different video storage methods

@@ -35,11 +35,7 @@ export default function CourseDetailPage() {
   useEffect(() => {
     if (status === 'loading') return;
     
-    if (!session) {
-      router.push('/login?redirect=/course/' + courseId);
-      return;
-    }
-
+    // Allow access to course page even without login to view preview videos
     fetchCourseData();
   }, [session, status, courseId, router]);
 
@@ -52,9 +48,9 @@ export default function CourseDetailPage() {
         const data = await response.json();
         setCourse(data.course);
         
-        // Verify user has purchased this course
+        // Check if there are any videos (preview or purchased)
         if (!data.course.videos || data.course.videos.length === 0) {
-          setError('No videos found for this course or you do not have access');
+          setError('No videos found for this course');
         }
       } else {
         setError('Course not found');
@@ -89,12 +85,23 @@ export default function CourseDetailPage() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
           <p className="text-gray-600 mb-4">{error || 'Course not found'}</p>
-          <Link
-            href="/my-courses"
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-          >
-            Back to My Courses
-          </Link>
+          <div className="flex gap-4 justify-center">
+            {session ? (
+              <Link
+                href="/my-courses"
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                Back to My Courses
+              </Link>
+            ) : (
+              <Link
+                href="/courses"
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                Browse Courses
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -148,7 +155,7 @@ export default function CourseDetailPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <Link 
-                href="/my-courses"
+                href={session ? "/my-courses" : "/courses"}
                 className="text-gray-600 hover:text-gray-900"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,12 +233,18 @@ export default function CourseDetailPage() {
               
               {sortedVideos.length > 0 ? (
                 <div className="space-y-3">
-                  {sortedVideos.map((video, index) => (
-                    <Link
-                      key={video._id || index}
-                      href={`/course/${courseId}/video/${video._id}`}
-                      className="block p-4 border border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
-                    >
+                  {sortedVideos.map((video, index) => {
+                    const isPreview = video.isPreview === true;
+                    const canAccess = session || isPreview;
+                    const videoUrl = `/course/${courseId}/video/${video._id}`;
+                    const loginUrl = `/login?redirect=${encodeURIComponent(videoUrl)}`;
+                    
+                    return canAccess ? (
+                      <Link
+                        key={video._id || index}
+                        href={videoUrl}
+                        className="block p-4 border border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
+                      >
                       <div className="flex items-start space-x-4">
                         <div className="flex-shrink-0">
                           <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
@@ -247,7 +260,10 @@ export default function CourseDetailPage() {
                             </h3>
                             {video.isPreview && (
                               <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                                Preview
+                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                Free Preview
                               </span>
                             )}
                           </div>
@@ -275,7 +291,58 @@ export default function CourseDetailPage() {
                         </div>
                       </div>
                     </Link>
-                  ))}
+                    ) : (
+                      <div
+                        key={video._id || index}
+                        onClick={() => router.push(loginUrl)}
+                        className="block p-4 border border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-shrink-0">
+                            <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <h3 className="text-lg font-medium text-gray-900">
+                                {index + 1}. {video.title}
+                              </h3>
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                Login Required
+                              </span>
+                            </div>
+                            {video.description && (
+                              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{video.description}</p>
+                            )}
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <span className="flex items-center">
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {video.duration}
+                              </span>
+                              {video.fileSize && (
+                                <span>
+                                  {(video.fileSize / (1024 * 1024)).toFixed(2)} MB
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-3">
+                              <span className="text-sm text-red-600 font-medium">Please log in to watch this video</span>
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0">
+                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-12">

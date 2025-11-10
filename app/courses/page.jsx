@@ -324,18 +324,27 @@ const CoursesPage = () => {
                         {session ? 'Purchase' : 'Login to Purchase'}
                       </button>
                     </div>
-                    <button
-                      onClick={() => handleViewMore(course)}
-                      className={`w-full px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                        course.viewMore
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-not-allowed opacity-60'
-                      }`}
-                      disabled={!course.viewMore}
-                      title={!course.viewMore ? 'No additional content available' : 'View more details about this course'}
-                    >
-                      {course.viewMore ? 'View More' : 'View More (No content)'}
-                    </button>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/course/${course._id}`}
+                        className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors text-sm bg-green-600 hover:bg-green-700 text-white text-center"
+                        title="View full course with preview videos"
+                      >
+                        View Full Course
+                      </Link>
+                      <button
+                        onClick={() => handleViewMore(course)}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
+                          course.viewMore
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-not-allowed opacity-60'
+                        }`}
+                        disabled={!course.viewMore}
+                        title={!course.viewMore ? 'No additional content available' : 'View more details about this course'}
+                      >
+                        View More
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

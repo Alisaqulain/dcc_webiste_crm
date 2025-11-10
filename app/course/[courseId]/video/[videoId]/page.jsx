@@ -18,11 +18,7 @@ export default function VideoPlayerPage() {
   useEffect(() => {
     if (status === 'loading') return;
     
-    if (!session) {
-      router.push('/login?redirect=/course/' + courseId + '/video/' + videoId);
-      return;
-    }
-
+    // Allow access to preview videos even without login
     fetchCourseData();
   }, [session, status, courseId, videoId, router]);
 
@@ -39,9 +35,13 @@ export default function VideoPlayerPage() {
         if (data.course.videos && data.course.videos.length > 0) {
           const foundVideo = data.course.videos.find(v => v._id === videoId);
           if (foundVideo) {
+            // If video is in the list, user has access (API already filters non-preview videos for non-purchased users)
+            // Preview videos are always accessible
+            
             console.log('Video found:', {
               videoId: foundVideo._id,
               title: foundVideo.title,
+              isPreview: foundVideo.isPreview,
               hasVideoData: !!foundVideo.videoData,
               videoDataUrl: foundVideo.videoData?.url,
               videoDataFileName: foundVideo.videoData?.fileName,
