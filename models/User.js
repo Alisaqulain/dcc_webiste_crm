@@ -49,6 +49,33 @@ const userSchema = new mongoose.Schema({
   }],
   isActive: { type: Boolean, default: true },
   lastLogin: { type: Date },
+  crmFiles: [{
+    filename: { type: String },
+    originalName: { type: String },
+    url: { type: String },
+    uploadedAt: { type: Date },
+    size: { type: Number },
+    type: { type: String },
+    downloaded: { type: Boolean, default: false },
+    downloadedAt: { type: Date },
+    _id: { type: mongoose.Schema.Types.ObjectId, auto: true }
+  }],
+  // Keep crmFile for backward compatibility (will be deprecated)
+  crmFile: {
+    filename: { type: String },
+    originalName: { type: String },
+    url: { type: String },
+    uploadedAt: { type: Date },
+    size: { type: Number },
+    type: { type: String }
+  },
+  crmFileDownloaded: { 
+    type: Boolean, 
+    default: false 
+  },
+  crmFileDownloadedAt: { 
+    type: Date 
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 }, {

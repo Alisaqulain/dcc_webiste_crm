@@ -157,6 +157,7 @@ export default function CrmLayout({ children }) {
 					<NavItem href="/crm/lead-add" label="Lead + Add" icon="➕" />
 					<NavItem href="/crm/training-videos" label="Training Video&apos;s" icon="🎥" />
 					<NavItem href="/crm/data-store" label="Data Store" icon="💾" />
+					<NavItem href="/crm/download-files" label="Download Files" icon="📥" />
 					<NavItem href="/crm/referral-program" label="Referral Program" icon="👥" />
 					<NavItem href="/crm/payment-center" label="Payment Center" icon="💳" />
 					<NavItem href="/crm/account-settings" label="Account Settings" icon="⚙️" />

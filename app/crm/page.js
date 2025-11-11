@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 
@@ -8,6 +9,8 @@ export default function CrmDashboard() {
 	const { data: session } = useSession();
 	const [dashboardData, setDashboardData] = useState(null);
 	const [isLoading, setIsLoading] = useState(true);
+	const [fileInfo, setFileInfo] = useState(null);
+	const [downloading, setDownloading] = useState(false);
 
 	useEffect(() => {
 		const fetchDashboardData = async () => {
@@ -24,10 +27,79 @@ export default function CrmDashboard() {
 			}
 		};
 
+		const fetchFileInfo = async () => {
+			try {
+				const response = await fetch('/api/crm/file/info');
+				if (response.ok) {
+					const data = await response.json();
+					console.log('File info response:', data);
+					if (data.hasFile && data.fileExists) {
+						setFileInfo(data.file);
+					} else if (data.hasFile && !data.fileExists) {
+						console.warn('File exists in database but not on server:', data);
+					}
+				} else {
+					const errorData = await response.json();
+					console.error('File info error:', errorData);
+				}
+			} catch (error) {
+				console.error('Error fetching file info:', error);
+			}
+		};
+
 		if (session) {
 			fetchDashboardData();
+			fetchFileInfo();
 		}
 	}, [session]);
+
+	const handleDownload = async () => {
+		setDownloading(true);
+		try {
+			const response = await fetch('/api/admin/crm-file/download');
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.message || 'Download failed');
+			}
+
+			// Get filename from Content-Disposition header or use default
+			const contentDisposition = response.headers.get('Content-Disposition');
+			let filename = 'crm-file.xlsx';
+			if (contentDisposition) {
+				const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+				if (filenameMatch) {
+					filename = filenameMatch[1];
+				}
+			}
+
+			// Create blob and download
+			const blob = await response.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+			document.body.removeChild(a);
+
+			// Refresh file info to update download status
+			setTimeout(() => {
+				fetch('/api/crm/file/info')
+					.then(res => res.json())
+					.then(data => {
+						if (data.hasFile && data.fileExists) {
+							setFileInfo(data.file);
+						}
+					})
+					.catch(console.error);
+			}, 1000);
+		} catch (error) {
+			alert('Failed to download file: ' + error.message);
+		} finally {
+			setDownloading(false);
+		}
+	};
 
 	if (isLoading) {
 		return (
@@ -174,6 +246,37 @@ export default function CrmDashboard() {
 
 				{/* Right panel cards */}
 				<div className="space-y-6">
+					{/* File Download Card */}
+					{fileInfo && (
+						<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+							<div className="flex items-center justify-between mb-4">
+								<h4 className="text-sm font-medium text-gray-600">Download Resources</h4>
+								<span className="text-2xl">📥</span>
+							</div>
+							<div className="space-y-3">
+								<div className="text-sm text-gray-700">
+									<p className="font-medium mb-1">{fileInfo.originalName || fileInfo.filename}</p>
+									<p className="text-xs text-gray-500">
+										Uploaded: {fileInfo.uploadedAt ? new Date(fileInfo.uploadedAt).toLocaleDateString() : 'N/A'}
+									</p>
+								</div>
+								<button
+									onClick={handleDownload}
+									disabled={downloading}
+									className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									{downloading ? 'Downloading...' : 'Download File'}
+								</button>
+								<Link
+									href="/crm/download-files"
+									className="block text-center text-xs text-blue-600 hover:text-blue-800 mt-2"
+								>
+									View all files →
+								</Link>
+							</div>
+						</div>
+					)}
+
 					{/* Referral Earning - Commented out as requested */}
 					{/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
 						<div className="flex items-center justify-between mb-4">

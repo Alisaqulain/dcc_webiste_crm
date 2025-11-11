@@ -40,6 +40,7 @@ export default function EditCoursePage() {
     tags: [''],
     isPublished: false,
     isFeatured: false,
+    hasCrmAccess: false,
     discount: {
       percentage: 0,
       validUntil: ''
@@ -97,6 +98,7 @@ export default function EditCoursePage() {
           tags: courseData.tags?.length > 0 ? courseData.tags : [''],
           isPublished: courseData.isPublished || false,
           isFeatured: courseData.isFeatured || false,
+          hasCrmAccess: courseData.hasCrmAccess || false,
           discount: {
             percentage: courseData.discount?.percentage || 0,
             validUntil: courseData.discount?.validUntil ? new Date(courseData.discount.validUntil).toISOString().split('T')[0] : ''
@@ -611,26 +613,42 @@ export default function EditCoursePage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-6">Course Settings</h2>
             
-            <div className="flex items-center space-x-6">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.isPublished}
-                  onChange={(e) => setFormData(prev => ({ ...prev, isPublished: e.target.checked }))}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="ml-2 text-sm text-gray-700">Published</span>
-              </label>
-              
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.isFeatured}
-                  onChange={(e) => setFormData(prev => ({ ...prev, isFeatured: e.target.checked }))}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="ml-2 text-sm text-gray-700">Featured Course</span>
-              </label>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-6">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.isPublished}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isPublished: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Published</span>
+                </label>
+                
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.isFeatured}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isFeatured: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Featured Course</span>
+                </label>
+              </div>
+
+              <div className="flex items-center">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasCrmAccess}
+                    onChange={(e) => setFormData(prev => ({ ...prev, hasCrmAccess: e.target.checked }))}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 cursor-pointer">
+                    Include CRM Access (Users who purchase this course will see CRM option in navbar and appear in CRM Purchasers list)
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
 
