@@ -39,6 +39,7 @@ export default function IDCardDownloadPage() {
     const imageUrl = window.location.origin + '/id.jpg';
     const photoUrl = idCard.photo || '';
     const rollNum = idCard.rollNumber || 'N/A';
+    const studentName = idCard.studentName || '';
 
     const printWindow = window.open('', '_blank');
     
@@ -57,10 +58,11 @@ export default function IDCardDownloadPage() {
               font-family: Arial, sans-serif;
               margin: 0;
               padding: 20px;
+              padding-top: 40px;
               background: #f5f5f5;
               display: flex;
               justify-content: center;
-              align-items: center;
+              align-items: flex-start;
               min-height: 100vh;
             }
             .certificate-container {
@@ -86,6 +88,7 @@ export default function IDCardDownloadPage() {
               body {
                 background: white;
                 padding: 0;
+                padding-top: 20px;
               }
               .certificate-container {
                 margin: 0;
@@ -97,7 +100,8 @@ export default function IDCardDownloadPage() {
           <div class="certificate-container">
             <img src="${imageUrl}" alt="ID Card" class="certificate-image" onload="window.printWhenReady = true; if (window.imageLoaded) window.printReady();" onerror="console.error('Image failed to load:', '${imageUrl}'); window.printWhenReady = true; if (window.imageLoaded) window.printReady();" />
             ${photoUrl ? `<img src="${photoUrl.startsWith('http') || photoUrl.startsWith('data:') ? photoUrl : photoUrl.startsWith('/') ? photoUrl : '/' + photoUrl}" alt="Student photo" class="certificate-overlay" style="top: 24%; left: 50%; transform: translateX(-50%); width: 160px; height: 160px; border-radius: 50%; object-fit: cover; border: 3px solid #dc2626; z-index: 15;" onerror="this.style.display='none'; console.error('Photo failed to load:', '${photoUrl}');" />` : ''}
-            <div class="certificate-overlay" style="top: 92%; left: 33%; transform: translateX(-50%); font-size: 20px; font-weight: bold; text-align: center; z-index: 10;">${rollNum}</div>
+            ${studentName ? `<div class="certificate-overlay" style="top: 55%; left: 50%; transform: translateX(-50%); font-size: 22px; font-weight: bold; text-align: center; z-index: 10;">${studentName}</div>` : ''}
+            <div class="certificate-overlay" style="top: 93%; left: 45%; transform: translateX(-50%); font-size: 20px; font-weight: bold; text-align: center; z-index: 10;">${rollNum}</div>
           </div>
           <script>
             window.imageLoaded = false;
@@ -218,8 +222,15 @@ export default function IDCardDownloadPage() {
               </>
             )}
             
+            {/* Student Name */}
+            {idCard.studentName && (
+              <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '55%', left: '50%', transform: 'translateX(-50%)', fontSize: 'clamp(18px, 3.5vw, 22px)', textAlign: 'center' }}>
+                {idCard.studentName}
+              </span>
+            )}
+            
             {/* Roll Number */}
-            <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '92%', left: '33%', transform: 'translateX(-50%)', fontSize: 'clamp(17px, 3vw, 20px)', textAlign: 'center' }}>
+            <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '92.2%', left: '45%', transform: 'translateX(-50%)', fontSize: 'clamp(17px, 3vw, 20px)', textAlign: 'center' }}>
                {idCard.rollNumber || 'N/A'}
             </span>
           </div>

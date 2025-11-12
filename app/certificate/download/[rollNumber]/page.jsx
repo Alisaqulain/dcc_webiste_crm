@@ -109,15 +109,15 @@ export default function CertificateDownloadPage() {
               white-space: nowrap;
             }
             /* Certificate Number */
-            .overlay-roll { top: 26.5%; left: 55.5%; font-size: 18px; }
+            .overlay-roll { top: 27%; left: 55.5%; font-size: 18px; }
             /* Student Name */
             .overlay-name { top: 45%; left: 60%; font-size: 22px; }
             /* Parent Name */
-            .overlay-parent { top: 49%; left: 47%; font-size: 18px; }
+            .overlay-parent { top: 50%; left: 47%; font-size: 18px; }
             /* Course Name */
-            .overlay-course { top: 53%; left: 50%; font-size: 18px; }
+            .overlay-course { top: 53.5%; left: 50%; font-size: 18px; }
             /* Duration */
-            .overlay-duration { top: 57%; left: 65%; font-size: 18px; }
+            .overlay-duration { top: 58%; left: 65%; font-size: 18px; }
             /* Start Date */
             .overlay-start-date { top: 62%; left: 45%; font-size: 16px; }
             /* End Date */
@@ -277,7 +277,7 @@ export default function CertificateDownloadPage() {
                 )}
                 
                 {/* Certificate Number - positioned next to "Certificate No." label */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '28%', left: '55.5%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '27%', left: '55.5%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
                   {certificate.rollNumber || 'N/A'}
                 </span>
                 
@@ -287,17 +287,17 @@ export default function CertificateDownloadPage() {
                 </span>
                 
                 {/* Parent/Guardian Name - positioned right after "S/o, D/o, ." label */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '50.5%', left: '47%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '50%', left: '47%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
                   {certificate.parentName || 'N/A'}
                 </span>
                 
                 {/* Course Name - positioned right after "in" */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '54.5%', left: '50%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '53.5%', left: '50%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
                   {certificate.courseName || 'N/A'}
                 </span>
                 
                 {/* Duration - positioned right before "/ Days by" */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '57%', left: '65%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
+                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '58%', left: '65%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
                   {certificate.duration || 0}
                 </span>
                 

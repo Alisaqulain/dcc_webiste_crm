@@ -59,6 +59,7 @@ export async function POST(request) {
     const body = await request.json();
     const {
       rollNumber,
+      studentName,
       photo
     } = body;
 
@@ -82,8 +83,8 @@ export async function POST(request) {
     // Create ID card with explicit defaults
     const idCardData = {
       rollNumber: rollNumber.trim(),
+      studentName: (studentName && studentName.trim()) || '',
       photo: (photo && photo.trim()) || '',
-      studentName: '',
       courseName: ''
     };
 

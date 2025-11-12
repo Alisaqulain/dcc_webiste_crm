@@ -242,6 +242,7 @@ export default function AdminIDCardsPage() {
 function IDCardModal({ idCard, onClose, onSave }) {
   const [formData, setFormData] = useState({
     rollNumber: idCard?.rollNumber || '',
+    studentName: idCard?.studentName || '',
     photo: idCard?.photo || ''
   });
 
@@ -342,6 +343,17 @@ function IDCardModal({ idCard, onClose, onSave }) {
                   onChange={(e) => setFormData(prev => ({ ...prev, rollNumber: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   placeholder="Enter roll number or ID"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Student Name</label>
+                <input
+                  type="text"
+                  value={formData.studentName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, studentName: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="Enter student name"
                 />
               </div>
 

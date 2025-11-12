@@ -33,6 +33,7 @@ export async function PUT(request, { params }) {
     const body = await request.json();
     const {
       rollNumber,
+      studentName,
       photo
     } = body;
 
@@ -66,6 +67,9 @@ export async function PUT(request, { params }) {
 
     // Update ID card
     idCard.rollNumber = rollNumber;
+    if (studentName !== undefined && studentName !== null) {
+      idCard.studentName = studentName.trim() || '';
+    }
     if (photo !== undefined && photo !== null) {
       idCard.photo = photo;
       idCard.markModified('photo');
