@@ -105,7 +105,7 @@ export default function PaymentCenterPage() {
 						<div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
 							<div className="text-sm font-semibold text-blue-900 mb-2">Pending Withdrawal: ₹{dashboardData.pendingWithdrawal.toFixed(2)}</div>
 							<a
-								href={`https://wa.me/917417302165?text=${encodeURIComponent(`Hi, I want to withdraw my earnings ₹${dashboardData.pendingWithdrawal.toFixed(2)}. My email: ${session?.user?.email || ''}`)}`}
+								href={`https://wa.me/917599863007?text=${encodeURIComponent(`Hi, I want to withdraw my earnings ₹${dashboardData.pendingWithdrawal.toFixed(2)}. My email: ${session?.user?.email || ''}`)}`}
 								target="_blank"
 								rel="noopener noreferrer"
 								className="inline-block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"

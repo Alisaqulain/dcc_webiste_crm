@@ -46,6 +46,19 @@ export default function CertificateDownloadPage() {
     }
   };
 
+  const formatDateDDMMYYYY = (date) => {
+    if (!date) return 'N/A';
+    try {
+      const d = new Date(date);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}-${month}-${year}`;
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
   const handleDownload = () => {
     if (!certificate) return;
     
@@ -56,7 +69,7 @@ export default function CertificateDownloadPage() {
     const courseName = certificate.courseName || 'N/A';
     const duration = certificate.duration || 0;
     const startDate = formatDate(certificate.startDate);
-    const endDate = new Date(certificate.endDate).getFullYear();
+    const endDate = formatDateDDMMYYYY(certificate.endDate);
     const rollNum = certificate.rollNumber || 'N/A';
     const photoUrl = certificate.photo || '';
     
@@ -306,9 +319,9 @@ export default function CertificateDownloadPage() {
                   {formatDate(certificate.startDate)}
                 </span>
                 
-                {/* End Date - positioned in date field (just year) */}
+                {/* End Date - positioned in date field (DD-MM-YYYY format) */}
                 <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '62%', left: '65%', fontSize: 'clamp(10px, 1.5vw, 18px)' }}>
-                  {new Date(certificate.endDate).getFullYear()}
+                  {formatDateDDMMYYYY(certificate.endDate)}
                 </span>
           </div>
             </div>

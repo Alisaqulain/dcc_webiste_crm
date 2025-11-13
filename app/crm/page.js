@@ -312,7 +312,7 @@ export default function CrmDashboard() {
 							<div className="mt-3 pt-3 border-t border-yellow-300">
 								<div className="text-xs opacity-90 mb-2">Pending Withdrawal: ₹{data.pendingWithdrawal.toFixed(2)}</div>
 								<a
-									href={`https://wa.me/917417302165?text=${encodeURIComponent(`Hi, I want to withdraw my lead earnings ₹${data.pendingWithdrawal.toFixed(2)}. My email: ${session?.user?.email || ''}`)}`}
+									href={`https://wa.me/917599863007?text=${encodeURIComponent(`Hi, I want to withdraw my lead earnings ₹${data.pendingWithdrawal.toFixed(2)}. My email: ${session?.user?.email || ''}`)}`}
 									target="_blank"
 									rel="noopener noreferrer"
 									className="inline-block w-full bg-white text-yellow-600 hover:bg-yellow-50 font-semibold py-2 px-4 rounded-lg transition-colors text-center text-sm"

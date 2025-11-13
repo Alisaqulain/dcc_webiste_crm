@@ -148,12 +148,7 @@ const Header = () => {
             >
               My Courses
             </Link>
-            <Link
-              href="/referral"
-              className="text-gray-900 font-medium hover:text-red-600 transition-colors"
-            >
-              Refer & Earn
-            </Link>
+           
             <Link
               href="/profile"
               className="text-gray-900 font-medium hover:text-red-600 transition-colors"
@@ -278,13 +273,7 @@ const Header = () => {
                 >
                   My Courses
                 </Link>
-                <Link
-                  href="/referral"
-                  onClick={closeMobileMenu}
-                  className="text-gray-900 hover:text-red-600 text-sm sm:text-base py-1"
-                >
-                  Refer & Earn
-                </Link>
+              
                 <Link
                   href="/profile"
                   onClick={closeMobileMenu}

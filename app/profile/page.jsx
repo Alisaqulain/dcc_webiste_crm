@@ -232,7 +232,7 @@ function ProfileContent() {
                               <a
                                 target="_blank"
                                 rel="noreferrer"
-                                href={`https://wa.me/917417302165?text=${encodeURIComponent(`Hi, I want to withdraw my referral earning ₹${r.amount} for friend ${r.referredEmail} (course: ${r.course?.title || ''}). My email: ${session?.user?.email}`)}`}
+                                href={`https://wa.me/917599863007?text=${encodeURIComponent(`Hi, I want to withdraw my referral earning ₹${r.amount} for friend ${r.referredEmail} (course: ${r.course?.title || ''}). My email: ${session?.user?.email}`)}`}
                                 className="text-white bg-green-600 hover:bg-green-700 px-3 py-1 rounded inline-block text-xs"
                               >Withdraw</a>
                             )}
