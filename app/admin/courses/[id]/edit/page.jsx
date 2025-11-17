@@ -146,17 +146,24 @@ export default function EditCoursePage() {
         body: formData,
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Upload API error response:', errorText);
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+      }
+
       const result = await response.json();
 
       if (result.success) {
         setUploadedImage(result.url);
         setFormData(prev => ({ ...prev, thumbnail: result.url }));
       } else {
-        alert('Upload failed: ' + result.message);
+        alert('Upload failed: ' + (result.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Upload failed. Please try again.');
+      const errorMessage = error.message || 'Unknown error occurred';
+      alert('Upload failed: ' + errorMessage + '\n\nPlease check:\n- File size is under 20MB\n- File is an image (JPG, PNG, GIF, WebP)\n- Your internet connection is stable');
     } finally {
       setIsUploading(false);
     }

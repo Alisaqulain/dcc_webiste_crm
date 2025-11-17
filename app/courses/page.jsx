@@ -15,6 +15,11 @@ const getCourseThumbnail = (thumbnail) => {
     return thumbnail;
   }
   
+  // If it's a data URL, return as is
+  if (thumbnail.startsWith('data:')) {
+    return thumbnail;
+  }
+  
   // If it starts with /, it's a relative path
   if (thumbnail.startsWith('/')) {
     return thumbnail;
@@ -22,6 +27,11 @@ const getCourseThumbnail = (thumbnail) => {
   
   // Otherwise, assume it's in public folder and add leading slash
   return `/${thumbnail}`;
+};
+
+// Helper function to check if URL is a data URL
+const isDataUrl = (url) => {
+  return url && url.startsWith('data:');
 };
 
 const CoursesPage = () => {
@@ -190,13 +200,21 @@ const CoursesPage = () => {
                 {/* Course Image */}
                 <div className="relative h-48 w-full bg-gray-200">
                   {getCourseThumbnail(course.thumbnail) ? (
-                    <Image
-                      src={getCourseThumbnail(course.thumbnail)}
-                      alt={course.title}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
+                    isDataUrl(getCourseThumbnail(course.thumbnail)) ? (
+                      <img
+                        src={getCourseThumbnail(course.thumbnail)}
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Image
+                        src={getCourseThumbnail(course.thumbnail)}
+                        alt={course.title}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    )
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">
                       <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
