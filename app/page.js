@@ -31,117 +31,6 @@ export default function HomePage() {
   const packageAutoPlayRef = useRef(null);
   const [slides, setSlides] = useState(defaultSlides);
 
-  const defaultPackages = [
-    {
-      title: "Digital Starter Package (DSP)",
-      courses: "4 Courses",
-      hours: "21 Hours",
-      enrollments: "140K+ Enrollments",
-      price: "₹1,899",
-      oldPrice: "₹3,499",
-      features: [
-        "Live Q&A Support",
-        "140K+ Students Enrolled",
-        "DCC Certificate",
-        "Basic Support",
-        "Email Support",
-        "Community Access"
-      ],
-      image: "/dsp.png",
-      link: "/BronzeBundle"
-    },
-    {
-      title: "Advance Basic Computer (ABC)",
-      courses: "14 Courses",
-      hours: "52 Hours",
-      enrollments: "90K+ Enrollments",
-      price: "₹3,499",
-      oldPrice: "₹5,999",
-      features: [
-        "Live Q&A Support",
-        "90K+ Students Enrolled",
-        "DCC Certificate",
-        "Priority Support",
-        "Email Support",
-        "Community Access"
-      ],
-      image: "/acb.png",
-      link: "/silver"
-    },
-    {
-      title: "Search Engine Optimization (SEO)",
-      courses: "25 Courses",
-      hours: "85 Hours",
-      enrollments: "75K+ Enrollments",
-      price: "₹5,999",
-      oldPrice: "₹9,999",
-      features: [
-        "Live Q&A Support",
-        "75K+ Students Enrolled",
-        "DCC Certificate",
-        "Priority Support",
-        "1-on-1 Mentoring",
-        "Community Access"
-      ],
-      image: "/seo.png",
-      link: "/gold"
-    },
-    {
-      title: "Hindi Typing (HT)",
-      courses: "40 Courses",
-      hours: "120 Hours",
-      enrollments: "50K+ Enrollments",
-      price: "₹8,999",
-      oldPrice: "₹14,999",
-      features: [
-        "Live Q&A Support",
-        "50K+ Students Enrolled",
-        "DCC Certificate",
-        "Priority Support",
-        "1-on-1 Mentoring",
-        "Career Guidance"
-      ],
-      image: "/hindi.png",
-      link: "/platinum"
-    },
-    {
-      title: "Youtube Ads (YA)",
-      courses: "60 Courses",
-      hours: "180 Hours",
-      enrollments: "25K+ Enrollments",
-      price: "₹12,999",
-      oldPrice: "₹19,999",
-      features: [
-        "Live Q&A Support",
-        "25K+ Students Enrolled",
-        "DCC Certificate",
-        "Priority Support",
-        "1-on-1 Mentoring",
-        "Career Guidance"
-      ],
-      image: "/you.png",
-      link: "/Diamond"
-    },
-    {
-      title: "Google Ads (GA)",
-      courses: "80 Courses",
-      hours: "250 Hours",
-      enrollments: "15K+ Enrollments",
-      price: "₹18,999",
-      oldPrice: "₹29,999",
-      features: [
-        "Live Q&A Support",
-        "15K+ Students Enrolled",
-        "DCC Certificate",
-        "Priority Support",
-        "1-on-1 Mentoring",
-        "Career Guidance"
-      ],
-      image: "/google.png",
-      link: "/dcc"
-    },
-  ];
-
   const defaultInstructors = [
     { name: "Mr Kaleem Sir", role: "Instructor", img: "/kaleem sir .png" },
     { name: "Mr Aasif Khan", role: "Instructor", img: "/my profile pic.png" },
@@ -175,7 +64,7 @@ export default function HomePage() {
     }
   ];
 
-  const [packages, setPackages] = useState(defaultPackages);
+  const [packages, setPackages] = useState([]);
   const [instructors, setInstructors] = useState(defaultInstructors);
   const [testimonials, setTestimonials] = useState(defaultTestimonials);
 
@@ -188,18 +77,17 @@ export default function HomePage() {
         const c = data?.content;
         if (c) {
           if (Array.isArray(c.heroSlides) && c.heroSlides.length) setSlides(c.heroSlides);
+          // Always use packages from admin, even if empty array
           if (Array.isArray(c.packages)) {
-            if (c.packages.length > 0) {
-              setPackages(c.packages);
-            }
-            // If packages array exists but is empty, keep defaults
+            setPackages(c.packages);
           }
           if (Array.isArray(c.instructors) && c.instructors.length) setInstructors(c.instructors);
           if (Array.isArray(c.testimonials) && c.testimonials.length) setTestimonials(c.testimonials);
         }
       } catch (e) {
         console.error('Error loading homepage content:', e);
-        // ignore and use defaults
+        // On error, set empty arrays to prevent showing static data
+        setPackages([]);
       }
     };
     load();
@@ -233,29 +121,33 @@ export default function HomePage() {
 
   const nextPackage = useCallback(() => {
     setCurrentPackage(prev => {
+      if (!packages || packages.length === 0) return 0;
       // For mobile (1 card), maxIndex is packages.length - 1
       // For desktop (2 cards), maxIndex is packages.length - 2
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
       const maxIndex = isMobile ? Math.max(0, packages.length - 1) : Math.max(0, packages.length - 2);
       return prev >= maxIndex ? 0 : prev + 1;
     });
-  }, [packages.length]);
+  }, [packages]);
 
   const prevPackage = useCallback(() => {
     setCurrentPackage(prev => {
+      if (!packages || packages.length === 0) return 0;
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
       const maxIndex = isMobile ? Math.max(0, packages.length - 1) : Math.max(0, packages.length - 2);
       return prev <= 0 ? maxIndex : prev - 1;
     });
-  }, [packages.length]);
+  }, [packages]);
 
   const nextTestimonial = useCallback(() => {
+    if (!testimonials || testimonials.length === 0) return;
     setCurrentTestimonial(prev => (prev + 1) % testimonials.length);
-  }, [testimonials.length]);
+  }, [testimonials]);
 
   const prevTestimonial = useCallback(() => {
+    if (!testimonials || testimonials.length === 0) return;
     setCurrentTestimonial(prev => (prev - 1 + testimonials.length) % testimonials.length);
-  }, [testimonials.length]);
+  }, [testimonials]);
 
   // Touch handlers for mobile swipe
   const handleTouchStart = (e) => {
@@ -467,6 +359,8 @@ export default function HomePage() {
 
 
             {/* Packages Slider */}
+            {packages && packages.length > 0 ? (
+            <>
             <div 
               className="relative max-w-6xl mx-auto overflow-hidden px-4"
               onTouchStart={handleTouchStart}
@@ -510,7 +404,7 @@ export default function HomePage() {
                           {/* Left side - Features */}
                           <div className="flex-1 pr-2">
                             <ul className="space-y-1 text-gray-600 text-xs">
-                              {pkg.features.map((feature, i) => (
+                              {(pkg.features || []).map((feature, i) => (
                                 <li key={i} className="flex items-center gap-1">
                                   <span className="text-green-500 text-xs">✅</span>
                                   <span className="text-xs">{feature}</span>
@@ -586,6 +480,12 @@ export default function HomePage() {
                 />
               ))}
             </div>
+            </>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No packages available at the moment. Please check back later.</p>
+              </div>
+            )}
           </section>
         </div>
       </div>
@@ -795,6 +695,7 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials Section */}
+      {testimonials && testimonials.length > 0 && (
       <section className="py-8 sm:py-12 md:py-16 px-4 sm:px-6">
         <h2 className="text-2xl sm:text-3xl font-bold mb-8 sm:mb-12 text-center text-black">
           Hear from Our Success Stories
@@ -824,7 +725,7 @@ export default function HomePage() {
 
                 {/* Star rating */}
                 <div className="flex gap-1 mb-3 sm:mb-4">
-                  {[...Array(testimonials[currentTestimonial].rating)].map((_, i) => (
+                  {[...Array(testimonials[currentTestimonial]?.rating || 0)].map((_, i) => (
                     <svg key={i} className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                     </svg>
@@ -833,10 +734,10 @@ export default function HomePage() {
 
                 {/* Testimonial text */}
                 <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">
-                  {testimonials[currentTestimonial].text.split('.')[0] + '.'}
+                  {testimonials[currentTestimonial]?.text?.split('.')[0] ? testimonials[currentTestimonial].text.split('.')[0] + '.' : ''}
                 </h3>
                 <p className="text-sm sm:text-base text-gray-700 leading-relaxed mb-4 sm:mb-6">
-                  {testimonials[currentTestimonial].text.split('.').slice(1).join('.').trim()}
+                  {testimonials[currentTestimonial]?.text?.split('.').slice(1).join('.').trim() || ''}
                 </p>
 
                 {/* Quote marks */}
@@ -848,8 +749,8 @@ export default function HomePage() {
 
                 {/* Author info */}
                 <div className="text-left pl-10 sm:pl-15">
-                  <h4 className="font-bold text-base sm:text-lg text-gray-900">{testimonials[currentTestimonial].author}</h4>
-                  <p className="text-sm sm:text-base text-gray-600">{testimonials[currentTestimonial].role}</p>
+                  <h4 className="font-bold text-base sm:text-lg text-gray-900">{testimonials[currentTestimonial]?.author || ''}</h4>
+                  <p className="text-sm sm:text-base text-gray-600">{testimonials[currentTestimonial]?.role || ''}</p>
                 </div>
               </div>
 
@@ -876,7 +777,7 @@ export default function HomePage() {
                   {/* Person image */}
                   <div className="absolute inset-4 rounded-full overflow-hidden">
                     <Image
-                      src={(testimonials[currentTestimonial] && testimonials[currentTestimonial].image) ? testimonials[currentTestimonial].image : '/girl.jpg'}
+                      src={testimonials[currentTestimonial]?.image || '/girl.jpg'}
                       alt={testimonials[currentTestimonial]?.author || 'Happy Student'}
                       width={200}
                       height={200}
@@ -893,6 +794,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Media Presence Section */}
       <section className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 text-center">
