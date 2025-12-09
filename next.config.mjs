@@ -1,83 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable experimental CSS optimization to avoid build issues
-  // experimental: {
-  //   optimizeCss: true,
-  // },
-  
-  // API configuration for large file uploads
-  // Mark large packages as external to reduce bundle size
-  serverExternalPackages: ['fluent-ffmpeg'],
-  
-  // Output configuration for standalone builds (better for KVM)
-  output: 'standalone',
-  
-  // Image optimization
+  // Image optimization - Next.js 12 uses domains instead of remotePatterns
   images: {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.google.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'via.placeholder.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'www.digitalcareercenter.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'pixelz.cc',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'http',
-        hostname: 'pixelz.cc',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'cdn.pixabay.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.pexels.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'source.unsplash.com',
-        port: '',
-        pathname: '/**',
-      }
+    domains: [
+      'images.unsplash.com',
+      'www.google.com',
+      'via.placeholder.com',
+      'picsum.photos',
+      'www.digitalcareercenter.com',
+      'pixelz.cc',
+      'cdn.pixabay.com',
+      'images.pexels.com',
+      'source.unsplash.com',
     ],
   },
   
