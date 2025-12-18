@@ -5,6 +5,9 @@ import Homepage from '@/models/Homepage';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// Note: Body size limits are controlled by the web server (Nginx/Apache)
+// For KVM hosting, ensure Nginx has: client_max_body_size 50M;
+
 // Inline token verification to match existing admin APIs style
 const verifyAdminToken = (request) => {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -39,16 +42,71 @@ export async function PUT(request) {
       return Response.json({ message: authError.message }, { status: 401 });
     }
 
+    // Check content length before parsing
+    const contentLength = request.headers.get('content-length');
+    if (contentLength) {
+      const sizeInMB = parseInt(contentLength) / (1024 * 1024);
+      const maxSizeMB = 4; // Conservative 4MB limit (typical server default is 1-5MB)
+      if (sizeInMB > maxSizeMB) {
+        return Response.json(
+          { 
+            ok: false, 
+            message: `Request body is too large (${sizeInMB.toFixed(2)}MB). Maximum size is ${maxSizeMB}MB. Please remove large base64-encoded images and use file uploads instead.` 
+          },
+          { status: 413 }
+        );
+      }
+    }
+
     await connectDB();
-    const body = await request.json();
+    
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      // Handle JSON parsing errors (including 413 from server)
+      if (parseError.message.includes('413') || parseError.message.includes('Payload Too Large')) {
+        return Response.json(
+          { 
+            ok: false, 
+            message: 'Request body is too large. Please reduce the size of your content, especially image data.' 
+          },
+          { status: 413 }
+        );
+      }
+      throw parseError;
+    }
+
+    // Clean large base64 data URLs from the body (safety measure)
+    const cleanBase64Images = (obj) => {
+      if (!obj || typeof obj !== 'object') return obj;
+      if (Array.isArray(obj)) {
+        return obj.map(item => cleanBase64Images(item));
+      }
+      const cleaned = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === 'string' && value.startsWith('data:image') && value.length > 100000) {
+          // Remove large base64 images (keep small ones like thumbnails)
+          console.warn(`Removing large base64 image from ${key} (${(value.length / 1024).toFixed(2)}KB)`);
+          cleaned[key] = '';
+        } else if (typeof value === 'object' && value !== null) {
+          cleaned[key] = cleanBase64Images(value);
+        } else {
+          cleaned[key] = value;
+        }
+      }
+      return cleaned;
+    };
+
+    const cleanedBody = cleanBase64Images(body);
 
     const update = {
-      seo: body.seo || {},
-      heroSlides: body.heroSlides || [],
-      packages: body.packages || [],
-      instructors: body.instructors || [],
-      testimonials: body.testimonials || [],
-      texts: body.texts || []
+      seo: cleanedBody.seo || {},
+      heroSlides: cleanedBody.heroSlides || [],
+      packages: cleanedBody.packages || [],
+      instructors: cleanedBody.instructors || [],
+      testimonials: cleanedBody.testimonials || [],
+      texts: cleanedBody.texts || []
     };
 
     console.log('Saving homepage content:', {

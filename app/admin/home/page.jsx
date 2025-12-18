@@ -12,6 +12,7 @@ export default function AdminHomeEditorPage() {
   const [jsonDraft, setJsonDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     const t = localStorage.getItem('adminToken');
@@ -43,7 +44,9 @@ export default function AdminHomeEditorPage() {
         texts: []
       };
       setContent(normalized);
-      setJsonDraft(JSON.stringify(normalized, null, 2));
+      // Clean large base64 images before displaying in JSON editor
+      const cleaned = cleanDataUrls(normalized);
+      setJsonDraft(JSON.stringify(cleaned, null, 2));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -51,11 +54,40 @@ export default function AdminHomeEditorPage() {
     }
   };
 
+  // Clean data URLs (base64 images) from the payload to reduce size
+  const cleanDataUrls = (obj) => {
+    if (!obj || typeof obj !== 'object') return obj;
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => cleanDataUrls(item));
+    }
+    
+    const cleaned = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof value === 'string' && value.startsWith('data:image')) {
+        // Replace base64 data URLs with empty string or keep only if small
+        if (value.length > 100000) { // If larger than ~100KB, remove it
+          console.warn(`Removing large base64 image from ${key} (${(value.length / 1024).toFixed(2)}KB)`);
+          cleaned[key] = '';
+        } else {
+          cleaned[key] = value;
+        }
+      } else if (typeof value === 'object' && value !== null) {
+        cleaned[key] = cleanDataUrls(value);
+      } else {
+        cleaned[key] = value;
+      }
+    }
+    return cleaned;
+  };
+
   // Update helpers for Slides and Testimonials
   const updateSlides = (updater) => {
     setContent((prev) => {
       const next = { ...prev, heroSlides: updater([...(prev?.heroSlides || [])]) };
-      setJsonDraft(JSON.stringify(next, null, 2));
+      // Clean large base64 images before displaying in JSON editor
+      const cleaned = cleanDataUrls(next);
+      setJsonDraft(JSON.stringify(cleaned, null, 2));
       return next;
     });
   };
@@ -63,16 +95,47 @@ export default function AdminHomeEditorPage() {
   const uploadImage = async (file) => {
     const form = new FormData();
     form.append('file', file);
-    const res = await fetch('/api/upload', { method: 'POST', body: form });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.message || 'Upload failed');
-    return data.url;
+    
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: form });
+      
+      // Check if response is JSON
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error('Upload API returned non-JSON:', text.substring(0, 500));
+        throw new Error('Upload failed: Server returned invalid response');
+      }
+      
+      const data = await res.json();
+      
+      if (!res.ok || !data.success) {
+        const errorMsg = data.message || `Upload failed with status ${res.status}`;
+        console.error('Upload failed:', errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      if (!data.url) {
+        throw new Error('Upload succeeded but no URL returned');
+      }
+      
+      console.log('Image uploaded successfully:', data.url);
+      return data.url;
+    } catch (error) {
+      console.error('Image upload error:', error);
+      if (error.message.includes('413') || error.message.includes('too large')) {
+        throw new Error('File is too large. Please use an image smaller than 20MB.');
+      }
+      throw error;
+    }
   };
 
   const updateTestimonials = (updater) => {
     setContent((prev) => {
       const next = { ...prev, testimonials: updater([...(prev?.testimonials || [])]) };
-      setJsonDraft(JSON.stringify(next, null, 2));
+      // Clean large base64 images before displaying in JSON editor
+      const cleaned = cleanDataUrls(next);
+      setJsonDraft(JSON.stringify(cleaned, null, 2));
       return next;
     });
   };
@@ -80,7 +143,9 @@ export default function AdminHomeEditorPage() {
   const updatePackages = (updater) => {
     setContent((prev) => {
       const next = { ...prev, packages: updater([...(prev?.packages || [])]) };
-      setJsonDraft(JSON.stringify(next, null, 2));
+      // Clean large base64 images before displaying in JSON editor
+      const cleaned = cleanDataUrls(next);
+      setJsonDraft(JSON.stringify(cleaned, null, 2));
       return next;
     });
   };
@@ -88,6 +153,7 @@ export default function AdminHomeEditorPage() {
   const handleSave = async () => {
     setSaving(true);
     setError('');
+    setSuccessMessage('');
     try {
       let parsed;
       try {
@@ -95,6 +161,43 @@ export default function AdminHomeEditorPage() {
       } catch (e) {
         throw new Error('Invalid JSON');
       }
+
+      // Check for base64 images before cleaning
+      const hasLargeBase64 = JSON.stringify(parsed).includes('data:image') && 
+        JSON.stringify(parsed).match(/data:image[^"]{100000,}/g);
+      
+      if (hasLargeBase64) {
+        const warnMsg = 'Warning: Your data contains large base64-encoded images. These will be automatically removed to reduce payload size. Make sure to upload images using the file upload buttons instead. Continue?';
+        if (!confirm(warnMsg)) {
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Clean base64 data URLs to reduce payload size
+      const cleaned = cleanDataUrls(parsed);
+      
+      // Compress JSON (remove whitespace)
+      const jsonString = JSON.stringify(cleaned);
+      const sizeInMB = new Blob([jsonString]).size / (1024 * 1024);
+      
+      // Log what we're sending for debugging
+      console.log('Saving homepage data:', {
+        packagesCount: cleaned.packages?.length || 0,
+        slidesCount: cleaned.heroSlides?.length || 0,
+        testimonialsCount: cleaned.testimonials?.length || 0,
+        payloadSize: `${sizeInMB.toFixed(2)}MB`
+      });
+
+      // Check size before sending
+      if (sizeInMB > 4.5) { // Warn if approaching typical 5MB limit
+        const confirmMsg = `Warning: Your data is ${sizeInMB.toFixed(2)}MB, which may be too large. Large base64-encoded images have been removed. Continue anyway?`;
+        if (!confirm(confirmMsg)) {
+          setSaving(false);
+          return;
+        }
+      }
+
       const res = await fetch('/api/admin/home?' + Date.now(), {
         method: 'PUT',
         headers: {
@@ -105,15 +208,78 @@ export default function AdminHomeEditorPage() {
           Authorization: `Bearer ${token}`
         },
         cache: 'no-store',
-        body: JSON.stringify(parsed)
+        body: jsonString
       });
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.message || 'Failed to save');
+
+      // Check if response is JSON before parsing
+      const contentType = res.headers.get('content-type');
+      let data;
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await res.json();
+        } catch (jsonError) {
+          // If JSON parsing fails, read as text to see what we got
+          const text = await res.text();
+          console.error('Failed to parse JSON response:', text.substring(0, 500));
+          throw new Error(`Server returned invalid response. Status: ${res.status}. ${res.status === 413 ? 'Request body is too large. Please reduce image sizes or use external image URLs instead of base64 data.' : 'Please try again.'}`);
+        }
+      } else {
+        // Response is not JSON (likely HTML error page)
+        const text = await res.text();
+        console.error('Server returned non-JSON response:', text.substring(0, 500));
+        
+        if (res.status === 413) {
+          throw new Error('Request body is too large. The server rejected your request. Please reduce the size of your content, especially image data. Consider using external image URLs instead of base64-encoded images.');
+        } else {
+          throw new Error(`Server error (${res.status}). Please try again or contact support.`);
+        }
+      }
+      
+      // Log response for debugging
+      console.log('Save response:', {
+        status: res.status,
+        ok: res.ok,
+        dataOk: data.ok,
+        packagesCount: data.content?.packages?.length || 0
+      });
+
+      if (!res.ok || !data.ok) {
+        const errorMsg = data.message || 'Failed to save';
+        console.error('Save failed:', errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      // Validate that packages were saved
+      if (data.content && Array.isArray(data.content.packages)) {
+        console.log('Packages saved successfully:', data.content.packages.length);
+      } else {
+        console.warn('Warning: Packages may not have been saved correctly');
+      }
+
       setContent(data.content);
       setJsonDraft(JSON.stringify(data.content, null, 2));
-      alert('✅ Changes saved successfully! The homepage will update immediately. If you don\'t see changes, try clearing your browser cache or doing a hard refresh (Ctrl+Shift+R or Cmd+Shift+R).');
+      
+      // Set success message for visual notification
+      const successMsg = '✅ Changes saved successfully! The homepage will update immediately. If you don\'t see changes, try clearing your browser cache or doing a hard refresh (Ctrl+Shift+R or Cmd+Shift+R).';
+      setSuccessMessage(successMsg);
+      
+      // Also show alert (in case visual notification is missed)
+      try {
+        alert(successMsg);
+      } catch (alertError) {
+        // If alert is blocked, at least we have the visual notification
+        console.log('Alert blocked, using visual notification only');
+      }
+
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 5000);
     } catch (e) {
+      console.error('Save error:', e);
       setError(e.message);
+      setSuccessMessage('');
     } finally {
       setSaving(false);
     }
@@ -135,6 +301,12 @@ export default function AdminHomeEditorPage() {
 
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
+      )}
+
+      {successMessage && (
+        <div className="mb-4 p-3 bg-green-100 text-green-700 rounded border border-green-300">
+          {successMessage}
+        </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

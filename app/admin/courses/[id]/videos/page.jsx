@@ -459,18 +459,90 @@ function VideoModal({ courseId, video, onClose, onSave }) {
         await handleChunkedUpload(token);
       } else {
         console.log('Using regular upload for small file');
-        await handleRegularUpload(token);
+        try {
+          await handleRegularUpload(token);
+        } catch (error) {
+          // If regular upload fails with network error, try chunked as fallback
+          const isNetworkError = error.message.includes('Failed to fetch') || 
+                                error.message.includes('ERR_HTTP2') ||
+                                error.message.includes('NetworkError') ||
+                                error.message.includes('timeout');
+          
+          if (isNetworkError) {
+            console.log('Regular upload failed, trying chunked upload as fallback...');
+            try {
+              await handleChunkedUpload(token);
+            } catch (chunkedError) {
+              // Both methods failed
+              throw new Error(`Upload failed. Regular upload: ${error.message}. Chunked upload: ${chunkedError.message}`);
+            }
+          } else {
+            throw error;
+          }
+        }
       }
 
     } catch (error) {
       console.error('Error uploading video:', error);
-      alert('Error uploading video: ' + error.message);
+      let errorMsg = error.message || 'Unknown error occurred';
+      
+      // Provide user-friendly error messages
+      if (errorMsg.includes('ERR_HTTP2') || errorMsg.includes('Failed to fetch')) {
+        errorMsg = 'Network connection error. Please check your internet connection and try again. If the problem persists, the server may be experiencing issues.';
+      } else if (errorMsg.includes('timeout')) {
+        errorMsg = 'Upload timeout: The upload took too long. Please try again or use a smaller file.';
+      }
+      
+      alert('Error uploading video: ' + errorMsg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleRegularUpload = async (token) => {
+  // Helper function to create fetch with timeout
+  const fetchWithTimeout = async (url, options, timeoutMs = 300000) => { // 5 minutes default
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Upload timeout: The upload took too long. Please try again or use a smaller file.');
+      }
+      throw error;
+    }
+  };
+
+  // Retry helper with exponential backoff
+  const retryWithBackoff = async (fn, maxRetries = 2, baseDelay = 1000) => {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        const isNetworkError = error.message.includes('Failed to fetch') || 
+                              error.message.includes('ERR_HTTP2') ||
+                              error.message.includes('NetworkError') ||
+                              error.message.includes('timeout');
+        
+        if (attempt === maxRetries || !isNetworkError) {
+          throw error;
+        }
+        
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.log(`Upload attempt ${attempt + 1} failed, retrying in ${delay}ms...`, error.message);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  };
+
+  const handleRegularUpload = async (token, retryCount = 0) => {
     // Create form data for upload
     const uploadFormData = new FormData();
     uploadFormData.append('video', formData.videoFile);
@@ -484,48 +556,75 @@ function VideoModal({ courseId, video, onClose, onSave }) {
       uploadFormData.append('thumbnail', formData.thumbnailFile);
     }
 
-    console.log('Uploading video via regular upload...');
-    const response = await fetch('/api/admin/video-upload', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      body: uploadFormData
-    });
+    console.log('Uploading video via regular upload...', retryCount > 0 ? `(Retry ${retryCount})` : '');
+    
+    try {
+      // Use retry with timeout (5 minutes for video uploads)
+      const response = await retryWithBackoff(async () => {
+        return await fetchWithTimeout('/api/admin/video-upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: uploadFormData
+        }, 300000); // 5 minute timeout
+      }, 2); // Max 2 retries
 
-    if (response.ok) {
-      const result = await response.json();
-      console.log('Video uploaded successfully:', result);
-      onClose();
-      window.location.reload();
-    } else {
-      let errorMessage = 'Error uploading video';
-
-      if (response.status === 413) {
-        errorMessage = 'Video file is too large! Please use a video smaller than 100MB or compress it.';
-      } else if (response.status === 400) {
-        try {
-          const error = await response.json();
-          errorMessage = error.error || 'Invalid video file or missing required fields';
-        } catch (jsonError) {
-          errorMessage = 'Invalid video file or missing required fields';
-        }
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Video uploaded successfully:', result);
+        onClose();
+        window.location.reload();
       } else {
-        try {
-          const error = await response.json();
-          errorMessage = error.error || errorMessage;
-        } catch (jsonError) {
+        let errorMessage = 'Error uploading video';
+
+        if (response.status === 413) {
+          errorMessage = 'Video file is too large! Please use a video smaller than 100MB or compress it.';
+        } else if (response.status === 400) {
           try {
-            const errorText = await response.text();
-            console.error('Non-JSON error response:', errorText);
-            errorMessage = `Server error: ${response.status} ${response.statusText}`;
-          } catch (textError) {
-            console.error('Could not parse error response:', textError);
-            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+            const error = await response.json();
+            errorMessage = error.error || 'Invalid video file or missing required fields';
+          } catch (jsonError) {
+            errorMessage = 'Invalid video file or missing required fields';
+          }
+        } else {
+          try {
+            const error = await response.json();
+            errorMessage = error.error || errorMessage;
+          } catch (jsonError) {
+            try {
+              const errorText = await response.text();
+              console.error('Non-JSON error response:', errorText);
+              errorMessage = `Server error: ${response.status} ${response.statusText}`;
+            } catch (textError) {
+              console.error('Could not parse error response:', textError);
+              errorMessage = `Server error: ${response.status} ${response.statusText}`;
+            }
           }
         }
+        throw new Error(errorMessage);
       }
-      alert(errorMessage);
+    } catch (error) {
+      // Check if it's a network error that might benefit from chunked upload
+      const isNetworkError = error.message.includes('Failed to fetch') || 
+                            error.message.includes('ERR_HTTP2') ||
+                            error.message.includes('NetworkError') ||
+                            error.message.includes('timeout');
+      
+      if (isNetworkError && retryCount === 0) {
+        // Try chunked upload as fallback for network errors
+        console.log('Regular upload failed with network error, trying chunked upload as fallback...');
+        try {
+          await handleChunkedUpload(token);
+          return; // Success, exit
+        } catch (chunkedError) {
+          // Chunked upload also failed, show error
+          throw new Error(`Upload failed: ${error.message}. Chunked upload also failed: ${chunkedError.message}`);
+        }
+      }
+      
+      // Re-throw the error to be handled by caller
+      throw error;
     }
   };
 
