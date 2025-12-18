@@ -4,21 +4,6 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Image from 'next/image';
 
-const defaultSlides = [
-  {
-    id: 1,
-     image: "/banner3.png"
-  },
-  {
-    id: 2,
-       image: "/banner5.jpg"
-  },
-  {
-    id: 3,
-    image: "/banner4.jpg"
-  }
-];
-
 export default function HomePage() {
   const [current, setCurrent] = useState(0);
   const [currentInstructor, setCurrentInstructor] = useState(0);
@@ -29,75 +14,74 @@ export default function HomePage() {
   const sliderRef = useRef(null);
   const autoPlayRef = useRef(null);
   const packageAutoPlayRef = useRef(null);
-  const [slides, setSlides] = useState(defaultSlides);
-
-  const defaultInstructors = [
-    { name: "Mr Kaleem Sir", role: "Instructor", img: "/kaleem sir .png" },
-    { name: "Mr Aasif Khan", role: "Instructor", img: "/my profile pic.png" },
-    { name: "Mr Ibrahim", role: "Instructor", img: "/ibrahim finel pose.png" },
-    { name: "Mr Shivam", role: "Instructor", img: "/shivam fine pose.png" },
-    { name: "Mr Asad", role: "Instructor", img: "/asad.png" },
-    { name: "Mr Arham", role: "Instructor", img: "/arham finel pose.png" },
-  ];
-
-  const defaultTestimonials = [
-    {
-      id: 1,
-      text: "This platform has helped me to overcome my fears and make the most out of given opportunities. If you wish to upskill yourself and acquire knowledge from top mentors then this is just the right platform for you.",
-      author: "Deepak Saini",
-      role: "Student",
-      rating: 5
-    },
-    {
-      id: 2,
-      text: "Digital Career Center completely transformed my life and helped me become the person I am today. I learned how to start my career and grow with the right guidance.",
-      author: "Aanu Shaco",
-      role: "Student",
-      rating: 5
-    },
-    {
-      id: 3,
-      text: "The instructors here are amazing and the course content is very practical. I got placed in a top company just after completing my course. Highly recommended!",
-      author: "Priya Sharma",
-      role: "Student",
-      rating: 5
-    }
-  ];
-
+  const [slides, setSlides] = useState([]);
   const [packages, setPackages] = useState([]);
-  const [instructors, setInstructors] = useState(defaultInstructors);
-  const [testimonials, setTestimonials] = useState(defaultTestimonials);
+  const [instructors, setInstructors] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
 
   // Load editable homepage content
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/home?t=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch('/api/home?t=' + Date.now(), { 
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        });
         const data = await res.json();
         const c = data?.content;
+        
+        // Always reset to empty arrays first to clear any previous data
+        setSlides([]);
+        setPackages([]);
+        setInstructors([]);
+        setTestimonials([]);
+        
         if (c) {
-          if (Array.isArray(c.heroSlides) && c.heroSlides.length) setSlides(c.heroSlides);
-          // Always use packages from admin, even if empty array
-          if (Array.isArray(c.packages)) {
-            setPackages(c.packages);
+          // Always use data from database if it's an array (even if empty)
+          if (Array.isArray(c.heroSlides)) {
+            console.log('Loading slides from database:', c.heroSlides.length);
+            setSlides(c.heroSlides);
           }
-          if (Array.isArray(c.instructors) && c.instructors.length) setInstructors(c.instructors);
-          if (Array.isArray(c.testimonials) && c.testimonials.length) setTestimonials(c.testimonials);
+          if (Array.isArray(c.packages)) {
+            console.log('Loading packages from database:', c.packages.length);
+            setPackages(c.packages);
+          } else {
+            console.log('No packages array found in database, using empty array');
+          }
+          if (Array.isArray(c.instructors)) {
+            console.log('Loading instructors from database:', c.instructors.length);
+            setInstructors(c.instructors);
+          }
+          if (Array.isArray(c.testimonials)) {
+            console.log('Loading testimonials from database:', c.testimonials.length);
+            setTestimonials(c.testimonials);
+          }
+        } else {
+          console.log('No content found in database response');
         }
       } catch (e) {
         console.error('Error loading homepage content:', e);
         // On error, set empty arrays to prevent showing static data
+        setSlides([]);
         setPackages([]);
+        setInstructors([]);
+        setTestimonials([]);
       }
     };
     load();
   }, []);
 
   const prevSlide = () => {
+    if (slides.length === 0) return;
     setCurrent(current === 0 ? slides.length - 1 : current - 1);
   };
 
   const nextSlide = () => {
+    if (slides.length === 0) return;
     setCurrent(current === slides.length - 1 ? 0 : current + 1);
   };
 
@@ -212,6 +196,7 @@ export default function HomePage() {
 
   // Auto-play for main slider
   useEffect(() => {
+    if (slides.length === 0) return;
     const autoSlide = setInterval(() => {
       setCurrent(prev => (prev + 1) % slides.length);
     }, 4000);
@@ -219,11 +204,12 @@ export default function HomePage() {
     return () => {
       clearInterval(autoSlide);
     };
-  }, []);
+  }, [slides.length]);
 
   return (
     <div className="w-full">
         {/* Slider Section */}
+      {slides.length > 0 && (
       <div className="relative w-full h-[200px] sm:h-[400px] md:h-[500px] overflow-hidden">
         {slides.map((slide, index) => (
           <div
@@ -269,6 +255,7 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+      )}
 
       {/* Stats Section */}
       <div className="py-8 sm:py-12 md:py-16 px-4 sm:px-6">
@@ -621,6 +608,7 @@ export default function HomePage() {
       </section>
 
       {/* Instructors Section with Looping Card Slider */}
+      {instructors && instructors.length > 0 && (
       <section className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 text-center">
         <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 relative inline-block text-black">
           Our Instructors
@@ -693,6 +681,7 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+      )}
 
       {/* Testimonials Section */}
       {testimonials && testimonials.length > 0 && (
