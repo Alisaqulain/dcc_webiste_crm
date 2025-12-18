@@ -95,18 +95,23 @@ export default function AdminHomeEditorPage() {
       } catch (e) {
         throw new Error('Invalid JSON');
       }
-      const res = await fetch('/api/admin/home', {
+      const res = await fetch('/api/admin/home?' + Date.now(), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           Authorization: `Bearer ${token}`
         },
+        cache: 'no-store',
         body: JSON.stringify(parsed)
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.message || 'Failed to save');
       setContent(data.content);
       setJsonDraft(JSON.stringify(data.content, null, 2));
+      alert('✅ Changes saved successfully! The homepage will update immediately. If you don\'t see changes, try clearing your browser cache or doing a hard refresh (Ctrl+Shift+R or Cmd+Shift+R).');
     } catch (e) {
       setError(e.message);
     } finally {

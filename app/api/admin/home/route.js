@@ -1,6 +1,10 @@
 import connectDB from '@/lib/mongodb';
 import Homepage from '@/models/Homepage';
 
+// Force dynamic rendering - no caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Inline token verification to match existing admin APIs style
 const verifyAdminToken = (request) => {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -65,7 +69,17 @@ export async function PUT(request) {
       testimonialsCount: doc?.testimonials?.length || 0
     });
 
-    return Response.json({ ok: true, content: doc });
+    // Return with no-cache headers to ensure fresh data
+    return Response.json(
+      { ok: true, content: doc },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      }
+    );
   } catch (error) {
     console.error('Admin PUT /api/admin/home error', error);
     return Response.json({ ok: false, message: 'Failed to save homepage content' }, { status: 500 });
