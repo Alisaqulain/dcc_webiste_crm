@@ -55,6 +55,7 @@ export default function AdminHomeEditorPage() {
   };
 
   // Clean data URLs (base64 images) from the payload to reduce size
+  // IMPORTANT: Only remove base64 data URLs, NOT file paths like /uploads/filename.jpg
   const cleanDataUrls = (obj) => {
     if (!obj || typeof obj !== 'object') return obj;
     
@@ -66,12 +67,16 @@ export default function AdminHomeEditorPage() {
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value === 'string' && value.startsWith('data:image')) {
         // Replace base64 data URLs with empty string or keep only if small
+        // DO NOT remove file paths like /uploads/filename.jpg
         if (value.length > 100000) { // If larger than ~100KB, remove it
           console.warn(`Removing large base64 image from ${key} (${(value.length / 1024).toFixed(2)}KB)`);
           cleaned[key] = '';
         } else {
           cleaned[key] = value;
         }
+      } else if (typeof value === 'string' && value.startsWith('/uploads/')) {
+        // Preserve file paths - these are valid image URLs that should be saved
+        cleaned[key] = value;
       } else if (typeof value === 'object' && value !== null) {
         cleaned[key] = cleanDataUrls(value);
       } else {
@@ -120,6 +125,52 @@ export default function AdminHomeEditorPage() {
       }
       
       console.log('Image uploaded successfully:', data.url);
+      
+      // Verify the image is accessible (with retry for timing issues)
+      const verifyImage = async (url, retries = 3) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            // Add cache busting query parameter
+            const testUrl = url + (url.includes('?') ? '&' : '?') + '_verify=' + Date.now();
+            const imgRes = await fetch(testUrl, { method: 'HEAD' });
+            
+            if (imgRes.ok) {
+              console.log('Image verified and accessible:', url);
+              return true;
+            } else if (imgRes.status === 404) {
+              console.warn(`Image not found (404) - attempt ${i + 1}/${retries}:`, url);
+              if (i < retries - 1) {
+                // Wait a bit before retrying (file might still be writing)
+                await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+                continue;
+              } else {
+                console.error('Image verification failed after retries:', url);
+                // Don't throw - the file might still be accessible, just not yet
+                // The user will see an error when the image fails to load
+                return false;
+              }
+            } else {
+              console.warn(`Image verification returned ${imgRes.status}:`, url);
+              return false;
+            }
+          } catch (verifyError) {
+            console.warn(`Image verification error (attempt ${i + 1}/${retries}):`, verifyError.message);
+            if (i < retries - 1) {
+              await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+            }
+          }
+        }
+        return false;
+      };
+      
+      // Verify image is accessible (non-blocking)
+      verifyImage(data.url).then(verified => {
+        if (!verified) {
+          console.warn('⚠️ Image uploaded but may not be immediately accessible. This could be a server configuration issue.');
+          console.warn('If images fail to load, check Nginx configuration for /uploads location block.');
+        }
+      });
+      
       return data.url;
     } catch (error) {
       console.error('Image upload error:', error);
@@ -181,12 +232,31 @@ export default function AdminHomeEditorPage() {
       const jsonString = JSON.stringify(cleaned);
       const sizeInMB = new Blob([jsonString]).size / (1024 * 1024);
       
-      // Log what we're sending for debugging
+      // Log what we're sending for debugging, including image URLs
+      const packageImages = cleaned.packages?.map((pkg, i) => ({
+        index: i,
+        title: pkg.title,
+        image: pkg.image || 'NO IMAGE'
+      })) || [];
+      const slideImages = cleaned.heroSlides?.map((slide, i) => ({
+        index: i,
+        id: slide.id,
+        image: slide.image || 'NO IMAGE'
+      })) || [];
+      const testimonialImages = cleaned.testimonials?.map((test, i) => ({
+        index: i,
+        author: test.author,
+        image: test.image || 'NO IMAGE'
+      })) || [];
+
       console.log('Saving homepage data:', {
         packagesCount: cleaned.packages?.length || 0,
         slidesCount: cleaned.heroSlides?.length || 0,
         testimonialsCount: cleaned.testimonials?.length || 0,
-        payloadSize: `${sizeInMB.toFixed(2)}MB`
+        payloadSize: `${sizeInMB.toFixed(2)}MB`,
+        packageImages: packageImages,
+        slideImages: slideImages,
+        testimonialImages: testimonialImages
       });
 
       // Check size before sending
@@ -258,28 +328,11 @@ export default function AdminHomeEditorPage() {
       }
 
       setContent(data.content);
-      setJsonDraft(JSON.stringify(data.content, null, 2));
-      
-      // Set success message for visual notification
-      const successMsg = '✅ Changes saved successfully! The homepage will update immediately. If you don\'t see changes, try clearing your browser cache or doing a hard refresh (Ctrl+Shift+R or Cmd+Shift+R).';
-      setSuccessMessage(successMsg);
-      
-      // Also show alert (in case visual notification is missed)
-      try {
-        alert(successMsg);
-      } catch (alertError) {
-        // If alert is blocked, at least we have the visual notification
-        console.log('Alert blocked, using visual notification only');
-      }
-
-      // Clear success message after 5 seconds
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 5000);
+      setJsonDraft(JSON.stringify(cleanDataUrls(data.content), null, 2));
+      setSuccessMessage('✅ Changes saved successfully! The homepage will update immediately. If you don\'t see changes, try clearing your browser cache or doing a hard refresh (Ctrl+Shift+R or Cmd+Shift+R).');
     } catch (e) {
       console.error('Save error:', e);
-      setError(e.message);
-      setSuccessMessage('');
+      setError(e.message || 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -538,7 +591,7 @@ export default function AdminHomeEditorPage() {
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
                 onClick={handleSave}
                 disabled={saving}
-              >{saving ? 'Saving...' : 'Save Slides & Testimonials'}</button>
+              >{saving ? 'Saving...' : 'Save Testimonials'}</button>
             </div>
           </div>
 
@@ -760,7 +813,9 @@ export default function AdminHomeEditorPage() {
               <h3 className="font-semibold">Texts</h3>
               <ul className="text-sm list-disc pl-5 space-y-1">
                 {(content?.texts || []).slice(0, 6).map((t, i) => (
-                  <li key={i}><span className="font-medium">{t.key}:</span> {t.value}</li>
+                  <li key={i}>
+                    <span className="font-medium">{t.key}:</span> {t.value}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -768,28 +823,15 @@ export default function AdminHomeEditorPage() {
             {/* Packages */}
             <div>
               <h3 className="font-semibold">Packages</h3>
-              <ul className="text-sm space-y-2">
-                {(content?.packages || []).slice(0, 5).map((p, i) => (
-                  <li key={i} className="border rounded p-2">
-                    <div className="font-medium">{p.title}</div>
-                    <div className="text-gray-600">{p.price} <span className="line-through">{p.oldPrice}</span></div>
-                  </li>
+              <div className="space-y-2">
+                {(content?.packages || []).slice(0, 3).map((p, i) => (
+                  <div key={i} className="border rounded p-2 text-sm">
+                    <div className="font-medium">{p.title || 'Untitled Package'}</div>
+                    <div className="text-gray-600">{p.courses} courses • {p.hours} hours</div>
+                    <div className="text-blue-600 font-bold">{p.price}</div>
+                  </div>
                 ))}
-              </ul>
-            </div>
-
-            {/* Testimonials Preview */}
-            <div>
-              <h3 className="font-semibold">Hear from Our Success Stories</h3>
-              <ul className="text-sm space-y-2">
-                {(content?.testimonials || []).map((t, i) => (
-                  <li key={i} className="border rounded p-2">
-                    <div className="font-medium">{t.author} {t.role ? `- ${t.role}` : ''}</div>
-                    <div className="text-gray-700">{t.text?.slice(0, 120)}{(t.text?.length || 0) > 120 ? '…' : ''}</div>
-                    <div className="text-yellow-500 text-xs">Rating: {t.rating || 0}/5</div>
-                  </li>
-                ))}
-              </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -797,5 +839,3 @@ export default function AdminHomeEditorPage() {
     </div>
   );
 }
-
-

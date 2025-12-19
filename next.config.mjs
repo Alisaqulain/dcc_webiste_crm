@@ -1,20 +1,47 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Image optimization - Next.js 12 uses domains instead of remotePatterns
+  // Image optimization - Updated to use remotePatterns instead of domains
   images: {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    domains: [
-      'images.unsplash.com',
-      'www.google.com',
-      'via.placeholder.com',
-      'picsum.photos',
-      'www.digitalcareercenter.com',
-      'pixelz.cc',
-      'cdn.pixabay.com',
-      'images.pexels.com',
-      'source.unsplash.com',
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.google.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'picsum.photos',
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.digitalcareercenter.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'pixelz.cc',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.pixabay.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.pexels.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'source.unsplash.com',
+      },
     ],
   },
   

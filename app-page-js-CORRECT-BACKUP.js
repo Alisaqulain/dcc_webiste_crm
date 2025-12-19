@@ -242,7 +242,6 @@ export default function HomePage() {
                 alt={`Slide ${slide.id}`}
                 fill
                 unoptimized
-                // className="object-cover"
                 priority={index === 0}
                 onError={(e) => {
                   console.error('Slide image failed to load:', slide.image);
@@ -273,8 +272,7 @@ export default function HomePage() {
             <button
               key={index}
               onClick={() => setCurrent(index)}
-              className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${index === current ? 'bg-red-500' : 'bg-white bg-opacity-50'
-                }`}
+              className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${index === current ? 'bg-red-500' : 'bg-white bg-opacity-50'}`}
             />
           ))}
         </div>
@@ -400,13 +398,9 @@ export default function HomePage() {
                           style={{filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))'}}
                           onError={(e) => {
                             console.error('Package image failed to load:', pkg.image);
-                            // Show placeholder instead of hiding
-                            e.target.onerror = null; // Prevent infinite loop
-                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="160"%3E%3Crect fill="%23e5e7eb" width="200" height="160"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-family="Arial" font-size="14"%3EImage not found%3C/text%3E%3C/svg%3E';
-                            console.warn('⚠️ Image not accessible. If this is a newly uploaded image, it may take a moment to be available. If the issue persists, check Nginx configuration for /uploads location block.');
+                            e.target.style.display = 'none';
                           }}
                           onLoad={() => console.log('Package image loaded successfully:', pkg.image)}
-                          loading="lazy"
                         />
                       </div>
 
@@ -495,8 +489,7 @@ export default function HomePage() {
                 <button
                   key={index}
                   onClick={() => setCurrentPackage(index)}
-                  className={`w-3 h-3 rounded-full transition-colors ${index === currentPackage ? 'bg-red-600' : 'bg-gray-300'
-                    }`}
+                  className={`w-3 h-3 rounded-full transition-colors ${index === currentPackage ? 'bg-red-600' : 'bg-gray-300'}`}
                 />
               ))}
             </div>
@@ -707,8 +700,7 @@ export default function HomePage() {
             <button
               key={index}
               onClick={() => setCurrentInstructor(index)}
-              className={`w-3 h-3 rounded-full ${index === currentInstructor ? 'bg-red-600' : 'bg-gray-300'
-                }`}
+              className={`w-3 h-3 rounded-full ${index === currentInstructor ? 'bg-red-600' : 'bg-gray-300'}`}
             />
           ))}
         </div>
@@ -884,3 +876,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+

@@ -1,0 +1,56 @@
+EXACT FIX FOR app/page.js LINE 675
+=====================================
+
+The problem: Line 675 has just ">" instead of "/>"
+
+CURRENT (WRONG) on server:
+Line 674: style={{ filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.3))" }}
+Line 675: >
+Line 676: </div>
+
+CORRECT (FIXED):
+Line 674: style={{ filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.3))" }}
+Line 675:                     />
+Line 676:                   </div>
+
+=====================================
+HOW TO FIX:
+=====================================
+
+Method 1: Using nano (easiest)
+-------------------------------
+1. cd ~/dcc_webiste_crm
+2. nano app/page.js
+3. Press Ctrl+_ (underscore)
+4. Type: 675
+5. Press Enter
+6. You'll see line 675 with just: >
+7. DELETE the entire line 675
+8. Type exactly this (with proper spacing):
+                     />
+9. Save: Ctrl+O, Enter, Ctrl+X
+10. Build: npm run build
+
+Method 2: Using sed command
+----------------------------
+cd ~/dcc_webiste_crm
+sed -i '675s/.*/                    \/>/' app/page.js
+npm run build
+
+Method 3: Replace the entire Image block
+-----------------------------------------
+Find lines 667-675 and replace with:
+
+                    <Image
+                      src={ins.img}
+                      alt={ins.name}
+                      width={200}
+                      height={200}
+                      unoptimized
+                      className="rounded-full w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 object-cover transform hover:scale-110 transition-transform duration-300"
+                      style={{ filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.3))" }}
+                    />
+
+Note: The last line MUST have "/>" not just ">"
+
+

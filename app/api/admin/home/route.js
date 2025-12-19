@@ -78,6 +78,7 @@ export async function PUT(request) {
     }
 
     // Clean large base64 data URLs from the body (safety measure)
+    // IMPORTANT: Only remove base64 data URLs, NOT file paths like /uploads/filename.jpg
     const cleanBase64Images = (obj) => {
       if (!obj || typeof obj !== 'object') return obj;
       if (Array.isArray(obj)) {
@@ -87,8 +88,12 @@ export async function PUT(request) {
       for (const [key, value] of Object.entries(obj)) {
         if (typeof value === 'string' && value.startsWith('data:image') && value.length > 100000) {
           // Remove large base64 images (keep small ones like thumbnails)
+          // DO NOT remove file paths like /uploads/filename.jpg
           console.warn(`Removing large base64 image from ${key} (${(value.length / 1024).toFixed(2)}KB)`);
           cleaned[key] = '';
+        } else if (typeof value === 'string' && value.startsWith('/uploads/')) {
+          // Preserve file paths - these are valid image URLs
+          cleaned[key] = value;
         } else if (typeof value === 'object' && value !== null) {
           cleaned[key] = cleanBase64Images(value);
         } else {
@@ -109,10 +114,30 @@ export async function PUT(request) {
       texts: cleanedBody.texts || []
     };
 
+    // Log image URLs to verify they're being saved
+    const packageImages = update.packages.map((pkg, i) => ({
+      index: i,
+      title: pkg.title,
+      image: pkg.image || 'NO IMAGE'
+    }));
+    const slideImages = update.heroSlides.map((slide, i) => ({
+      index: i,
+      id: slide.id,
+      image: slide.image || 'NO IMAGE'
+    }));
+    const testimonialImages = update.testimonials.map((test, i) => ({
+      index: i,
+      author: test.author,
+      image: test.image || 'NO IMAGE'
+    }));
+
     console.log('Saving homepage content:', {
       packagesCount: update.packages.length,
       slidesCount: update.heroSlides.length,
-      testimonialsCount: update.testimonials.length
+      testimonialsCount: update.testimonials.length,
+      packageImages: packageImages,
+      slideImages: slideImages,
+      testimonialImages: testimonialImages
     });
 
     const doc = await Homepage.findOneAndUpdate(
@@ -121,10 +146,30 @@ export async function PUT(request) {
       { upsert: true, new: true }
     ).lean();
 
+    // Verify image URLs were saved
+    const savedPackageImages = doc?.packages?.map((pkg, i) => ({
+      index: i,
+      title: pkg.title,
+      image: pkg.image || 'NO IMAGE'
+    })) || [];
+    const savedSlideImages = doc?.heroSlides?.map((slide, i) => ({
+      index: i,
+      id: slide.id,
+      image: slide.image || 'NO IMAGE'
+    })) || [];
+    const savedTestimonialImages = doc?.testimonials?.map((test, i) => ({
+      index: i,
+      author: test.author,
+      image: test.image || 'NO IMAGE'
+    })) || [];
+
     console.log('Saved homepage content:', {
       packagesCount: doc?.packages?.length || 0,
       slidesCount: doc?.heroSlides?.length || 0,
-      testimonialsCount: doc?.testimonials?.length || 0
+      testimonialsCount: doc?.testimonials?.length || 0,
+      savedPackageImages: savedPackageImages,
+      savedSlideImages: savedSlideImages,
+      savedTestimonialImages: savedTestimonialImages
     });
 
     // Return with no-cache headers to ensure fresh data

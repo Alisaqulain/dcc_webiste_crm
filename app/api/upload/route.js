@@ -46,22 +46,51 @@ export async function POST(request) {
 
     // Upload file using storage service
     console.log('Upload API: Starting storage service upload...');
-    const result = await storageService.uploadFile(file, 'uploads');
     
-    console.log('Upload API: Upload successful', {
-      url: result.url,
-      filename: result.filename,
-      isDataUrl: result.isDataUrl,
-      size: result.size
-    });
+    // Force filesystem mode on KVM (ensure images are saved to disk, not data URLs)
+    const originalIsServerless = storageService.isServerless;
+    storageService.isServerless = false; // Force filesystem for images
+    
+    try {
+      const result = await storageService.uploadFile(file, 'uploads');
+      
+      // Restore original setting
+      storageService.isServerless = originalIsServerless;
+      
+      console.log('Upload API: Upload successful', {
+        url: result.url,
+        filename: result.filename,
+        isDataUrl: result.isDataUrl,
+        size: result.size,
+        filepath: result.filepath || 'N/A'
+      });
 
-    return NextResponse.json({
-      success: true,
-      url: result.url,
-      filename: result.filename,
-      isDataUrl: result.isDataUrl,
-      size: result.size
-    });
+      // Verify file was actually saved (if filesystem mode)
+      if (!result.isDataUrl) {
+        const { existsSync } = await import('fs');
+        const { join } = await import('path');
+        const filepath = join(process.cwd(), 'public', 'uploads', result.filename);
+        
+        if (!existsSync(filepath)) {
+          console.error('Upload API: File was not saved to filesystem!', filepath);
+          throw new Error('File upload succeeded but file was not found on server. Please check server logs and permissions.');
+        }
+        
+        console.log('Upload API: File verified on filesystem:', filepath);
+      }
+
+      return NextResponse.json({
+        success: true,
+        url: result.url,
+        filename: result.filename,
+        isDataUrl: result.isDataUrl,
+        size: result.size
+      });
+    } catch (uploadError) {
+      // Restore original setting on error
+      storageService.isServerless = originalIsServerless;
+      throw uploadError;
+    }
 
   } catch (error) {
     console.error('Upload API: Error occurred', {
