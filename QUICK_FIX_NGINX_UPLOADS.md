@@ -183,3 +183,5 @@ sudo restorecon -R /root/dcc_webiste_crm/public/uploads
 4. **Test locally first**: `curl -I http://localhost/uploads/filename.jpg`
 
 
+
+

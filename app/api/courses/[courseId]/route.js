@@ -33,9 +33,9 @@ export async function GET(request, { params }) {
       if (course.videos) {
         course.videos.sort((a, b) => (a.order || 0) - (b.order || 0));
         
-        // If user doesn't have access, filter to show only preview videos
+        // If user doesn't have access, filter to show only free preview videos
         if (!hasAccess) {
-          course.videos = course.videos.filter(v => v.isPreview === true);
+          course.videos = course.videos.filter(v => v.isFreePreview === true || v.isPreview === true);
         }
       }
     } else {

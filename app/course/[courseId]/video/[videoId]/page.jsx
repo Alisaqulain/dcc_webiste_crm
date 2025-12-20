@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import SecureVideoPlayer from '../../../../components/SecureVideoPlayer';
+import VimeoPlayer from '../../../../components/VimeoPlayer';
 import Link from 'next/link';
 
 export default function VideoPlayerPage() {
@@ -41,6 +41,9 @@ export default function VideoPlayerPage() {
             console.log('Video found:', {
               videoId: foundVideo._id,
               title: foundVideo.title,
+              description: foundVideo.description,
+              hasDescription: !!foundVideo.description,
+              descriptionLength: foundVideo.description?.length,
               isPreview: foundVideo.isPreview,
               hasVideoData: !!foundVideo.videoData,
               videoDataUrl: foundVideo.videoData?.url,
@@ -173,7 +176,7 @@ export default function VideoPlayerPage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-lg overflow-hidden">
               <div className="aspect-video">
-                <SecureVideoPlayer
+                <VimeoPlayer
                   courseId={courseId}
                   video={video}
                   onVideoEnd={handleVideoEnd}
@@ -183,12 +186,31 @@ export default function VideoPlayerPage() {
             </div>
 
             {/* Video Description */}
-            {video.description && (
-              <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">About this video</h3>
-                <p className="text-gray-600 leading-relaxed">{video.description}</p>
-              </div>
-            )}
+            {(() => {
+              if (!video.description) return null;
+              
+              const desc = video.description.trim();
+              if (!desc || desc.length === 0) return null;
+              
+              // Filter out obvious placeholder text: long strings of random letters without spaces
+              // Pattern like "dfnsfbhdsbfhjbfjhsdbf..." - 30+ chars, only letters, no spaces/punctuation
+              const isPlaceholderText = desc.length >= 30 && 
+                !desc.includes(' ') && 
+                !/[.,!?;:—\-]/.test(desc) &&
+                /^[a-z]+$/i.test(desc);
+              
+              // Don't show if it's placeholder text
+              if (isPlaceholderText) {
+                return null;
+              }
+              
+              return (
+                <div className="mt-6 bg-white rounded-lg shadow-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">About this video</h3>
+                  <p className="text-gray-600 leading-relaxed">{desc}</p>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Sidebar */}

@@ -242,12 +242,18 @@ export default function CourseVideosPage() {
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           #{video.order}
                         </span>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                          Uploaded Video
-                        </span>
-                        {video.isPreview && (
+                        {video.vimeoUrl || video.vimeoVideoId ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Vimeo Video
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            Uploaded Video
+                          </span>
+                        )}
+                        {(video.isFreePreview || video.isPreview) && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Preview
+                            Free Preview
                           </span>
                         )}
                       </div>
@@ -264,14 +270,25 @@ export default function CourseVideosPage() {
                       
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <span>Duration: {video.duration}</span>
-                        <span>•</span>
-                        <span className="text-purple-600 font-medium">
-                          Secure Uploaded Video
-                        </span>
-                        {video.fileSize && (
-                          <span className="text-gray-400">
-                            • {(video.fileSize / (1024 * 1024)).toFixed(1)} MB
-                          </span>
+                        {video.vimeoUrl || video.vimeoVideoId ? (
+                          <>
+                            <span>•</span>
+                            <span className="text-blue-600 font-medium">
+                              Vimeo: {video.vimeoVideoId || 'N/A'}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span>•</span>
+                            <span className="text-purple-600 font-medium">
+                              Secure Uploaded Video
+                            </span>
+                            {video.fileSize && (
+                              <span className="text-gray-400">
+                                • {(video.fileSize / (1024 * 1024)).toFixed(1)} MB
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -383,9 +400,12 @@ function VideoModal({ courseId, video, onClose, onSave }) {
   const [formData, setFormData] = useState({
     title: video?.title || '',
     description: video?.description || '',
+    vimeoUrl: video?.vimeoUrl || video?.vimeoVideoId ? `https://vimeo.com/${video.vimeoVideoId}` : '',
+    duration: video?.duration || '',
+    isFreePreview: video?.isFreePreview || video?.isPreview || false,
+    // Legacy support - keep for existing videos
     videoFile: null,
     thumbnailFile: null,
-    duration: video?.duration || '',
     isPreview: video?.isPreview || false
   });
 
@@ -396,91 +416,91 @@ function VideoModal({ courseId, video, onClose, onSave }) {
     setIsSubmitting(true);
 
     try {
-      // Validate file upload
-      if (!formData.videoFile) {
-        alert('Please select a video file to upload');
+      // Validate Vimeo URL
+      if (!formData.vimeoUrl || !formData.vimeoUrl.trim()) {
+        alert('Please enter a Vimeo video URL');
         setIsSubmitting(false);
         return;
       }
 
-      // Validate file type
-      if (!formData.videoFile.type.startsWith('video/')) {
-        alert('Please select a valid video file');
+      // Validate Vimeo URL format
+      const vimeoUrlPattern = /^https?:\/\/(www\.)?(vimeo\.com\/|player\.vimeo\.com\/video\/)\d+/;
+      if (!vimeoUrlPattern.test(formData.vimeoUrl.trim())) {
+        alert('Please enter a valid Vimeo URL. Format: https://vimeo.com/123456789');
         setIsSubmitting(false);
         return;
       }
 
-      // Validate thumbnail file if provided
-      if (formData.thumbnailFile) {
-        // Validate thumbnail file size (5MB max)
-        const maxThumbnailSize = 5 * 1024 * 1024; // 5MB
-        if (formData.thumbnailFile.size > maxThumbnailSize) {
-          alert('Thumbnail file size too large. Maximum size is 5MB');
-          setIsSubmitting(false);
-          return;
-        }
-
-        // Validate thumbnail file type
-        if (!formData.thumbnailFile.type.startsWith('image/')) {
-          alert('Please select a valid image file for thumbnail');
-          setIsSubmitting(false);
-          return;
-        }
+      // Extract Vimeo video ID
+      const vimeoMatch = formData.vimeoUrl.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/);
+      if (!vimeoMatch || !vimeoMatch[1]) {
+        alert('Could not extract Vimeo video ID from URL');
+        setIsSubmitting(false);
+        return;
       }
+
+      const vimeoVideoId = vimeoMatch[1];
 
       // Get admin token
       const token = localStorage.getItem('adminToken');
       if (!token) {
-        alert('Please log in to upload videos');
+        alert('Please log in to add videos');
         setIsSubmitting(false);
         return;
       }
 
-      const fileSizeMB = (formData.videoFile.size / (1024 * 1024)).toFixed(2);
-      console.log('Video upload started:', {
-        fileName: formData.videoFile.name,
-        fileSize: formData.videoFile.size,
-        fileSizeMB: fileSizeMB,
-        fileType: formData.videoFile.type
+      // Determine if this is an edit or add operation
+      const isEdit = !!video;
+      const apiMethod = isEdit ? 'PUT' : 'POST';
+      
+      console.log(`${isEdit ? 'Updating' : 'Adding'} Vimeo video:`, {
+        title: formData.title,
+        vimeoUrl: formData.vimeoUrl,
+        vimeoVideoId: vimeoVideoId,
+        isFreePreview: formData.isFreePreview
       });
 
-      // Check if we should use chunked upload (for files > 5MB due to Vercel limits)
-      const shouldUseChunked = shouldUseChunkedUpload(formData.videoFile, 5 * 1024 * 1024);
-      
-      console.log('Upload method decision:', {
-        fileSize: formData.videoFile.size,
-        fileSizeMB: fileSizeMB,
-        threshold: '5MB',
-        shouldUseChunked: shouldUseChunked
+      // Call API to add/update Vimeo video
+      const response = await fetch('/api/admin/video-vimeo', {
+        method: apiMethod,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          courseId: courseId,
+          videoId: isEdit ? video._id : undefined,
+          title: formData.title,
+          description: formData.description || '',
+          vimeoUrl: formData.vimeoUrl.trim(),
+          vimeoVideoId: vimeoVideoId,
+          duration: formData.duration,
+          isFreePreview: formData.isFreePreview
+        })
       });
-      
-      if (shouldUseChunked) {
-        console.log('Using chunked upload for large file');
-        await handleChunkedUpload(token);
-      } else {
-        console.log('Using regular upload for small file');
-        try {
-          await handleRegularUpload(token);
-        } catch (error) {
-          // If regular upload fails with network error, try chunked as fallback
-          const isNetworkError = error.message.includes('Failed to fetch') || 
-                                error.message.includes('ERR_HTTP2') ||
-                                error.message.includes('NetworkError') ||
-                                error.message.includes('timeout');
-          
-          if (isNetworkError) {
-            console.log('Regular upload failed, trying chunked upload as fallback...');
-            try {
-              await handleChunkedUpload(token);
-            } catch (chunkedError) {
-              // Both methods failed
-              throw new Error(`Upload failed. Regular upload: ${error.message}. Chunked upload: ${chunkedError.message}`);
-            }
-          } else {
-            throw error;
-          }
-        }
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to add video');
       }
+
+      const result = await response.json();
+      console.log(`Video ${isEdit ? 'updated' : 'added'} successfully:`, result);
+      
+      // Call onSave callback if provided (for edit mode)
+      if (isEdit && onSave) {
+        await onSave(video._id, {
+          title: formData.title,
+          description: formData.description,
+          vimeoUrl: formData.vimeoUrl.trim(),
+          vimeoVideoId: vimeoVideoId,
+          duration: formData.duration,
+          isFreePreview: formData.isFreePreview
+        });
+      }
+      
+      onClose();
+      window.location.reload();
 
     } catch (error) {
       console.error('Error uploading video:', error);
@@ -708,52 +728,30 @@ function VideoModal({ courseId, video, onClose, onSave }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Video File *</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => setFormData(prev => ({ ...prev, videoFile: e.target.files[0] }))}
-                  className="hidden"
-                  id="video-upload"
-                  required
-                />
-                <label htmlFor="video-upload" className="cursor-pointer">
-                  {formData.videoFile ? (
-                    <div className="text-green-600">
-                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="font-medium">{formData.videoFile.name}</p>
-                      <p className={`text-sm ${formData.videoFile.size > 80 * 1024 * 1024 ? 'text-red-500' : 'text-gray-500'}`}>
-                        {(formData.videoFile.size / (1024 * 1024)).toFixed(2)} MB
-                        {formData.videoFile.size > 80 * 1024 * 1024 && (
-                          <span className="block text-xs text-red-600 mt-1">
-                            ⚠️ File is large, may cause upload issues
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="text-gray-500">
-                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                      <p className="font-medium">Click to upload video file</p>
-                      <p className="text-sm">or drag and drop</p>
-                    </div>
-                  )}
-                </label>
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Vimeo Video URL *</label>
+              <input
+                type="url"
+                required
+                value={formData.vimeoUrl}
+                onChange={(e) => setFormData(prev => ({ ...prev, vimeoUrl: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="https://vimeo.com/123456789 or https://player.vimeo.com/video/123456789"
+              />
               <p className="mt-2 text-sm text-gray-500">
-                Supported formats: MP4, AVI, MOV, WMV, MKV (Max size: 100MB)
+                Enter the full Vimeo URL. Examples:
               </p>
-              <p className="mt-1 text-xs text-red-600">
-                ⚠️ Large files may cause upload errors. Consider compressing your video.
-              </p>
-              {formData.videoFile && (
+              <ul className="mt-1 text-xs text-gray-400 list-disc list-inside space-y-1">
+                <li>https://vimeo.com/123456789</li>
+                <li>https://player.vimeo.com/video/123456789</li>
+              </ul>
+              {formData.vimeoUrl && formData.vimeoUrl.match(/vimeo\.com\/\d+|player\.vimeo\.com\/video\/\d+/) && (
                 <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
-                  ✓ File selected: {formData.videoFile.name} ({(formData.videoFile.size / (1024 * 1024)).toFixed(2)} MB)
+                  ✓ Valid Vimeo URL detected
+                </div>
+              )}
+              {formData.vimeoUrl && !formData.vimeoUrl.match(/vimeo\.com\/\d+|player\.vimeo\.com\/video\/\d+/) && (
+                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                  ⚠️ Please enter a valid Vimeo URL
                 </div>
               )}
             </div>
@@ -820,15 +818,18 @@ function VideoModal({ courseId, video, onClose, onSave }) {
             <div className="flex items-center">
               <input
                 type="checkbox"
-                id="isPreview"
-                checked={formData.isPreview}
-                onChange={(e) => setFormData(prev => ({ ...prev, isPreview: e.target.checked }))}
+                id="isFreePreview"
+                checked={formData.isFreePreview}
+                onChange={(e) => setFormData(prev => ({ ...prev, isFreePreview: e.target.checked }))}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <label htmlFor="isPreview" className="ml-2 text-sm text-gray-700">
-                This is a preview video (free to watch)
+              <label htmlFor="isFreePreview" className="ml-2 text-sm text-gray-700">
+                This is a free preview video (accessible without purchase)
               </label>
             </div>
+            <p className="text-xs text-gray-500 -mt-2">
+              Unchecked videos will require course purchase to view
+            </p>
 
             <div className="flex justify-end space-x-3">
               <button

@@ -147,11 +147,15 @@ const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   // Handle video source changes
   useEffect(() => {
     const videoElement = videoRef.current;
-    if (!videoElement || !video?._id || !session) {
+    const isPreview = video?.isPreview === true;
+    
+    // Allow preview videos without session, but require session for non-preview videos
+    if (!videoElement || !video?._id || (!session && !isPreview)) {
       console.warn('Cannot load video:', { 
         hasElement: !!videoElement, 
         videoId: video?._id, 
-        hasSession: !!session 
+        hasSession: !!session,
+        isPreview 
       });
       return;
     }
@@ -225,7 +229,7 @@ const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     return () => {
       clearTimeout(timeout);
     };
-  }, [video?._id, courseId, session]);
+  }, [video?._id, courseId, session, video?.isPreview]);
 
   // Detect screen recording and screenshot attempts
   useEffect(() => {
@@ -1347,17 +1351,6 @@ const SecureVideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
         </div>
       </div>
 
-      {/* Video Title */}
-      <div className="absolute top-4 left-4 right-4">
-        <h3 className="text-white text-lg font-semibold drop-shadow-lg">
-          {video.title}
-        </h3>
-        {video.description && (
-          <p className="text-white text-sm drop-shadow-lg mt-1">
-            {video.description}
-          </p>
-        )}
-      </div>
     </div>
   );
 };

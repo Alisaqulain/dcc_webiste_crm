@@ -100,6 +100,28 @@ const courseSchema = new mongoose.Schema({
         message: 'Please provide a valid YouTube URL'
       }
     },
+    // Vimeo integration fields
+    vimeoVideoId: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    vimeoUrl: {
+      type: String,
+      required: false,
+      validate: {
+        validator: function(v) {
+          if (!v) return true; // Allow empty values
+          // Match Vimeo URL patterns: https://vimeo.com/123456789 or https://player.vimeo.com/video/123456789
+          return /^https?:\/\/(www\.)?(vimeo\.com\/|player\.vimeo\.com\/video\/)\d+/.test(v);
+        },
+        message: 'Please provide a valid Vimeo URL'
+      }
+    },
+    isFreePreview: {
+      type: Boolean,
+      default: false
+    },
     videoPath: {
       type: String,
       required: false
@@ -264,8 +286,9 @@ courseSchema.pre('save', function(next) {
         return next(new Error('Each video must have a title and duration'));
       }
       
-      // Optional: Check if video has some form of content (YouTube URL, video file, or video data)
+      // Optional: Check if video has some form of content (YouTube URL, Vimeo URL, video file, or video data)
       const hasYouTubeUrl = !!video.youtubeUrl;
+      const hasVimeoUrl = !!(video.vimeoUrl || video.vimeoVideoId);
       const hasVideoPath = !!video.videoPath;
       const hasVideoData = !!(video.videoData && (video.videoData.url || video.videoData.fileName));
       
@@ -273,7 +296,7 @@ courseSchema.pre('save', function(next) {
       console.log('Video validation:', {
         title: video.title,
         duration: video.duration,
-        hasContent: hasYouTubeUrl || hasVideoPath || hasVideoData
+        hasContent: hasYouTubeUrl || hasVimeoUrl || hasVideoPath || hasVideoData
       });
     }
   }

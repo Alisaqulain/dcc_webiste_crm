@@ -201,3 +201,5 @@ Once Nginx is configured correctly:
 - [ ] File permissions are correct (755 for directory, 644 for files)
 
 
+
+

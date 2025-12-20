@@ -245,3 +245,5 @@ To prevent this issue in the future:
 The most likely cause is that Nginx is not configured to serve files from `/uploads`. Add the location block in Solution 1, and images should load immediately.
 
 
+
+
