@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import VimeoPlayer from '../../../../components/VimeoPlayer';
+import YouTubePlayer from '../../../../components/YouTubePlayer';
 import Link from 'next/link';
 
 export default function VideoPlayerPage() {
@@ -22,6 +23,62 @@ export default function VideoPlayerPage() {
     fetchCourseData();
   }, [session, status, courseId, videoId, router]);
 
+  // Prevent sharing and URL copying
+  useEffect(() => {
+    // Prevent common sharing shortcuts
+    const preventSharing = (e) => {
+      // Prevent Ctrl+Shift+I (DevTools), Ctrl+U (View Source), Ctrl+S (Save)
+      if ((e.ctrlKey || e.metaKey) && (e.shiftKey && e.key === 'I' || e.key === 'u' || e.key === 's')) {
+        e.preventDefault();
+        return false;
+      }
+      // Prevent F12 (DevTools)
+      if (e.key === 'F12') {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    // Prevent right-click context menu
+    const preventContextMenu = (e) => {
+      // Allow right-click on non-video areas
+      if (!e.target.closest('.aspect-video') && !e.target.closest('.relative.bg-black')) {
+        return;
+      }
+      e.preventDefault();
+      return false;
+    };
+
+    // Prevent text selection on video player
+    const preventSelection = (e) => {
+      if (e.target.closest('.aspect-video') || e.target.closest('.relative.bg-black')) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    // Prevent copying URL from address bar (limited effectiveness, but helps)
+    const preventCopy = (e) => {
+      const selection = window.getSelection().toString();
+      if (selection.includes(window.location.href) || selection.includes(courseId) || selection.includes(videoId)) {
+        e.preventDefault();
+        return false;
+      }
+    };
+
+    document.addEventListener('keydown', preventSharing);
+    document.addEventListener('contextmenu', preventContextMenu);
+    document.addEventListener('selectstart', preventSelection);
+    document.addEventListener('copy', preventCopy);
+
+    return () => {
+      document.removeEventListener('keydown', preventSharing);
+      document.removeEventListener('contextmenu', preventContextMenu);
+      document.removeEventListener('selectstart', preventSelection);
+      document.removeEventListener('copy', preventCopy);
+    };
+  }, [courseId, videoId]);
+
   const fetchCourseData = async () => {
     try {
       setIsLoading(true);
@@ -38,6 +95,19 @@ export default function VideoPlayerPage() {
             // If video is in the list, user has access (API already filters non-preview videos for non-purchased users)
             // Preview videos are always accessible
             
+            // Additional protection: Verify access for non-preview videos
+            if (!foundVideo.isPreview && !foundVideo.isFreePreview && session) {
+              const accessResponse = await fetch(`/api/courses/${courseId}/access`);
+              if (accessResponse.ok) {
+                const accessData = await accessResponse.json();
+                if (!accessData.hasAccess) {
+                  setError('Access denied. Please purchase this course to view this video.');
+                  setIsLoading(false);
+                  return;
+                }
+              }
+            }
+            
             console.log('Video found:', {
               videoId: foundVideo._id,
               title: foundVideo.title,
@@ -51,6 +121,7 @@ export default function VideoPlayerPage() {
               isDataUrl: foundVideo.videoData?.isDataUrl,
               hasVideoPath: !!foundVideo.videoPath,
               videoPath: foundVideo.videoPath,
+              youtubeUrl: foundVideo.youtubeUrl,
               allVideosData: data.course.videos.map(v => ({
                 id: v._id,
                 title: v.title,
@@ -66,7 +137,7 @@ export default function VideoPlayerPage() {
               courseId,
               availableVideoIds: data.course.videos.map(v => v._id)
             });
-            setError('Video not found');
+            setError('Video not found or access denied');
           }
         } else {
           setError('No videos found for this course');
@@ -176,12 +247,31 @@ export default function VideoPlayerPage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-lg overflow-hidden">
               <div className="aspect-video">
-                <VimeoPlayer
-                  courseId={courseId}
-                  video={video}
-                  onVideoEnd={handleVideoEnd}
-                  onVideoStart={handleVideoStart}
-                />
+                {video?.youtubeUrl ? (
+                  <YouTubePlayer
+                    courseId={courseId}
+                    video={video}
+                    onVideoEnd={handleVideoEnd}
+                    onVideoStart={handleVideoStart}
+                  />
+                ) : (video?.vimeoUrl || video?.vimeoVideoId) ? (
+                  <VimeoPlayer
+                    courseId={courseId}
+                    video={video}
+                    onVideoEnd={handleVideoEnd}
+                    onVideoStart={handleVideoStart}
+                  />
+                ) : (
+                  <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video flex items-center justify-center">
+                    <div className="text-center text-white p-6">
+                      <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <h3 className="text-xl font-semibold mb-2">Video Not Available</h3>
+                      <p className="text-gray-400">No video source found for this video.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

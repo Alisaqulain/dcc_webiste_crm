@@ -242,7 +242,11 @@ export default function CourseVideosPage() {
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           #{video.order}
                         </span>
-                        {video.vimeoUrl || video.vimeoVideoId ? (
+                        {video.youtubeUrl ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            YouTube Unlisted
+                          </span>
+                        ) : video.vimeoUrl || video.vimeoVideoId ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             Vimeo Video
                           </span>
@@ -270,7 +274,14 @@ export default function CourseVideosPage() {
                       
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         <span>Duration: {video.duration}</span>
-                        {video.vimeoUrl || video.vimeoVideoId ? (
+                        {video.youtubeUrl ? (
+                          <>
+                            <span>•</span>
+                            <span className="text-red-600 font-medium">
+                              YouTube Unlisted Video
+                            </span>
+                          </>
+                        ) : video.vimeoUrl || video.vimeoVideoId ? (
                           <>
                             <span>•</span>
                             <span className="text-blue-600 font-medium">
@@ -397,9 +408,19 @@ export default function CourseVideosPage() {
 
 // Video Modal Component
 function VideoModal({ courseId, video, onClose, onSave }) {
+  // Determine video source type based on existing video
+  const getVideoSourceType = () => {
+    if (video?.youtubeUrl) return 'youtube';
+    if (video?.vimeoUrl || video?.vimeoVideoId) return 'vimeo';
+    return 'youtube'; // Default to YouTube
+  };
+
+  const [videoSourceType, setVideoSourceType] = useState(getVideoSourceType());
+  
   const [formData, setFormData] = useState({
     title: video?.title || '',
     description: video?.description || '',
+    youtubeUrl: video?.youtubeUrl || '',
     vimeoUrl: video?.vimeoUrl || video?.vimeoVideoId ? `https://vimeo.com/${video.vimeoVideoId}` : '',
     duration: video?.duration || '',
     isFreePreview: video?.isFreePreview || video?.isPreview || false,
@@ -416,31 +437,6 @@ function VideoModal({ courseId, video, onClose, onSave }) {
     setIsSubmitting(true);
 
     try {
-      // Validate Vimeo URL
-      if (!formData.vimeoUrl || !formData.vimeoUrl.trim()) {
-        alert('Please enter a Vimeo video URL');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Validate Vimeo URL format
-      const vimeoUrlPattern = /^https?:\/\/(www\.)?(vimeo\.com\/|player\.vimeo\.com\/video\/)\d+/;
-      if (!vimeoUrlPattern.test(formData.vimeoUrl.trim())) {
-        alert('Please enter a valid Vimeo URL. Format: https://vimeo.com/123456789');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Extract Vimeo video ID
-      const vimeoMatch = formData.vimeoUrl.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/);
-      if (!vimeoMatch || !vimeoMatch[1]) {
-        alert('Could not extract Vimeo video ID from URL');
-        setIsSubmitting(false);
-        return;
-      }
-
-      const vimeoVideoId = vimeoMatch[1];
-
       // Get admin token
       const token = localStorage.getItem('adminToken');
       if (!token) {
@@ -452,55 +448,148 @@ function VideoModal({ courseId, video, onClose, onSave }) {
       // Determine if this is an edit or add operation
       const isEdit = !!video;
       const apiMethod = isEdit ? 'PUT' : 'POST';
-      
-      console.log(`${isEdit ? 'Updating' : 'Adding'} Vimeo video:`, {
-        title: formData.title,
-        vimeoUrl: formData.vimeoUrl,
-        vimeoVideoId: vimeoVideoId,
-        isFreePreview: formData.isFreePreview
-      });
 
-      // Call API to add/update Vimeo video
-      const response = await fetch('/api/admin/video-vimeo', {
-        method: apiMethod,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          courseId: courseId,
-          videoId: isEdit ? video._id : undefined,
+      // Handle YouTube videos
+      if (videoSourceType === 'youtube') {
+        // Validate YouTube URL
+        if (!formData.youtubeUrl || !formData.youtubeUrl.trim()) {
+          alert('Please enter a YouTube unlisted video URL');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Validate YouTube URL format
+        const youtubeUrlPattern = /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/;
+        if (!youtubeUrlPattern.test(formData.youtubeUrl.trim())) {
+          alert('Please enter a valid YouTube URL. Format: https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID');
+          setIsSubmitting(false);
+          return;
+        }
+
+        console.log(`${isEdit ? 'Updating' : 'Adding'} YouTube video:`, {
           title: formData.title,
-          description: formData.description || '',
-          vimeoUrl: formData.vimeoUrl.trim(),
-          vimeoVideoId: vimeoVideoId,
-          duration: formData.duration,
-          isFreePreview: formData.isFreePreview
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to add video');
-      }
-
-      const result = await response.json();
-      console.log(`Video ${isEdit ? 'updated' : 'added'} successfully:`, result);
-      
-      // Call onSave callback if provided (for edit mode)
-      if (isEdit && onSave) {
-        await onSave(video._id, {
-          title: formData.title,
-          description: formData.description,
-          vimeoUrl: formData.vimeoUrl.trim(),
-          vimeoVideoId: vimeoVideoId,
-          duration: formData.duration,
+          youtubeUrl: formData.youtubeUrl,
           isFreePreview: formData.isFreePreview
         });
+
+        // Call API to add/update YouTube video
+        const response = await fetch(`/api/admin/courses/${courseId}/videos`, {
+          method: apiMethod,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            videoId: isEdit ? video._id : undefined,
+            title: formData.title,
+            description: formData.description || '',
+            youtubeUrl: formData.youtubeUrl.trim(),
+            duration: formData.duration,
+            isPreview: formData.isFreePreview
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to add video');
+        }
+
+        const result = await response.json();
+        console.log(`Video ${isEdit ? 'updated' : 'added'} successfully:`, result);
+        
+        // Call onSave callback if provided (for edit mode)
+        if (isEdit && onSave) {
+          await onSave(video._id, {
+            title: formData.title,
+            description: formData.description,
+            youtubeUrl: formData.youtubeUrl.trim(),
+            duration: formData.duration,
+            isFreePreview: formData.isFreePreview
+          });
+        }
+        
+        onClose();
+        window.location.reload();
+        return;
       }
+
+      // Handle Vimeo videos
+      if (videoSourceType === 'vimeo') {
+        // Validate Vimeo URL
+        if (!formData.vimeoUrl || !formData.vimeoUrl.trim()) {
+          alert('Please enter a Vimeo video URL');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Validate Vimeo URL format
+        const vimeoUrlPattern = /^https?:\/\/(www\.)?(vimeo\.com\/|player\.vimeo\.com\/video\/)\d+/;
+        if (!vimeoUrlPattern.test(formData.vimeoUrl.trim())) {
+          alert('Please enter a valid Vimeo URL. Format: https://vimeo.com/123456789');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Extract Vimeo video ID
+        const vimeoMatch = formData.vimeoUrl.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)(\d+)/);
+        if (!vimeoMatch || !vimeoMatch[1]) {
+          alert('Could not extract Vimeo video ID from URL');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const vimeoVideoId = vimeoMatch[1];
       
-      onClose();
-      window.location.reload();
+        console.log(`${isEdit ? 'Updating' : 'Adding'} Vimeo video:`, {
+          title: formData.title,
+          vimeoUrl: formData.vimeoUrl,
+          vimeoVideoId: vimeoVideoId,
+          isFreePreview: formData.isFreePreview
+        });
+
+        // Call API to add/update Vimeo video
+        const response = await fetch('/api/admin/video-vimeo', {
+          method: apiMethod,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            courseId: courseId,
+            videoId: isEdit ? video._id : undefined,
+            title: formData.title,
+            description: formData.description || '',
+            vimeoUrl: formData.vimeoUrl.trim(),
+            vimeoVideoId: vimeoVideoId,
+            duration: formData.duration,
+            isFreePreview: formData.isFreePreview
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to add video');
+        }
+
+        const result = await response.json();
+        console.log(`Video ${isEdit ? 'updated' : 'added'} successfully:`, result);
+        
+        // Call onSave callback if provided (for edit mode)
+        if (isEdit && onSave) {
+          await onSave(video._id, {
+            title: formData.title,
+            description: formData.description,
+            vimeoUrl: formData.vimeoUrl.trim(),
+            vimeoVideoId: vimeoVideoId,
+            duration: formData.duration,
+            isFreePreview: formData.isFreePreview
+          });
+        }
+        
+        onClose();
+        window.location.reload();
+        return;
+      }
 
     } catch (error) {
       console.error('Error uploading video:', error);
@@ -728,33 +817,92 @@ function VideoModal({ courseId, video, onClose, onSave }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Vimeo Video URL *</label>
-              <input
-                type="url"
-                required
-                value={formData.vimeoUrl}
-                onChange={(e) => setFormData(prev => ({ ...prev, vimeoUrl: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://vimeo.com/123456789 or https://player.vimeo.com/video/123456789"
-              />
-              <p className="mt-2 text-sm text-gray-500">
-                Enter the full Vimeo URL. Examples:
-              </p>
-              <ul className="mt-1 text-xs text-gray-400 list-disc list-inside space-y-1">
-                <li>https://vimeo.com/123456789</li>
-                <li>https://player.vimeo.com/video/123456789</li>
-              </ul>
-              {formData.vimeoUrl && formData.vimeoUrl.match(/vimeo\.com\/\d+|player\.vimeo\.com\/video\/\d+/) && (
-                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
-                  ✓ Valid Vimeo URL detected
-                </div>
-              )}
-              {formData.vimeoUrl && !formData.vimeoUrl.match(/vimeo\.com\/\d+|player\.vimeo\.com\/video\/\d+/) && (
-                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                  ⚠️ Please enter a valid Vimeo URL
-                </div>
-              )}
+              <label className="block text-sm font-medium text-gray-700 mb-2">Video Source Type *</label>
+              <div className="flex space-x-4 mb-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="youtube"
+                    checked={videoSourceType === 'youtube'}
+                    onChange={(e) => setVideoSourceType(e.target.value)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">YouTube Unlisted</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="vimeo"
+                    checked={videoSourceType === 'vimeo'}
+                    onChange={(e) => setVideoSourceType(e.target.value)}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">Vimeo</span>
+                </label>
+              </div>
             </div>
+
+            {videoSourceType === 'youtube' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">YouTube Unlisted Video URL *</label>
+                <input
+                  type="url"
+                  required
+                  value={formData.youtubeUrl}
+                  onChange={(e) => setFormData(prev => ({ ...prev, youtubeUrl: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://www.youtube.com/watch?v=VIDEO_ID or https://youtu.be/VIDEO_ID"
+                />
+                <p className="mt-2 text-sm text-gray-500">
+                  Enter the YouTube unlisted video URL. The video will play on your website, not redirect to YouTube.
+                </p>
+                <ul className="mt-1 text-xs text-gray-400 list-disc list-inside space-y-1">
+                  <li>https://www.youtube.com/watch?v=VIDEO_ID</li>
+                  <li>https://youtu.be/VIDEO_ID</li>
+                </ul>
+                {formData.youtubeUrl && formData.youtubeUrl.match(/(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/) && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                    ✓ Valid YouTube URL detected
+                  </div>
+                )}
+                {formData.youtubeUrl && !formData.youtubeUrl.match(/(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+/) && (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    ⚠️ Please enter a valid YouTube URL
+                  </div>
+                )}
+              </div>
+            )}
+
+            {videoSourceType === 'vimeo' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Vimeo Video URL *</label>
+                <input
+                  type="url"
+                  required
+                  value={formData.vimeoUrl}
+                  onChange={(e) => setFormData(prev => ({ ...prev, vimeoUrl: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://vimeo.com/123456789 or https://player.vimeo.com/video/123456789"
+                />
+                <p className="mt-2 text-sm text-gray-500">
+                  Enter the full Vimeo URL. Examples:
+                </p>
+                <ul className="mt-1 text-xs text-gray-400 list-disc list-inside space-y-1">
+                  <li>https://vimeo.com/123456789</li>
+                  <li>https://player.vimeo.com/video/123456789</li>
+                </ul>
+                {formData.vimeoUrl && formData.vimeoUrl.match(/vimeo\.com\/\d+|player\.vimeo\.com\/video\/\d+/) && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+                    ✓ Valid Vimeo URL detected
+                  </div>
+                )}
+                {formData.vimeoUrl && !formData.vimeoUrl.match(/vimeo\.com\/\d+|player\.vimeo\.com\/video\/\d+/) && (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    ⚠️ Please enter a valid Vimeo URL
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Thumbnail Image (Optional)</label>

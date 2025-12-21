@@ -25,11 +25,50 @@ body {
 
 /* Typography improvements */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-sans);
+  font-family: var(--font-poppins), 'Poppins', sans-serif;
   font-weight: 600;
   line-height: 1.2;
 }
 
 code, pre {
   font-family: var(--font-mono);
+}
+
+/* Hide all YouTube share, copy link buttons, and YouTube logo/branding globally */
+[class*="share"],
+[class*="Share"],
+[id*="share"],
+[id*="Share"],
+[aria-label*="Share"],
+[aria-label*="share"],
+[aria-label*="Copy link"],
+[aria-label*="copy link"],
+[title*="Share"],
+[title*="share"],
+[title*="Copy link"],
+[title*="copy link"],
+.ytp-share-button,
+.ytp-share-panel,
+[class*="ytp-share"],
+[class*="ytp-copy"],
+/* Hide YouTube logo and branding */
+.ytp-watermark,
+.ytp-watermark-logo,
+[class*="ytp-watermark"],
+[class*="ytp-branding"],
+[id*="ytp-watermark"],
+[id*="ytp-branding"],
+a[href*="youtube.com"][class*="ytp"],
+a[href*="youtube.com"][id*="ytp"],
+/* Hide "Watch on YouTube" button */
+[class*="watch-on-youtube"],
+[aria-label*="Watch on YouTube"],
+[title*="Watch on YouTube"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }

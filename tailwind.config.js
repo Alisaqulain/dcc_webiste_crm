@@ -12,7 +12,8 @@ module.exports = {
         foreground: 'var(--foreground)',
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'Arial', 'sans-serif'],
+        sans: ['var(--font-poppins)', 'Poppins', 'Arial', 'sans-serif'],
+        poppins: ['var(--font-poppins)', 'Poppins', 'sans-serif'],
         mono: ['var(--font-geist-mono)', 'monospace'],
       },
     },

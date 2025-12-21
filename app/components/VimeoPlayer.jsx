@@ -251,3 +251,5 @@ const VimeoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
 
 export default VimeoPlayer;
 
+
+
