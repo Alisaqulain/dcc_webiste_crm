@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import VimeoPlayer from '../../../../components/VimeoPlayer';
-import YouTubePlayer from '../../../../components/YouTubePlayer';
+import CustomYouTubePlayer from '../../../../components/CustomYouTubePlayer';
 import Link from 'next/link';
 
 export default function VideoPlayerPage() {
@@ -248,7 +248,7 @@ export default function VideoPlayerPage() {
             <div className="bg-white rounded-lg shadow-lg overflow-hidden">
               <div className="aspect-video">
                 {video?.youtubeUrl ? (
-                  <YouTubePlayer
+                  <CustomYouTubePlayer
                     courseId={courseId}
                     video={video}
                     onVideoEnd={handleVideoEnd}
