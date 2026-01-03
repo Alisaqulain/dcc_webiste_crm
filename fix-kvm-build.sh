@@ -88,6 +88,75 @@ else
 fi
 echo ""
 
+# Fix 5: Verify certificate download routes exist (for 404 fixes)
+echo "Verifying certificate download routes..."
+CERT_CATCH_ALL="app/certificate/download/[...params]/page.jsx"
+CERT_SINGLE="app/certificate/download/[rollNumber]/page.jsx"
+CERT_TYPE_ID="app/certificate/download/[type]/[id]/page.jsx"
+CERT_API="app/api/certificate/[rollNumber]/route.js"
+
+# Check for conflicting routes
+CONFLICTING_ROUTES=0
+if [ -f "$CERT_SINGLE" ]; then
+    echo "⚠ Warning: Conflicting route found: $CERT_SINGLE"
+    echo "  This conflicts with catch-all route. Should be removed."
+    CONFLICTING_ROUTES=1
+fi
+
+if [ -f "$CERT_TYPE_ID" ]; then
+    echo "⚠ Warning: Conflicting route found: $CERT_TYPE_ID"
+    echo "  This conflicts with catch-all route. Should be removed."
+    CONFLICTING_ROUTES=1
+fi
+
+if [ -f "$CERT_CATCH_ALL" ]; then
+    echo "✓ Certificate catch-all route exists (handles /certificate/download/Dt/1 and /certificate/download/123)"
+else
+    echo "⚠ Warning: Certificate catch-all route missing: $CERT_CATCH_ALL"
+    echo "  This may cause 404 errors for multi-segment roll numbers"
+fi
+
+if [ -f "$CERT_API" ]; then
+    # Check if API route handles URL decoding
+    if grep -q "decodeURIComponent" "$CERT_API"; then
+        echo "✓ Certificate API route handles URL decoding"
+    else
+        echo "⚠ Warning: Certificate API route may not handle URL-encoded roll numbers"
+    fi
+else
+    echo "⚠ Warning: Certificate API route missing: $CERT_API"
+fi
+
+if [ $CONFLICTING_ROUTES -eq 1 ]; then
+    echo ""
+    echo "⚠ CRITICAL: Conflicting routes detected!"
+    echo "  Next.js cannot have different slug names at the same path level."
+    echo "  Please remove conflicting routes and keep only the catch-all route."
+    echo ""
+    # Clear Next.js cache to remove conflicting route definitions
+    if [ -d ".next" ]; then
+        echo "Clearing Next.js cache to remove conflicting route definitions..."
+        rm -rf .next
+        echo "✓ Cleared .next cache"
+        echo ""
+    fi
+fi
+echo ""
+
+# Fix 6: Check for common routing issues
+echo "Checking for common routing issues..."
+if [ -d ".next" ]; then
+    echo "✓ Build directory exists"
+    if [ -d ".next/server/app" ]; then
+        echo "✓ App router build output exists"
+    else
+        echo "⚠ Warning: App router build output not found - routes may not be built correctly"
+    fi
+else
+    echo "⚠ Warning: .next directory not found - project needs to be built"
+fi
+echo ""
+
 # Step 3: Install dependencies (if needed)
 echo "Step 3: Checking dependencies..."
 if [ ! -d "node_modules" ]; then
@@ -107,9 +176,48 @@ if npm run build; then
     echo "✓ Build successful!"
     echo "========================================="
     echo ""
+    
+    # Verify routes were built
+    echo "Verifying built routes..."
+    if [ -d ".next/server/app/certificate/download" ]; then
+        echo "✓ Certificate download routes built successfully"
+    else
+        echo "⚠ Warning: Certificate download routes not found in build output"
+    fi
+    
+    echo ""
     echo "Next steps:"
     echo "1. Restart your application (if using PM2: pm2 restart all)"
     echo "2. Check the website to verify everything works"
+    echo "3. Test certificate download: https://www.digitalcareercenter.com/certificate/download/Dt/1"
+    echo ""
+    echo "========================================="
+    echo "404 Error Troubleshooting"
+    echo "========================================="
+    echo ""
+    echo "If you still see 404 errors after build:"
+    echo ""
+    echo "1. Server Configuration (nginx/apache):"
+    echo "   - Ensure all routes are proxied to Next.js (port 3000 or your app port)"
+    echo "   - Check that try_files directive includes index.html fallback"
+    echo "   - Verify rewrite rules for Next.js App Router"
+    echo ""
+    echo "2. Next.js Configuration:"
+    echo "   - Verify output: 'standalone' is NOT set in next.config.mjs (for production)"
+    echo "   - Check that all route files exist in app/ directory"
+    echo "   - Ensure API routes are in app/api/ directory"
+    echo ""
+    echo "3. Common 404 Causes:"
+    echo "   - Missing catch-all routes for multi-segment URLs"
+    echo "   - Incorrect route file naming (must be page.jsx or page.js)"
+    echo "   - Server not restarting after build"
+    echo "   - Cached routes in browser/server"
+    echo ""
+    echo "4. Quick Fixes:"
+    echo "   - Clear browser cache"
+    echo "   - Restart Next.js server: pm2 restart all"
+    echo "   - Check .next/server/app for built routes"
+    echo "   - Verify certificate route: ls -la .next/server/app/certificate/download/"
     echo ""
 else
     echo ""

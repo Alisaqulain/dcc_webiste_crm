@@ -7,17 +7,10 @@ import Image from 'next/image';
 export default function CertificateDownloadPage() {
   const params = useParams();
   // In Next.js App Router, catch-all routes return params as { params: ['segment1', 'segment2'] }
-  // Join all params with '/' to handle roll numbers like "Dt/1"
-  let rollNumber = '';
-  if (params?.params && Array.isArray(params.params)) {
-    rollNumber = params.params.join('/');
-  } else if (params?.params && typeof params.params === 'string') {
-    rollNumber = params.params;
-  } else if (params?.rollNumber) {
-    rollNumber = params.rollNumber;
-  } else if (typeof params === 'string') {
-    rollNumber = params;
-  }
+  // Join all params with '/' to handle roll numbers like "Dt/1" or single segments like "123"
+  const rollNumber = Array.isArray(params?.params) 
+    ? params.params.join('/') 
+    : (params?.params || '');
   const [certificate, setCertificate] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
