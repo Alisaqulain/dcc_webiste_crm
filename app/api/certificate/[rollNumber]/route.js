@@ -6,7 +6,12 @@ export async function GET(request, { params }) {
   try {
     await connectDB();
     
-    const { rollNumber } = await params;
+    let { rollNumber } = await params;
+    
+    // Decode URL-encoded roll number (handles slashes and special characters)
+    if (rollNumber) {
+      rollNumber = decodeURIComponent(rollNumber);
+    }
     
     if (!rollNumber) {
       return NextResponse.json(
@@ -15,7 +20,16 @@ export async function GET(request, { params }) {
       );
     }
 
-    const certificate = await Certificate.findOne({ rollNumber });
+    // Decode the roll number to handle URL-encoded values (e.g., "Dt%2F1" -> "Dt/1")
+    const decodedRollNumber = decodeURIComponent(rollNumber);
+    
+    // Try to find certificate with decoded roll number first
+    let certificate = await Certificate.findOne({ rollNumber: decodedRollNumber });
+    
+    // If not found, try with the original (in case it's stored without encoding)
+    if (!certificate) {
+      certificate = await Certificate.findOne({ rollNumber });
+    }
     
     if (!certificate) {
       return NextResponse.json(
