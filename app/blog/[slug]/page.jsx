@@ -124,6 +124,7 @@ const BlogDetailPage = () => {
                 fill
                 className="object-cover"
                 priority
+                unoptimized
               />
             </div>
 

@@ -5,64 +5,38 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 /**
- * Secure Custom YouTube Player
+ * Custom Video Player Using YouTube (Hidden YouTube Player)
  * 
- * Features:
- * - Obfuscated video ID (Base64 encoded)
- * - Dynamic iframe loading (no hardcoded iframe)
- * - Custom UI with no YouTube branding
- * - Watermark with user email/ID
- * - Maximum sharing prevention
- * - Mobile and desktop compatible
+ * Uses YouTube URLs but with completely custom controls
+ * - YouTube iframe is hidden
+ * - All YouTube UI is blocked and hidden
+ * - Custom controls overlay
+ * - Zoom, Quality, Fullscreen
  */
 const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   const { data: session } = useSession();
   const router = useRouter();
-  const playerRef = useRef(null);
   const containerRef = useRef(null);
-  const iframeContainerRef = useRef(null);
+  const playerRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
-  const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
   
-  // Player state
+  // Custom controls state
+  const [showControls, setShowControls] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [currentQuality, setCurrentQuality] = useState('auto');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const controlsTimeoutRef = useRef(null);
-  const [watermarkText, setWatermarkText] = useState('');
+  const [availableQualities, setAvailableQualities] = useState([]);
 
-  // Obfuscate/deobfuscate video ID using Base64
-  const obfuscateVideoId = (videoId) => {
-    if (!videoId) return null;
-    try {
-      return btoa(videoId).replace(/[+/=]/g, (m) => {
-        return { '+': '-', '/': '_', '=': '' }[m];
-      });
-    } catch (e) {
-      return null;
-    }
-  };
-
-  const deobfuscateVideoId = (obfuscated) => {
-    if (!obfuscated) return null;
-    try {
-      const base64 = obfuscated.replace(/[-_]/g, (m) => {
-        return { '-': '+', '_': '/' }[m];
-      });
-      return atob(base64);
-    } catch (e) {
-      return null;
-    }
-  };
-
-  // Extract and obfuscate YouTube video ID from URL
+  // Extract YouTube video ID from URL
   const getYouTubeVideoId = () => {
     if (!video?.youtubeUrl) return null;
     
@@ -80,19 +54,6 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     
     return null;
   };
-
-  // Set watermark text based on user
-  useEffect(() => {
-    if (session?.user) {
-      const email = session.user.email || '';
-      const userId = session.user.id || '';
-      // Create watermark: email prefix or user ID
-      const text = email ? email.split('@')[0] : `User-${userId.slice(-6)}`;
-      setWatermarkText(text);
-    } else {
-      setWatermarkText('Guest');
-    }
-  }, [session]);
 
   // Check if user has access to this video
   useEffect(() => {
@@ -130,472 +91,185 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     checkAccess();
   }, [session, courseId, video?.isFreePreview, video?.isPreview]);
 
-  // Load YouTube IFrame API and create player dynamically
+  // Load YouTube iframe API
   useEffect(() => {
-    if (!hasAccess) return;
+    if (window.YT && window.YT.Player) {
+      return;
+    }
+
+    const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+    if (existingScript) {
+      return;
+    }
+
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    tag.async = true;
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    if (!window.onYouTubeIframeAPIReady) {
+      window.onYouTubeIframeAPIReady = () => {
+        console.log('YouTube iframe API ready');
+      };
+    }
+  }, []);
+
+  // Initialize YouTube player (hidden)
+  useEffect(() => {
+    if (!hasAccess || !containerRef.current) return;
 
     const videoId = getYouTubeVideoId();
-    if (!videoId) {
-      setError('No video ID found');
-      setIsLoading(false);
-      return;
-    }
+    if (!videoId) return;
 
-    // Obfuscate video ID
-    const obfuscatedId = obfuscateVideoId(videoId);
-    if (!obfuscatedId) {
-      setError('Failed to process video ID');
-      setIsLoading(false);
-      return;
-    }
-
-    // Load YouTube IFrame API if not already loaded
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      tag.async = true;
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      if (firstScriptTag && firstScriptTag.parentNode) {
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      }
-    }
-
-    const initializePlayer = () => {
+    const initPlayer = () => {
       if (!window.YT || !window.YT.Player) {
-        setTimeout(initializePlayer, 100);
+        setTimeout(initPlayer, 100);
         return;
       }
 
-      const container = iframeContainerRef.current;
-      if (!container) {
-        setTimeout(initializePlayer, 100);
-        return;
-      }
-
-      // Deobfuscate video ID
-      const actualVideoId = deobfuscateVideoId(obfuscatedId);
-      if (!actualVideoId) {
-        setError('Invalid video ID');
-        setIsLoading(false);
-        return;
-      }
-
-      // Clear any existing player
-      if (playerRef.current) {
-        try {
-          playerRef.current.destroy();
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-        playerRef.current = null;
-      }
-
-      // Clear container
-      container.innerHTML = '';
-
-      // Create unique player ID
-      const playerId = `yt-player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Create container div for iframe (dynamically, not hardcoded)
-      const playerDiv = document.createElement('div');
-      playerDiv.id = playerId;
-      playerDiv.style.cssText = 'width: 100%; height: 100%; position: absolute; top: 0; left: 0;';
-      container.appendChild(playerDiv);
-
-      // Create YouTube player with all restrictive parameters
-      // Note: Use youtube-nocookie.com by using the embed URL format
       try {
-        playerRef.current = new window.YT.Player(playerId, {
-          videoId: actualVideoId,
+        if (playerRef.current) {
+          try {
+            playerRef.current.destroy();
+          } catch (e) {}
+        }
+
+        // Create YouTube player container (visible but YouTube UI hidden)
+        const playerContainer = document.createElement('div');
+        playerContainer.id = `youtube-player-${Date.now()}`;
+        playerContainer.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%;';
+        containerRef.current.appendChild(playerContainer);
+
+        playerRef.current = new window.YT.Player(playerContainer.id, {
+          videoId: videoId,
           playerVars: {
-            autoplay: 0,
-            controls: 0, // Completely hide controls
-            disablekb: 1, // Disable keyboard controls
-            fs: 0, // Disable fullscreen button
-            iv_load_policy: 3, // Hide annotations
-            modestbranding: 1, // Hide YouTube logo
-            playsinline: 1,
-            rel: 0, // Don't show related videos
-            showinfo: 0,
+            origin: typeof window !== 'undefined' ? window.location.origin : '',
             enablejsapi: 1,
-            origin: window.location.origin,
-            cc_load_policy: 0, // Hide captions
-            branding: 0, // Hide all branding
-            wmode: 'transparent',
-            loop: 0
+            modestbranding: 1,
+            rel: 0,
+            showinfo: 0,
+            iv_load_policy: 3,
+            cc_load_policy: 0,
+            playsinline: 1,
+            controls: 0, // No YouTube controls
+            fs: 0, // We handle fullscreen
+            disablekb: 1,
+            autoplay: 0,
+            loop: 0,
+            mute: 0,
           },
+          host: 'https://www.youtube-nocookie.com',
           events: {
             onReady: (event) => {
+              console.log('YouTube player ready');
               setIsLoading(false);
-              setIframeLoaded(true);
-              const player = event.target;
+              setPlayerReady(true);
+              
+              // Get available quality levels
               try {
-                // Verify player is ready
-                if (typeof player.playVideo === 'function') {
-                  setDuration(player.getDuration());
-                  setVolume(player.getVolume() / 100);
-                  setIsMuted(player.isMuted());
-                  if (onVideoStart) onVideoStart(video);
-                } else {
-                  setError('Player not properly initialized');
-                  setIsLoading(false);
-                }
+                const qualities = event.target.getAvailableQualityLevels();
+                setAvailableQualities(qualities || []);
+                const current = event.target.getPlaybackQuality();
+                setCurrentQuality(current || 'auto');
+                
+                // Get duration
+                const dur = event.target.getDuration();
+                setDuration(dur || 0);
               } catch (e) {
-                console.error('Error in onReady:', e);
-                setError('Error initializing player');
-                setIsLoading(false);
+                console.log('Could not get quality levels');
               }
+              
+              if (onVideoStart) onVideoStart(video);
             },
             onStateChange: (event) => {
-              const player = event.target;
               if (event.data === window.YT.PlayerState.PLAYING) {
                 setIsPlaying(true);
               } else if (event.data === window.YT.PlayerState.PAUSED) {
                 setIsPlaying(false);
               } else if (event.data === window.YT.PlayerState.ENDED) {
                 setIsPlaying(false);
-                setCurrentTime(0);
                 if (onVideoEnd) onVideoEnd(video);
               }
             },
             onError: (event) => {
               console.error('YouTube player error:', event.data);
-              setError('Error loading video');
+              setError('Error loading video. Please try again.');
               setIsLoading(false);
             }
           }
         });
-      } catch (e) {
-        console.error('Error creating YouTube player:', e);
-        setError('Failed to create video player');
+
+        // Update time periodically
+        const timeInterval = setInterval(() => {
+          if (playerRef.current && playerRef.current.getCurrentTime) {
+            try {
+              const time = playerRef.current.getCurrentTime();
+              setCurrentTime(time);
+            } catch (e) {}
+          }
+        }, 100);
+
+        return () => {
+          clearInterval(timeInterval);
+        };
+      } catch (error) {
+        console.error('Error initializing YouTube player:', error);
+        setError('Failed to initialize video player.');
         setIsLoading(false);
       }
     };
 
-    if (window.YT && window.YT.Player) {
-      initializePlayer();
-    } else {
-      // Store previous callback if exists
-      const previousCallback = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = () => {
-        if (previousCallback) previousCallback();
-        initializePlayer();
-      };
-    }
+    initPlayer();
 
     return () => {
       if (playerRef.current) {
         try {
           playerRef.current.destroy();
-        } catch (e) {
-          // Ignore cleanup errors
-        }
+        } catch (e) {}
         playerRef.current = null;
       }
-      if (iframeContainerRef.current) {
-        iframeContainerRef.current.innerHTML = '';
-      }
-      setIframeLoaded(false);
     };
-  }, [hasAccess, video?.youtubeUrl, courseId, onVideoStart, onVideoEnd]);
+  }, [hasAccess, video, courseId, onVideoStart, onVideoEnd]);
 
-  // Update current time
+  // Mobile detection
   useEffect(() => {
-    if (!playerRef.current || !isPlaying) return;
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
 
-    const interval = setInterval(() => {
-      try {
-        const current = playerRef.current.getCurrentTime();
-        setCurrentTime(current);
-      } catch (e) {
-        // Ignore errors
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [isPlaying]);
-
-  // Handle controls visibility
+  // Show controls on touch for mobile
   useEffect(() => {
-    if (!showControls) return;
-
-    const resetTimeout = () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-      controlsTimeoutRef.current = setTimeout(() => {
+    if (!isMobile || !containerRef.current) return;
+    
+    const handleTouchStart = () => {
+      setShowControls(true);
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
         setShowControls(false);
-      }, 3000);
+      }, 5000);
     };
 
-    resetTimeout();
-    return () => {
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-    };
-  }, [showControls, isPlaying, currentTime]);
-
-  // Prevent all sharing methods
-  useEffect(() => {
-    // Block keyboard shortcuts
-    const preventShortcuts = (e) => {
-      // Block Ctrl+U (View Source), Ctrl+S (Save), Ctrl+C (Copy), Ctrl+Shift+I (DevTools)
-      if ((e.ctrlKey || e.metaKey) && (
-        e.key === 'u' || e.key === 's' || e.key === 'c' || 
-        (e.shiftKey && e.key === 'I') || e.key === 'F12'
-      )) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-    };
-
-    // Block right-click
-    const preventContextMenu = (e) => {
-      if (containerRef.current?.contains(e.target)) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-    };
-
-    // Block text selection
-    const preventSelection = (e) => {
-      if (containerRef.current?.contains(e.target)) {
-        e.preventDefault();
-        return false;
-      }
-    };
-
-    // Block drag
-    const preventDrag = (e) => {
-      if (containerRef.current?.contains(e.target)) {
-        e.preventDefault();
-        return false;
-      }
-    };
-
-    // Block YouTube navigation
-    const preventYouTubeNavigation = (e) => {
-      const target = e.target;
-      const link = target?.closest('a[href*="youtube.com"]') || 
-                   target?.closest('a[href*="youtu.be"]');
-      if (link) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-        return false;
-      }
-    };
-
-    // Block touch events on mobile
-    const preventTouchNavigation = (e) => {
-      const target = e.target;
-      const videoContainer = target?.closest('.custom-video-container');
-      if (videoContainer && !target?.closest('.custom-controls')) {
-        e.stopPropagation();
-        e.preventDefault();
-      }
-    };
-
-    document.addEventListener('keydown', preventShortcuts, true);
-    document.addEventListener('contextmenu', preventContextMenu, true);
-    document.addEventListener('selectstart', preventSelection, true);
-    document.addEventListener('dragstart', preventDrag, true);
-    document.addEventListener('click', preventYouTubeNavigation, true);
-    document.addEventListener('mousedown', preventYouTubeNavigation, true);
-    document.addEventListener('touchstart', preventTouchNavigation, true);
-    document.addEventListener('touchend', preventTouchNavigation, true);
-    document.addEventListener('touchmove', preventTouchNavigation, true);
-
-    return () => {
-      document.removeEventListener('keydown', preventShortcuts, true);
-      document.removeEventListener('contextmenu', preventContextMenu, true);
-      document.removeEventListener('selectstart', preventSelection, true);
-      document.removeEventListener('dragstart', preventDrag, true);
-      document.removeEventListener('click', preventYouTubeNavigation, true);
-      document.removeEventListener('mousedown', preventYouTubeNavigation, true);
-      document.removeEventListener('touchstart', preventTouchNavigation, true);
-      document.removeEventListener('touchend', preventTouchNavigation, true);
-      document.removeEventListener('touchmove', preventTouchNavigation, true);
-    };
-  }, []);
-
-  // Intercept clipboard API to replace YouTube links
-  useEffect(() => {
-    const fakeLink = 'https://example.com/invalid-video-link-404';
+    const container = containerRef.current;
+    container.addEventListener('touchstart', handleTouchStart);
     
-    // Intercept navigator.clipboard.writeText
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      const originalWriteText = navigator.clipboard.writeText.bind(navigator.clipboard);
-      navigator.clipboard.writeText = async function(text) {
-        if (text && (
-          text.includes('youtube.com') ||
-          text.includes('youtu.be') ||
-          text.includes('youtube-nocookie.com')
-        )) {
-          const replacedText = text
-            .replace(/https?:\/\/(www\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)[^\s]*/gi, fakeLink);
-          return originalWriteText(replacedText || fakeLink);
-        }
-        return originalWriteText(text);
-      };
-    }
-
-    // Intercept document.execCommand('copy')
-    const originalExecCommand = document.execCommand;
-    document.execCommand = function(command, showUI, value) {
-      if (command === 'copy') {
-        const selection = window.getSelection().toString();
-        if (selection && (
-          selection.includes('youtube.com') ||
-          selection.includes('youtu.be') ||
-          selection.includes('youtube-nocookie.com')
-        )) {
-          const replacedText = selection
-            .replace(/https?:\/\/(www\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)[^\s]*/gi, fakeLink);
-          
-          const textarea = document.createElement('textarea');
-          textarea.value = replacedText || fakeLink;
-          textarea.style.position = 'fixed';
-          textarea.style.opacity = '0';
-          document.body.appendChild(textarea);
-          textarea.select();
-          const result = originalExecCommand.apply(document, ['copy', false, null]);
-          document.body.removeChild(textarea);
-          return result;
-        }
-      }
-      return originalExecCommand.apply(document, arguments);
-    }
-
-    // Intercept copy event
-    const handleCopy = (e) => {
-      const selection = window.getSelection().toString();
-      const clipboardData = e.clipboardData || window.clipboardData;
-      
-      if (selection && (
-        selection.includes('youtube.com') ||
-        selection.includes('youtu.be') ||
-        selection.includes('youtube-nocookie.com')
-      )) {
-        e.preventDefault();
-        const replacedText = selection
-          .replace(/https?:\/\/(www\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)[^\s]*/gi, fakeLink);
-        if (clipboardData) {
-          clipboardData.setData('text/plain', replacedText || fakeLink);
-        }
-        return false;
-      }
-    };
-
-    // Continuous clipboard monitoring
-    const clipboardMonitor = setInterval(() => {
-      if (navigator.clipboard && navigator.clipboard.readText) {
-        navigator.clipboard.readText().then(text => {
-          if (text && (text.includes('youtube.com') || text.includes('youtu.be') || text.includes('youtube-nocookie.com'))) {
-            const replacedText = text.replace(/https?:\/\/(www\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)[^\s]*/gi, fakeLink);
-            if (replacedText !== text) {
-              navigator.clipboard.writeText(replacedText || fakeLink).catch(() => {});
-            }
-          }
-        }).catch(() => {});
-      }
-    }, 300);
-
-    document.addEventListener('copy', handleCopy, true);
-    document.addEventListener('beforecopy', handleCopy, true);
-
     return () => {
-      document.removeEventListener('copy', handleCopy, true);
-      document.removeEventListener('beforecopy', handleCopy, true);
-      clearInterval(clipboardMonitor);
+      container.removeEventListener('touchstart', handleTouchStart);
     };
-  }, []);
+  }, [isMobile]);
 
-  // Control functions
-  const togglePlay = () => {
-    if (!playerRef.current) {
-      console.warn('Player not initialized yet');
-      return;
-    }
-    
-    // Check if player methods exist
-    if (typeof playerRef.current.playVideo !== 'function' || 
-        typeof playerRef.current.pauseVideo !== 'function') {
-      console.error('Player methods not available');
-      setError('Player not ready. Please refresh the page.');
-      return;
-    }
-    
-    try {
-      if (isPlaying) {
-        playerRef.current.pauseVideo();
-      } else {
-        playerRef.current.playVideo();
-      }
-    } catch (e) {
-      console.error('Error toggling play:', e);
-      setError('Error controlling video playback');
-    }
-  };
-
-  const handleSeek = (e) => {
-    if (!playerRef.current) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const width = rect.width;
-    const newTime = (clickX / width) * duration;
-    try {
-      playerRef.current.seekTo(newTime, true);
-      setCurrentTime(newTime);
-    } catch (e) {
-      console.error('Error seeking:', e);
-    }
-  };
-
-  const handleVolumeChange = (e) => {
-    if (!playerRef.current) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const width = rect.width;
-    const newVolume = Math.max(0, Math.min(1, clickX / width));
-    try {
-      playerRef.current.setVolume(newVolume * 100);
-      setVolume(newVolume);
-      setIsMuted(newVolume === 0);
-    } catch (e) {
-      console.error('Error changing volume:', e);
-    }
-  };
-
-  const toggleMute = () => {
-    if (!playerRef.current) return;
-    try {
-      if (isMuted) {
-        playerRef.current.unMute();
-        setIsMuted(false);
-      } else {
-        playerRef.current.mute();
-        setIsMuted(true);
-      }
-    } catch (e) {
-      console.error('Error toggling mute:', e);
-    }
-  };
-
-  // Fullscreen change handler
+  // Fullscreen handling
   useEffect(() => {
     const handleFullscreenChange = () => {
-      const fullscreenElement = 
-        document.fullscreenElement ||
-        document.webkitFullscreenElement ||
-        document.mozFullScreenElement ||
-        document.msFullscreenElement;
-      
-      const isFull = fullscreenElement === containerRef.current;
-      setIsFullscreen(isFull);
+      setIsFullscreen(!!document.fullscreenElement);
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -611,27 +285,130 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     };
   }, []);
 
-  const toggleFullscreen = () => {
+  // Prevent all interactions with YouTube UI
+  useEffect(() => {
+    const preventAllClicks = (e) => {
+      // Allow clicks in fullscreen mode (for video playback)
+      if (document.fullscreenElement || document.webkitFullscreenElement || 
+          document.mozFullScreenElement || document.msFullscreenElement) {
+        // In fullscreen, allow video interactions
+        if (e.target.closest('iframe') || e.target.tagName === 'IFRAME') {
+          return; // Allow iframe clicks in fullscreen
+        }
+      }
+      
+      // On mobile, allow touch events to pass through for video controls
+      if (isMobile && (e.type === 'touchstart' || e.type === 'touchend')) {
+        // Allow touches on iframe in fullscreen on mobile
+        if ((document.fullscreenElement || document.webkitFullscreenElement || 
+            document.mozFullScreenElement || document.msFullscreenElement) &&
+            (e.target.closest('iframe') || e.target.tagName === 'IFRAME')) {
+          return;
+        }
+      }
+      
+      // Only allow clicks on our custom controls
+      if (!e.target.closest('.custom-video-controls') && 
+          !e.target.closest('.custom-control-button')) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        return false;
+      }
+    };
+
+    const preventContextMenu = (e) => {
+      // Allow right-click in fullscreen for video controls
+      if (document.fullscreenElement || document.webkitFullscreenElement || 
+          document.mozFullScreenElement || document.msFullscreenElement) {
+        return;
+      }
+      
+      if (e.target.closest('.custom-video-player')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    };
+
+    document.addEventListener('click', preventAllClicks, true);
+    document.addEventListener('contextmenu', preventContextMenu, true);
+
+    return () => {
+      document.removeEventListener('click', preventAllClicks, true);
+      document.removeEventListener('contextmenu', preventContextMenu, true);
+    };
+  }, [isMobile]);
+
+  // Player control functions
+  const togglePlay = () => {
+    if (playerRef.current) {
+      if (isPlaying) {
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+      }
+    }
+  };
+
+  const handleSeek = (time) => {
+    if (playerRef.current && playerRef.current.seekTo) {
+      playerRef.current.seekTo(time, true);
+    }
+  };
+
+  const handleVolumeChange = (newVolume) => {
+    if (playerRef.current && playerRef.current.setVolume) {
+      playerRef.current.setVolume(newVolume * 100);
+      setVolume(newVolume);
+    }
+  };
+
+  const handleVolumeUp = () => {
+    const newVolume = Math.min(volume + 0.1, 1);
+    handleVolumeChange(newVolume);
+  };
+
+  const handleVolumeDown = () => {
+    const newVolume = Math.max(volume - 0.1, 0);
+    handleVolumeChange(newVolume);
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.25, 2));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.25, 1));
+  };
+
+  const handleQualityChange = (quality) => {
+    if (playerRef.current && playerRef.current.setPlaybackQuality) {
+      try {
+        playerRef.current.setPlaybackQuality(quality);
+        setCurrentQuality(quality);
+      } catch (e) {
+        console.error('Error setting quality:', e);
+      }
+    }
+  };
+
+  const handleFullscreen = () => {
     if (!containerRef.current) return;
-    const container = containerRef.current;
 
     if (!isFullscreen) {
-      if (container.requestFullscreen) {
-        container.requestFullscreen().catch(err => {
-          console.error('Error entering fullscreen:', err);
-        });
-      } else if (container.webkitRequestFullscreen) {
-        container.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
-      } else if (container.mozRequestFullScreen) {
-        container.mozRequestFullScreen();
-      } else if (container.msRequestFullscreen) {
-        container.msRequestFullscreen();
+      if (containerRef.current.requestFullscreen) {
+        containerRef.current.requestFullscreen();
+      } else if (containerRef.current.webkitRequestFullscreen) {
+        containerRef.current.webkitRequestFullscreen();
+      } else if (containerRef.current.mozRequestFullScreen) {
+        containerRef.current.mozRequestFullScreen();
+      } else if (containerRef.current.msRequestFullscreen) {
+        containerRef.current.msRequestFullscreen();
       }
     } else {
       if (document.exitFullscreen) {
-        document.exitFullscreen().catch(err => {
-          console.error('Error exiting fullscreen:', err);
-        });
+        document.exitFullscreen();
       } else if (document.webkitExitFullscreen) {
         document.webkitExitFullscreen();
       } else if (document.mozCancelFullScreen) {
@@ -642,17 +419,19 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     }
   };
 
-  // Format time
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const youtubeVideoId = getYouTubeVideoId();
 
-  // Show loading state
   if (isCheckingAccess) {
     return (
       <div className="relative bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center">
@@ -664,7 +443,6 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     );
   }
 
-  // Show error if no YouTube video ID
   if (!youtubeVideoId) {
     return (
       <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video flex items-center justify-center">
@@ -673,13 +451,12 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
           <h3 className="text-xl font-semibold mb-2">Video Not Available</h3>
-          <p className="text-gray-400">No valid YouTube video URL found for this video.</p>
+          <p className="text-gray-400">No valid YouTube video URL found.</p>
         </div>
       </div>
     );
   }
 
-  // Show purchase prompt if no access
   if (!hasAccess) {
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : `/course/${courseId}/video/${video?._id}`;
     const purchaseUrl = `/purchase/${courseId}`;
@@ -691,9 +468,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
           <h3 className="text-2xl font-semibold mb-3">Premium Content</h3>
-          <p className="text-gray-300 mb-6">
-            Please purchase this course to continue watching this video.
-          </p>
+          <p className="text-gray-300 mb-6">Please purchase this course to continue watching.</p>
           {session ? (
             <button
               onClick={() => router.push(purchaseUrl)}
@@ -715,383 +490,404 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   }
 
   return (
-    <div 
-      ref={containerRef}
-      className="custom-video-container relative bg-black rounded-lg overflow-hidden aspect-video"
-      onMouseMove={() => setShowControls(true)}
-      onMouseLeave={() => {
-        if (!isPlaying) setShowControls(true);
-      }}
-      onClick={(e) => {
-        if (e.target.closest('.custom-controls')) return;
-        if (showControls) {
-          togglePlay();
-        }
-      }}
-      onTouchStart={(e) => {
-        e.stopPropagation();
-      }}
-      onTouchEnd={(e) => {
-        e.stopPropagation();
-        if (e.target.closest('.custom-controls')) return;
-        if (showControls) {
-          togglePlay();
-        }
-      }}
-      style={{
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        touchAction: 'manipulation'
-      }}
-    >
-      {/* Dynamic iframe container - created via JavaScript, not hardcoded */}
-      {hasAccess && (
-        <div 
-          ref={iframeContainerRef}
-          className="absolute inset-0 w-full h-full"
+    <>
+      <div 
+        ref={containerRef}
+        className="custom-video-player relative bg-black rounded-lg overflow-hidden aspect-video w-full"
+        style={{
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          MozUserSelect: 'none',
+          position: 'relative',
+        }}
+        onMouseEnter={() => !isMobile && setShowControls(true)}
+        onMouseLeave={() => !isMobile && setShowControls(false)}
+        onTouchStart={() => isMobile && setShowControls(true)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }}
+      >
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-30">
+            <div className="text-center text-white">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+              <p>Loading video...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error overlay */}
+        {error && (
+          <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-30">
+            <div className="text-center text-white p-6">
+              <p className="text-red-400">{error}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Video display area with zoom - YouTube iframe is inside containerRef */}
+        <div
+          className="absolute inset-0"
           style={{
-            zIndex: 1,
-            pointerEvents: 'none' // Block all pointer events on iframe
+            transform: `scale(${zoomLevel})`,
+            transformOrigin: 'center center',
+            transition: 'transform 0.3s ease',
+            width: '100%',
+            height: '100%',
+            overflow: 'hidden',
           }}
         />
-      )}
 
-      {/* Full overlay to block all clicks/touches - especially important for mobile */}
-      <div
-        className="absolute inset-0 z-10"
-        style={{
-          pointerEvents: 'auto',
-          touchAction: 'none'
-        }}
-        onClick={(e) => {
-          if (e.target.closest('.custom-controls')) {
-            e.stopPropagation();
-            return;
-          }
-          if (showControls) {
-            togglePlay();
-          }
-          e.stopPropagation();
-        }}
-        onTouchStart={(e) => {
-          e.stopPropagation();
-        }}
-        onTouchEnd={(e) => {
-          e.stopPropagation();
-          if (e.target.closest('.custom-controls')) return;
-          if (showControls) {
-            togglePlay();
-          }
-        }}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-        }}
-      />
-
-      {/* Blockers for top-left and top-right corners to hide YouTube UI */}
-      <div
-        className="absolute top-0 left-0 z-40"
-        style={{
-          width: '100px',
-          height: '70px',
-          pointerEvents: 'auto',
-          cursor: 'not-allowed',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          touchAction: 'none'
-        }}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-          return false;
-        }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-          return false;
-        }}
-        onTouchEnd={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-          return false;
-        }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
-        }}
-      />
-      
-      <div
-        className="absolute top-0 right-0 z-40"
-        style={{
-          width: '120px',
-          height: '70px',
-          pointerEvents: 'auto',
-          cursor: 'not-allowed',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          touchAction: 'none'
-        }}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-          return false;
-        }}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-          return false;
-        }}
-        onTouchEnd={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-          return false;
-        }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
-        }}
-      />
-
-      {/* Watermark overlay - shows user email/ID */}
-      {watermarkText && (
-        <div
-          className="absolute top-4 right-4 z-50 pointer-events-none"
-          style={{
-            color: 'rgba(255, 255, 255, 0.4)',
-            fontSize: '14px',
-            fontFamily: 'monospace',
-            textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
-            userSelect: 'none'
-          }}
-        >
-          {watermarkText}
-        </div>
-      )}
-
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
-          <div className="text-center text-white">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-            <p>Loading video...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Error overlay */}
-      {error && (
-        <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-10">
-          <div className="text-center text-white p-6">
-            <p className="mb-4">{error}</p>
-            <button
-              onClick={() => {
-                setError(null);
-                setIsLoading(true);
-                if (playerRef.current) {
-                  const videoId = getYouTubeVideoId();
-                  if (videoId) {
-                    playerRef.current.loadVideoById(videoId);
-                  }
-                }
-              }}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Custom Controls Overlay - Modern, Clean UI */}
-      {showControls && (
+        {/* Blocking overlays - prevent clicks on YouTube UI */}
+        {/* Top-left - blocks video title/link */}
         <div 
-          className="custom-controls absolute inset-0 z-20 flex flex-col justify-end"
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onTouchStart={(e) => e.stopPropagation()}
-        >
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none"></div>
-          
-          {/* Progress Bar - Modern Design */}
-          <div className="relative z-30 px-4 pb-2">
-            <div 
-              className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer group relative"
-              onClick={handleSeek}
-              onTouchEnd={(e) => {
-                e.stopPropagation();
-                handleSeek(e);
-              }}
-            >
-              <div 
-                className="h-full bg-gradient-to-r from-red-600 to-red-500 rounded-full transition-all duration-150 relative"
-                style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
-              >
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"></div>
-              </div>
-            </div>
-          </div>
+          className="absolute top-0 left-0 w-64 h-24 z-15 pointer-events-auto"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }}
+          style={{
+            background: 'transparent',
+            cursor: 'not-allowed',
+            zIndex: 15,
+          }}
+          aria-hidden="true"
+        />
 
-          {/* Controls Bar - Modern Design */}
-          <div className="relative z-30 flex items-center justify-between px-4 md:px-6 py-3 md:py-4">
-            <div className="flex items-center space-x-4 md:space-x-6">
-              {/* Play/Pause Button - Large, Modern */}
-              <button
+        {/* Top-right - blocks "Copy link" button */}
+        <div 
+          className="absolute top-0 right-0 w-48 h-24 z-15 pointer-events-auto"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }}
+          style={{
+            background: 'transparent',
+            cursor: 'not-allowed',
+            zIndex: 15,
+          }}
+          aria-hidden="true"
+        />
+
+        {/* Bottom - blocks YouTube logo and "Watch on YouTube" */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-20 z-15 pointer-events-auto"
+          onClick={(e) => {
+            if (!e.target.closest('.custom-video-controls')) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              return false;
+            }
+          }}
+          onContextMenu={(e) => {
+            if (!e.target.closest('.custom-video-controls')) {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+          }}
+          style={{
+            background: 'transparent',
+            cursor: 'not-allowed',
+            zIndex: 15,
+          }}
+          aria-hidden="true"
+        />
+
+        {/* Custom Controls Overlay */}
+        {playerReady && (
+          <div 
+            className={`custom-video-controls absolute bottom-0 left-0 right-0 z-20 bg-gradient-to-t from-black/80 via-black/40 to-transparent ${isMobile ? 'p-3' : 'p-4'} transition-opacity duration-300 ${
+              showControls ? 'opacity-100' : 'opacity-0'
+            }`}
+            onMouseEnter={() => !isMobile && setShowControls(true)}
+            onMouseLeave={() => !isMobile && setShowControls(false)}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              if (isMobile) setShowControls(true);
+            }}
+          >
+            {/* Progress bar */}
+            <div className={`mb-3 ${isMobile ? 'mb-4' : ''}`}>
+              <div 
+                className={`relative ${isMobile ? 'h-3' : 'h-1'} bg-white/20 rounded-full cursor-pointer touch-none`}
                 onClick={(e) => {
-                  e.stopPropagation();
-                  togglePlay();
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const percent = (e.clientX - rect.left) / rect.width;
+                  handleSeek(percent * duration);
                 }}
                 onTouchEnd={(e) => {
-                  e.stopPropagation();
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const touch = e.changedTouches[0];
+                  const percent = (touch.clientX - rect.left) / rect.width;
+                  handleSeek(percent * duration);
+                }}
+              >
+                <div 
+                  className="absolute top-0 left-0 h-full bg-red-600 rounded-full"
+                  style={{ width: `${(currentTime / duration) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <div className={`flex items-center justify-center ${isMobile ? 'flex-wrap gap-3 px-2' : 'space-x-6'} text-white`}>
+              {/* Play/Pause Button */}
+              <button
+                onClick={togglePlay}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
                   togglePlay();
                 }}
-                className="text-white hover:text-red-500 transition-all duration-200 transform hover:scale-110 touch-manipulation"
+                className={`custom-control-button ${isMobile ? 'p-3' : 'p-2'} hover:bg-white/20 active:bg-white/30 rounded transition-colors text-red-600 touch-manipulation`}
                 aria-label={isPlaying ? 'Pause' : 'Play'}
-                style={{ touchAction: 'manipulation' }}
               >
                 {isPlaying ? (
-                  <svg className="w-8 h-8 md:w-10 md:h-10" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                  <svg className={`${isMobile ? 'w-8 h-8' : 'w-6 h-6'}`} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
                   </svg>
                 ) : (
-                  <svg className="w-8 h-8 md:w-10 md:h-10" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
+                  <svg className={`${isMobile ? 'w-8 h-8' : 'w-6 h-6'}`} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
                   </svg>
                 )}
               </button>
 
-              {/* Volume Control - Modern Slider */}
-              <div className="flex items-center space-x-2 md:space-x-3">
+              {/* Volume Controls */}
+              <div className={`flex items-center ${isMobile ? 'space-x-3' : 'space-x-2'}`}>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleMute();
-                  }}
+                  onClick={handleVolumeDown}
                   onTouchEnd={(e) => {
-                    e.stopPropagation();
-                    toggleMute();
+                    e.preventDefault();
+                    handleVolumeDown();
                   }}
-                  className="text-white hover:text-red-500 transition-colors touch-manipulation"
-                  aria-label={isMuted ? 'Unmute' : 'Mute'}
-                  style={{ touchAction: 'manipulation' }}
+                  className={`custom-control-button ${isMobile ? 'p-3' : 'p-2'} hover:bg-white/20 active:bg-white/30 rounded transition-colors text-red-600 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation`}
+                  aria-label="Volume Down"
+                  disabled={volume <= 0}
                 >
-                  {isMuted || volume === 0 ? (
-                    <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
-                    </svg>
-                  ) : volume < 0.5 ? (
-                    <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                    </svg>
-                  )}
+                  <svg className={`${isMobile ? 'w-7 h-7' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z" />
+                  </svg>
                 </button>
-                <div 
-                  className="w-16 md:w-24 h-1.5 bg-white/20 rounded-full cursor-pointer group relative touch-manipulation"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleVolumeChange(e);
-                  }}
+
+                <span className={`${isMobile ? 'text-base font-bold px-3' : 'text-sm font-bold px-2'} text-red-600 font-mono min-w-[40px] text-center`}>
+                  {Math.round(volume * 100)}%
+                </span>
+
+                <button
+                  onClick={handleVolumeUp}
                   onTouchEnd={(e) => {
-                    e.stopPropagation();
-                    handleVolumeChange(e);
+                    e.preventDefault();
+                    handleVolumeUp();
                   }}
-                  style={{ touchAction: 'manipulation' }}
+                  className={`custom-control-button ${isMobile ? 'p-3' : 'p-2'} hover:bg-white/20 active:bg-white/30 rounded transition-colors text-red-600 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation`}
+                  aria-label="Volume Up"
+                  disabled={volume >= 1}
                 >
-                  <div 
-                    className="h-full bg-gradient-to-r from-white to-red-500 rounded-full transition-all"
-                    style={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
+                  <svg className={`${isMobile ? 'w-7 h-7' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Quality Selector */}
+              {availableQualities.length > 0 && (
+                <div className="relative">
+                  <button
+                    className="custom-control-button p-2 hover:bg-white/20 rounded transition-colors"
+                    aria-label="Quality"
                   >
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z" />
+                    </svg>
+                  </button>
+                  <div className="absolute bottom-full right-0 mb-2 bg-black/90 rounded-lg overflow-hidden min-w-[120px]">
+                    {['auto', 'hd1080', 'hd720', 'large', 'medium', 'small'].map((quality) => (
+                      <button
+                        key={quality}
+                        onClick={() => handleQualityChange(quality)}
+                        className={`block w-full text-left px-4 py-2 text-sm hover:bg-white/20 transition-colors ${
+                          currentQuality === quality ? 'bg-red-600' : ''
+                        }`}
+                      >
+                        {quality === 'auto' ? 'Auto' : quality.toUpperCase()}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Time Display - Modern Typography */}
-              <div className="text-white text-xs md:text-sm font-medium tracking-wide hidden sm:block">
-                <span className="text-red-400">{formatTime(currentTime)}</span>
-                <span className="text-white/60 mx-1">/</span>
-                <span className="text-white/80">{formatTime(duration)}</span>
-              </div>
-            </div>
-
-            {/* Right Controls */}
-            <div className="flex items-center space-x-2 md:space-x-4">
-              {/* Fullscreen Button */}
+              {/* Fullscreen */}
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFullscreen();
-                }}
+                onClick={handleFullscreen}
                 onTouchEnd={(e) => {
-                  e.stopPropagation();
-                  toggleFullscreen();
+                  e.preventDefault();
+                  handleFullscreen();
                 }}
-                className="text-white hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-white/10 touch-manipulation"
-                aria-label="Fullscreen"
-                style={{ touchAction: 'manipulation' }}
+                className={`custom-control-button ${isMobile ? 'p-3' : 'p-2'} hover:bg-red-900/30 active:bg-red-900/50 rounded transition-colors text-red-600 touch-manipulation`}
+                aria-label={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
               >
                 {isFullscreen ? (
-                  <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                  <svg className={`${isMobile ? 'w-7 h-7' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
                   </svg>
                 ) : (
-                  <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                  <svg className={`${isMobile ? 'w-7 h-7' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
                   </svg>
                 )}
               </button>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Completely hide YouTube UI and branding */}
+            {/* Time display */}
+            <div className={`text-center text-red-600 font-bold ${isMobile ? 'text-base mt-3' : 'text-sm mt-2'} drop-shadow-lg`}>
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </div>
+          </div>
+        )}
+
+        {/* Play/Pause Button in Left Corner */}
+        {playerReady && (
+          <button
+            onClick={togglePlay}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              togglePlay();
+            }}
+            className={`absolute ${isMobile ? 'top-3 left-3' : 'top-4 left-4'} z-30 custom-control-button bg-black/70 hover:bg-black/90 active:bg-black/95 rounded-full ${isMobile ? 'p-4' : 'p-3'} transition-colors shadow-lg touch-manipulation`}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? (
+              <svg className={`${isMobile ? 'w-10 h-10' : 'w-8 h-8'} text-red-600`} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+              </svg>
+            ) : (
+              <svg className={`${isMobile ? 'w-10 h-10' : 'w-8 h-8'} text-red-600 ml-1`} fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* CSS - Hide all YouTube UI but keep video visible */}
       <style dangerouslySetInnerHTML={{__html: `
-        /* YouTube iframe - make sure video is visible but UI is hidden */
-        .custom-video-container iframe {
-          z-index: 1 !important;
-          border: none !important;
-          pointer-events: none !important;
-          width: 100% !important;
-          height: 100% !important;
-          position: absolute !important;
-          top: 0 !important;
-          left: 0 !important;
+        /* YouTube iframe is visible but all UI is hidden */
+        .custom-video-player iframe {
+          pointer-events: none !important; /* Block all clicks on iframe */
         }
-        
-        /* Hide any YouTube-related elements */
-        .custom-video-container [class*="ytp"]:not(iframe),
-        .custom-video-container [id*="ytp"]:not(iframe),
-        .custom-video-container [class*="youtube"]:not(iframe),
-        .custom-video-container [id*="youtube"]:not(iframe),
-        .custom-video-container [aria-label*="YouTube"]:not(iframe),
-        .custom-video-container [aria-label*="Share"]:not(iframe),
-        .custom-video-container [aria-label*="Copy"]:not(iframe),
-        .custom-video-container [title*="YouTube"]:not(iframe),
-        .custom-video-container [title*="Share"]:not(iframe),
-        .custom-video-container [title*="Copy"]:not(iframe),
-        .custom-video-container a[href*="youtube.com"]:not(iframe),
-        .custom-video-container a[href*="youtu.be"]:not(iframe),
-        .custom-video-container button[aria-label*="YouTube"]:not(iframe),
-        .custom-video-container button[aria-label*="Share"]:not(iframe) {
+
+        /* Allow iframe interactions in fullscreen mode */
+        .custom-video-player:fullscreen iframe,
+        .custom-video-player:-webkit-full-screen iframe,
+        .custom-video-player:-moz-full-screen iframe,
+        .custom-video-player:-ms-fullscreen iframe {
+          pointer-events: auto !important; /* Enable clicks in fullscreen */
+        }
+
+        /* Hide ALL YouTube UI elements */
+        .custom-video-player .ytp-watermark,
+        .custom-video-player .ytp-watermark-logo,
+        .custom-video-player .ytp-branding-logo,
+        .custom-video-player .ytp-share-button,
+        .custom-video-player .ytp-title-link,
+        .custom-video-player .ytp-show-cards-title,
+        .custom-video-player .ytp-copylink-button,
+        .custom-video-player .ytp-chrome-top,
+        .custom-video-player .ytp-chrome-bottom,
+        .custom-video-player .ytp-title,
+        .custom-video-player .ytp-title-text,
+        .custom-video-player .ytp-title-content,
+        .custom-video-player button[aria-label*="Copy"],
+        .custom-video-player button[title*="Copy"],
+        .custom-video-player a[href*="youtube.com"],
+        .custom-video-player a[href*="youtu.be"] {
           display: none !important;
           visibility: hidden !important;
           opacity: 0 !important;
           pointer-events: none !important;
+          width: 0 !important;
+          height: 0 !important;
+          position: absolute !important;
+          left: -9999px !important;
+        }
+
+        /* Remove all shadows */
+        .custom-video-player iframe,
+        .custom-video-player > div {
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        /* Custom controls styling */
+        .custom-video-controls {
+          pointer-events: auto !important;
+        }
+
+        .custom-control-button {
+          pointer-events: auto !important;
+        }
+
+        /* Enable iframe interactions in fullscreen mode */
+        .custom-video-player:fullscreen iframe,
+        .custom-video-player:-webkit-full-screen iframe,
+        .custom-video-player:-moz-full-screen iframe,
+        .custom-video-player:-ms-fullscreen iframe {
+          pointer-events: auto !important;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+          .custom-video-player {
+            border-radius: 0.5rem;
+          }
+          
+          /* Larger touch targets for mobile */
+          .custom-control-button {
+            min-width: 44px;
+            min-height: 44px;
+            -webkit-tap-highlight-color: rgba(255, 0, 0, 0.3);
+          }
+          
+          /* Make controls more visible on mobile */
+          .custom-video-controls {
+            padding: 1rem !important;
+          }
+          
+          /* Prevent text selection on mobile */
+          .custom-video-player * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+          }
+        }
+        
+        /* Touch optimizations */
+        .touch-manipulation {
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
       `}} />
-    </div>
+    </>
   );
 };
 

@@ -7,7 +7,7 @@ import Image from "next/image";
 const Footer = () => {
   return (
     <footer className="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-6 sm:py-8 md:py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-5 gap-6 sm:gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-4 gap-6 sm:gap-8">
         
         {/* Logo & About */}
         <div>
@@ -69,19 +69,6 @@ const Footer = () => {
             <li><a href="/faq" className="hover:text-red-300 transition-colors">FAQ</a></li>
             <li><a href="/contact" className="hover:text-red-300 transition-colors">Support</a></li>
             <li><a href="/blog" className="hover:text-red-300 transition-colors">Blog</a></li>
-          </ul>
-        </div>
-
-        {/* Courses Package */}
-        <div>
-          <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4 border-b border-red-500 inline-block">All Courses</h3>
-          <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
-            <li><a href="/BronzeBundle" className="hover:text-red-300 transition-colors">Digital Starter Package</a></li>
-            <li><a href="/silver" className="hover:text-red-300 transition-colors">Advance Basic Computer</a></li>
-            <li><a href="/gold" className="hover:text-red-300 transition-colors">Search Engine Optimization</a></li>
-            <li><a href="/platinum" className="hover:text-red-300 transition-colors">Hindi Typing</a></li>
-            <li><a href="/Diamond" className="hover:text-red-300 transition-colors">Youtube Ads</a></li>
-            <li><a href="/dcc" className="hover:text-red-300 transition-colors">Google Ads</a></li>
           </ul>
         </div>
       </div>

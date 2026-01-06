@@ -122,6 +122,31 @@ const courseSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    // Secure video provider fields (for paid content - replaces YouTube)
+    cloudflareStreamId: {
+      type: String,
+      required: false,
+      trim: true,
+      description: 'Cloudflare Stream video ID'
+    },
+    vimeoProVideoId: {
+      type: String,
+      required: false,
+      trim: true,
+      description: 'Vimeo Pro video ID (for paid content)'
+    },
+    awsVideoKey: {
+      type: String,
+      required: false,
+      trim: true,
+      description: 'AWS S3 video key/path'
+    },
+    secureVideoUrl: {
+      type: String,
+      required: false,
+      trim: true,
+      description: 'Direct secure video URL (self-hosted with token auth)'
+    },
     videoPath: {
       type: String,
       required: false

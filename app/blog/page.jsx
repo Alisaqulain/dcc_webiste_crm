@@ -135,6 +135,7 @@ const BlogPage = () => {
                     width={600}
                     height={400}
                     className="w-full h-64 md:h-full object-cover"
+                    unoptimized
                   />
                 </div>
                 <div className="md:w-1/2 p-8">
@@ -229,6 +230,7 @@ const BlogPage = () => {
                     width={400}
                     height={250}
                     className="w-full h-48 object-cover"
+                    unoptimized
                   />
                   <div className="p-6">
                     <div className="flex items-center mb-3">

@@ -5,22 +5,22 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 /**
- * Secure YouTube Player Component (FREE Solution)
+ * Production-Ready YouTube Video Player Component
  * 
- * Maximum security within YouTube's free embed limitations:
- * - Uses youtube-nocookie.com for privacy
- * - Removes YouTube branding as much as possible
- * - Blocks clicks on YouTube logo, share buttons, branding
- * - Prevents right-click, text selection, drag
- * - Clean, responsive UI with full mobile support
- * - Fullscreen, quality selection, playback speed all work
+ * Features:
+ * - YouTube iframe API integration
+ * - Fullscreen and quality selection enabled
+ * - Clean UI with no black overlays
+ * - Sharing and YouTube branding disabled
+ * - Right-click protection
+ * - Fully responsive for desktop and mobile
+ * - Next.js App Router compatible
  */
-const SecureYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
+const VideoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   const { data: session } = useSession();
   const router = useRouter();
-  const containerRef = useRef(null);
-  const iframeRef = useRef(null);
   const playerRef = useRef(null);
+  const containerRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasAccess, setHasAccess] = useState(false);
@@ -105,7 +105,7 @@ const SecureYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     const firstScriptTag = document.getElementsByTagName('script')[0];
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-    // Set up global callback for when API is ready
+    // Set up global callback for when API is ready (if not already set)
     if (!window.onYouTubeIframeAPIReady) {
       window.onYouTubeIframeAPIReady = () => {
         console.log('YouTube iframe API ready');
@@ -138,31 +138,30 @@ const SecureYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
           }
         }
 
-        // Create new player instance with maximum privacy settings
+        // Create new player instance
         playerRef.current = new window.YT.Player(containerRef.current, {
           videoId: videoId,
           playerVars: {
             // Privacy and security
             origin: typeof window !== 'undefined' ? window.location.origin : '',
             enablejsapi: 1,
-            modestbranding: 1, // Hide YouTube logo (as much as possible)
+            modestbranding: 1, // Hide YouTube logo
             rel: 0, // No related videos
             showinfo: 0, // Hide video info
             iv_load_policy: 3, // Hide annotations
             cc_load_policy: 0, // No captions by default
             playsinline: 1, // Play inline on mobile
             
-            // Enable essential features
-            controls: 1, // Show controls (needed for quality, speed, fullscreen)
+            // Enable features
+            controls: 1, // Show controls
             fs: 1, // Enable fullscreen
-            disablekb: 0, // Enable keyboard controls (needed for quality selection)
+            disablekb: 0, // Enable keyboard controls (for quality selection)
             
-            // Disable sharing features
+            // Disable sharing
             autoplay: 0,
             loop: 0,
             mute: 0,
           },
-          host: 'https://www.youtube-nocookie.com', // Privacy-enhanced mode
           events: {
             onReady: (event) => {
               console.log('YouTube player ready');
@@ -183,14 +182,6 @@ const SecureYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
             }
           }
         });
-
-        // Store iframe reference for overlay blocking
-        if (containerRef.current) {
-          const iframe = containerRef.current.querySelector('iframe');
-          if (iframe) {
-            iframeRef.current = iframe;
-          }
-        }
       } catch (error) {
         console.error('Error initializing YouTube player:', error);
         setError('Failed to initialize video player.');
@@ -214,11 +205,11 @@ const SecureYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     };
   }, [hasAccess, video, courseId, onVideoStart, onVideoEnd]);
 
-  // Prevent right-click, text selection, drag, and other security measures
+  // Prevent right-click and context menu
   useEffect(() => {
     const preventContextMenu = (e) => {
       const target = e.target;
-      if (target?.closest('.secure-youtube-container') || 
+      if (target?.closest('.video-player-container') || 
           target?.closest('iframe')) {
         e.preventDefault();
         e.stopPropagation();
@@ -226,56 +217,26 @@ const SecureYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
       }
     };
 
-    const preventDrag = (e) => {
-      const target = e.target;
-      if (target?.closest('.secure-youtube-container')) {
-        e.preventDefault();
-        return false;
-      }
-    };
-
-    const preventSelection = (e) => {
-      const target = e.target;
-      if (target?.closest('.secure-youtube-container')) {
-        e.preventDefault();
-        return false;
-      }
-    };
-
-    const preventKeys = (e) => {
-      // Prevent F12, Ctrl+Shift+I, Ctrl+U, Ctrl+S on video player
-      if (
-        e.key === 'F12' ||
-        ((e.ctrlKey || e.metaKey) && (e.shiftKey && e.key === 'I' || e.key === 'u' || e.key === 's'))
-      ) {
+    // Prevent opening video in new tab
+    const preventNewTab = (e) => {
+      if (e.ctrlKey || e.metaKey) {
         const target = e.target;
-        if (target?.closest('.secure-youtube-container')) {
+        if (target?.closest('.video-player-container')) {
           e.preventDefault();
+          e.stopPropagation();
           return false;
         }
       }
     };
 
     document.addEventListener('contextmenu', preventContextMenu, true);
-    document.addEventListener('dragstart', preventDrag, true);
-    document.addEventListener('selectstart', preventSelection, true);
-    document.addEventListener('keydown', preventKeys, true);
+    document.addEventListener('click', preventNewTab, true);
 
     return () => {
       document.removeEventListener('contextmenu', preventContextMenu, true);
-      document.removeEventListener('dragstart', preventDrag, true);
-      document.removeEventListener('selectstart', preventSelection, true);
-      document.removeEventListener('keydown', preventKeys, true);
+      document.removeEventListener('click', preventNewTab, true);
     };
   }, []);
-
-  // Block clicks on YouTube logo, share buttons, and branding areas
-  const handleOverlayClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    return false;
-  };
 
   const youtubeVideoId = getYouTubeVideoId();
 
@@ -344,28 +305,21 @@ const SecureYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   return (
     <>
       <div 
-        ref={containerRef}
-        className="secure-youtube-container relative bg-black rounded-lg overflow-hidden aspect-video w-full"
+        className="video-player-container relative bg-black rounded-lg overflow-hidden aspect-video w-full"
         style={{
           userSelect: 'none',
           WebkitUserSelect: 'none',
           MozUserSelect: 'none',
-          WebkitTouchCallout: 'none',
-          position: 'relative',
         }}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
           return false;
         }}
-        onDragStart={(e) => {
-          e.preventDefault();
-          return false;
-        }}
       >
         {/* Loading overlay */}
         {isLoading && (
-          <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-30">
+          <div className="absolute inset-0 bg-black flex items-center justify-center z-10">
             <div className="text-center text-white">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
               <p>Loading video...</p>
@@ -375,105 +329,35 @@ const SecureYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
 
         {/* Error overlay */}
         {error && (
-          <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-30">
+          <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-20">
             <div className="text-center text-white p-6">
               <p className="text-red-400">{error}</p>
             </div>
           </div>
         )}
 
-        {/* Click-blocking overlays for YouTube branding areas */}
-        {/* Top-right: YouTube logo, share button, and "1" indicator area */}
+        {/* YouTube player container */}
         <div 
-          className="absolute top-0 right-0 w-40 h-40 z-20 pointer-events-auto"
-          onClick={handleOverlayClick}
-          onContextMenu={handleOverlayClick}
-          onMouseDown={handleOverlayClick}
-          onMouseUp={handleOverlayClick}
-          onTouchStart={handleOverlayClick}
-          onTouchEnd={handleOverlayClick}
+          ref={containerRef}
+          className="w-full h-full"
           style={{
-            background: 'transparent',
-            cursor: 'not-allowed',
+            position: 'relative',
+            width: '100%',
+            height: '100%',
           }}
-          aria-hidden="true"
-        />
-
-        {/* Bottom-right: YouTube logo area - extended coverage */}
-        <div 
-          className="absolute bottom-0 right-0 w-32 h-20 z-20 pointer-events-auto"
-          onClick={handleOverlayClick}
-          onContextMenu={handleOverlayClick}
-          onMouseDown={handleOverlayClick}
-          onMouseUp={handleOverlayClick}
-          onTouchStart={handleOverlayClick}
-          onTouchEnd={handleOverlayClick}
-          style={{
-            background: 'transparent',
-            cursor: 'not-allowed',
-          }}
-          aria-hidden="true"
-        />
-
-        {/* Bottom-left: "Watch on YouTube" link and copy link area - extended coverage */}
-        <div 
-          className="absolute bottom-0 left-0 w-48 h-16 z-20 pointer-events-auto"
-          onClick={handleOverlayClick}
-          onContextMenu={handleOverlayClick}
-          onMouseDown={handleOverlayClick}
-          onMouseUp={handleOverlayClick}
-          onTouchStart={handleOverlayClick}
-          onTouchEnd={handleOverlayClick}
-          style={{
-            background: 'transparent',
-            cursor: 'not-allowed',
-          }}
-          aria-hidden="true"
-        />
-
-        {/* Top-left: Any potential branding */}
-        <div 
-          className="absolute top-0 left-0 w-24 h-24 z-20 pointer-events-auto"
-          onClick={handleOverlayClick}
-          onContextMenu={handleOverlayClick}
-          onMouseDown={handleOverlayClick}
-          onMouseUp={handleOverlayClick}
-          onTouchStart={handleOverlayClick}
-          onTouchEnd={handleOverlayClick}
-          style={{
-            background: 'transparent',
-            cursor: 'not-allowed',
-          }}
-          aria-hidden="true"
-        />
-
-        {/* Additional overlay for top-center area (where "1" indicator might be) */}
-        <div 
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-16 z-20 pointer-events-auto"
-          onClick={handleOverlayClick}
-          onContextMenu={handleOverlayClick}
-          onMouseDown={handleOverlayClick}
-          onMouseUp={handleOverlayClick}
-          onTouchStart={handleOverlayClick}
-          onTouchEnd={handleOverlayClick}
-          style={{
-            background: 'transparent',
-            cursor: 'not-allowed',
-          }}
-          aria-hidden="true"
         />
       </div>
 
-      {/* Clean CSS - Remove black overlays, shadows, and hide YouTube branding */}
+      {/* Clean CSS - Remove all YouTube overlays, shadows, and branding */}
       <style dangerouslySetInnerHTML={{__html: `
         /* Remove black overlay/shadow on top of video */
-        .secure-youtube-container iframe,
-        .secure-youtube-container > div {
+        .video-player-container iframe,
+        .video-player-container > div {
           background: transparent !important;
           box-shadow: none !important;
         }
 
-        /* Remove YouTube top black bar/gradient */
+        /* Remove YouTube top black bar */
         .ytp-chrome-top,
         .ytp-gradient-top,
         .ytp-show-cards-title {
@@ -481,91 +365,38 @@ const SecureYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
           visibility: hidden !important;
           opacity: 0 !important;
           height: 0 !important;
-          max-height: 0 !important;
         }
 
-        /* Hide YouTube watermark and logo */
+        /* Remove YouTube watermark and logo */
         .ytp-watermark,
         .ytp-watermark-logo-container,
         .ytp-watermark-logo,
         .ytp-branding-logo,
         .ytp-branding-icon,
-        a[href*="youtube.com"],
-        .ytp-title-link {
+        a[href*="youtube.com"] {
           display: none !important;
           visibility: hidden !important;
           opacity: 0 !important;
           pointer-events: none !important;
-          width: 0 !important;
-          height: 0 !important;
         }
 
-        /* Hide share button, copy link, and sharing options */
+        /* Hide share button and sharing options */
         .ytp-share-button,
         .ytp-share-button-visible,
         .ytp-share-panel,
         button[aria-label*="Share"],
         button[title*="Share"],
-        .ytp-menuitem[aria-label*="Share"],
-        .ytp-menuitem[aria-label*="Copy"],
-        .ytp-menuitem[aria-label*="Copy link"],
-        button[aria-label*="Copy"],
-        button[title*="Copy"],
-        .ytp-copylink-button {
+        .ytp-menuitem[aria-label*="Share"] {
           display: none !important;
           visibility: hidden !important;
           opacity: 0 !important;
           pointer-events: none !important;
-          width: 0 !important;
-          height: 0 !important;
         }
 
-        /* Hide "Watch on YouTube" link and title link */
+        /* Hide "Watch on YouTube" link */
         .ytp-title-link,
         .ytp-title,
-        a[href*="watch?v="],
-        .ytp-title-channel,
-        .ytp-title-content,
-        .ytp-title-expanded-content {
-          display: none !important;
-          visibility: hidden !important;
-          opacity: 0 !important;
-          pointer-events: none !important;
-          width: 0 !important;
-          height: 0 !important;
-        }
-
-        /* Hide video number indicator (like "1" in top) and copy link */
-        .ytp-show-cards-title,
-        .ytp-cards-teaser,
-        .ytp-cards-teaser-count,
-        .ytp-ce-element,
-        .ytp-copylink-button,
-        .ytp-copylink-icon,
-        button[aria-label*="Copy link"],
-        button[title*="Copy link"],
-        .ytp-button[aria-label*="Copy"],
-        .ytp-button[title*="Copy"],
-        /* Hide any numbered indicators */
-        .ytp-ce-size-1920,
-        .ytp-ce-size-1280,
-        .ytp-ce-size-853,
-        .ytp-ce-size-640,
-        .ytp-ce-size-426,
-        .ytp-ce-size-256 {
-          display: none !important;
-          visibility: hidden !important;
-          opacity: 0 !important;
-          pointer-events: none !important;
-          width: 0 !important;
-          height: 0 !important;
-        }
-
-        /* Hide any top overlay indicators */
-        .ytp-ce-shadow,
-        .ytp-ce-shadow-show,
-        .ytp-ce-covering-overlay,
-        .ytp-ce-covering-image {
+        a[href*="watch?v="] {
           display: none !important;
           visibility: hidden !important;
           opacity: 0 !important;
@@ -582,29 +413,18 @@ const SecureYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
           opacity: 0 !important;
         }
 
-        /* Remove any black overlays or shadows - completely clean */
-        .secure-youtube-container::before,
-        .secure-youtube-container::after {
+        /* Remove any black overlays or shadows */
+        .video-player-container::before,
+        .video-player-container::after {
           display: none !important;
         }
 
-        /* Ensure clean video display - no borders, shadows, filters, gradients */
-        .secure-youtube-container iframe {
+        /* Ensure clean video display */
+        .video-player-container iframe {
           border: none !important;
           outline: none !important;
           box-shadow: none !important;
           filter: none !important;
-          background: transparent !important;
-        }
-
-        /* Remove any gradients or overlays from YouTube player */
-        .ytp-gradient-top,
-        .ytp-gradient-bottom,
-        .ytp-cards-teaser-shadow {
-          display: none !important;
-          visibility: hidden !important;
-          opacity: 0 !important;
-          background: transparent !important;
         }
 
         /* Hide YouTube context menu */
@@ -618,91 +438,31 @@ const SecureYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
           pointer-events: none !important;
         }
 
-        /* Ensure quality selector and settings work */
+        /* Responsive design */
+        @media (max-width: 768px) {
+          .video-player-container {
+            border-radius: 0.5rem;
+          }
+        }
+
+        /* Ensure quality selector is visible and working */
         .ytp-settings-button,
         .ytp-settings-menu {
           pointer-events: auto !important;
-          z-index: 10 !important;
         }
 
-        /* Clean player appearance - transparent controls background, no shadows */
+        /* Clean player appearance */
         .ytp-chrome-bottom {
-          background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%) !important;
-          box-shadow: none !important;
+          background: transparent !important;
         }
 
         .ytp-progress-bar-container {
           background: rgba(255, 255, 255, 0.2) !important;
-          box-shadow: none !important;
-        }
-
-        /* Remove all shadows from player elements */
-        .ytp-chrome-top,
-        .ytp-chrome-bottom,
-        .ytp-progress-bar,
-        .ytp-progress-bar-container,
-        .ytp-scroll-min,
-        .ytp-scroll-max {
-          box-shadow: none !important;
-          text-shadow: none !important;
-          filter: none !important;
-        }
-
-        /* Responsive design - ensure proper scaling */
-        @media (max-width: 768px) {
-          .secure-youtube-container {
-            border-radius: 0.5rem;
-          }
-          
-          .secure-youtube-container iframe {
-            width: 100% !important;
-            height: 100% !important;
-          }
-        }
-
-        /* Ensure fullscreen works properly */
-        .secure-youtube-container:-webkit-full-screen {
-          width: 100vw !important;
-          height: 100vh !important;
-        }
-
-        .secure-youtube-container:-moz-full-screen {
-          width: 100vw !important;
-          height: 100vh !important;
-        }
-
-        .secure-youtube-container:-ms-fullscreen {
-          width: 100vw !important;
-          height: 100vh !important;
-        }
-
-        .secure-youtube-container:fullscreen {
-          width: 100vw !important;
-          height: 100vh !important;
-        }
-
-        /* Prevent any selection on the container */
-        .secure-youtube-container * {
-          user-select: none !important;
-          -webkit-user-select: none !important;
-          -moz-user-select: none !important;
-          -ms-user-select: none !important;
-        }
-
-        /* Allow video controls to work */
-        .secure-youtube-container iframe {
-          pointer-events: auto !important;
-        }
-
-        /* Hide any YouTube end screen suggestions */
-        .ytp-ce-element,
-        .ytp-ce-shadow,
-        .ytp-ce-size-1920 .ytp-ce-shadow {
-          display: none !important;
         }
       `}} />
     </>
   );
 };
 
-export default SecureYouTubePlayer;
+export default VideoPlayer;
+
