@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
+import BlogRichEditor from '@/app/components/admin/BlogRichEditor';
 
 export default function EditBlogPage() {
   const router = useRouter();
@@ -13,6 +15,7 @@ export default function EditBlogPage() {
     title: '',
     excerpt: '',
     content: '',
+    contentJson: '',
     featuredImage: '',
     author: {
       name: '',
@@ -92,6 +95,7 @@ export default function EditBlogPage() {
           title: blog.title || '',
           excerpt: blog.excerpt || '',
           content: blog.content || '',
+          contentJson: blog.contentJson || '',
           featuredImage: blog.featuredImage || '',
           author: {
             name: blog.author?.name || '',
@@ -177,6 +181,11 @@ export default function EditBlogPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const plain = (formData.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!plain) {
+      toast.error('Please add article content in the editor.');
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -202,15 +211,15 @@ export default function EditBlogPage() {
       });
       
       if (response.ok) {
-        alert('Blog post updated successfully!');
+        toast.success('Blog post updated');
         router.push('/admin/blogs');
       } else {
         const error = await response.json();
-        alert(error.message || 'Error updating blog post');
+        toast.error(error.message || 'Error updating blog post');
       }
     } catch (error) {
       console.error('Error updating blog post:', error);
-      alert('Error updating blog post');
+      toast.error('Error updating blog post');
     } finally {
       setIsSubmitting(false);
     }
@@ -271,14 +280,17 @@ export default function EditBlogPage() {
             {/* Content */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Content *</label>
-              <textarea
-                required
-                rows={8}
-                value={formData.content}
-                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="Write your blog post content here..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              {!isLoading && (
+                <BlogRichEditor
+                  key={blogId}
+                  initialHtml={formData.content}
+                  initialJson={formData.contentJson}
+                  onChange={({ html, json }) =>
+                    setFormData((prev) => ({ ...prev, content: html, contentJson: json }))
+                  }
+                />
+              )}
+              <p className="text-xs text-gray-500 mt-2">Rich text is stored as HTML and TipTap JSON for editing.</p>
             </div>
 
             {/* Featured Image Upload */}

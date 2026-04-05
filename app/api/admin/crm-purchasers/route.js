@@ -2,6 +2,7 @@ import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Course from '@/models/Course';
 import jwt from 'jsonwebtoken';
+import { cleanupExpiredCrmFiles } from '@/lib/services/crmFileCleanup';
 
 const verifyAdminToken = (request) => {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -26,6 +27,13 @@ export async function GET(request) {
     }
 
     await connectDB();
+
+    // Remove CRM files older than 30 days (disk + DB) whenever an admin loads this list
+    try {
+      await cleanupExpiredCrmFiles(30);
+    } catch (cleanupErr) {
+      console.error('CRM purchasers: auto cleanup failed:', cleanupErr);
+    }
 
     // Get query parameters
     const { searchParams } = new URL(request.url);

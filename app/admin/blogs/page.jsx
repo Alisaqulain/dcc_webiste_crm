@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
+import BlogRichEditor from '@/app/components/admin/BlogRichEditor';
 
 export default function BlogsPage() {
   const router = useRouter();
@@ -14,6 +16,7 @@ export default function BlogsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addModalKey, setAddModalKey] = useState(0);
 
   const categories = [
     'Technology',
@@ -145,7 +148,10 @@ export default function BlogsPage() {
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-bold text-gray-900">Blog Management</h1>
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={() => {
+                  setAddModalKey((k) => k + 1);
+                  setShowAddModal(true);
+                }}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
               >
                 Add New Blog Post
@@ -338,10 +344,12 @@ export default function BlogsPage() {
       {/* Add Blog Modal */}
       {showAddModal && (
         <AddBlogModal
+          key={addModalKey}
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
             setShowAddModal(false);
             fetchBlogs();
+            toast.success('Blog created');
           }}
         />
       )}
@@ -354,7 +362,8 @@ function AddBlogModal({ onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     title: '',
     excerpt: '',
-    content: '',
+    content: '<p></p>',
+    contentJson: '',
     featuredImage: '',
     author: {
       name: '',
@@ -433,6 +442,11 @@ function AddBlogModal({ onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const plain = (formData.content || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!plain) {
+      toast.error('Please add article content in the editor.');
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -461,11 +475,11 @@ function AddBlogModal({ onClose, onSuccess }) {
         onSuccess();
       } else {
         const error = await response.json();
-        alert(error.message || 'Error creating blog post');
+        toast.error(error.message || 'Error creating blog post');
       }
     } catch (error) {
       console.error('Error creating blog post:', error);
-      alert('Error creating blog post');
+      toast.error('Error creating blog post');
     } finally {
       setIsSubmitting(false);
     }
@@ -564,14 +578,14 @@ function AddBlogModal({ onClose, onSuccess }) {
             {/* Content */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Content *</label>
-              <textarea
-                required
-                rows={8}
-                value={formData.content}
-                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="Write your blog post content here..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              <BlogRichEditor
+                initialHtml={formData.content}
+                initialJson={formData.contentJson}
+                onChange={({ html, json }) =>
+                  setFormData((prev) => ({ ...prev, content: html, contentJson: json }))
+                }
               />
+              <p className="text-xs text-gray-500 mt-2">Use the toolbar for headings, lists, links, images, and code.</p>
             </div>
 
             {/* Featured Image Upload */}

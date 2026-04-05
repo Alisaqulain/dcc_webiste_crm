@@ -24,6 +24,11 @@ const blogSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  /** Stringified TipTap JSON for re-editing rich posts */
+  contentJson: {
+    type: String,
+    default: ''
+  },
   featuredImage: {
     type: String,
     required: true
@@ -144,11 +149,13 @@ blogSchema.index({ publishedAt: -1 });
 blogSchema.index({ createdAt: -1 });
 blogSchema.index({ slug: 1 });
 
-// Virtual for reading time (assuming 200 words per minute)
+// Virtual for reading time (strip HTML for word count)
 blogSchema.virtual('readingTime').get(function() {
   const wordsPerMinute = 200;
-  const wordCount = this.content.split(/\s+/).length;
-  return Math.ceil(wordCount / wordsPerMinute);
+  const raw = this.content || '';
+  const plain = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const wordCount = plain ? plain.split(/\s+/).filter(Boolean).length : 0;
+  return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
 });
 
 // Ensure virtual fields are serialized

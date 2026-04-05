@@ -34,6 +34,23 @@ code, pre {
   font-family: var(--font-mono);
 }
 
+/* Floats from rich-text images (TipTap align) */
+.blog-article-body::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+.blog-tiptap-editor .ProseMirror {
+  min-height: 280px;
+  outline: none;
+}
+
+.blog-tiptap-editor .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Hide all YouTube share, copy link buttons, and YouTube logo/branding globally */
 [class*="share"],
 [class*="Share"],

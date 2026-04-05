@@ -70,5 +70,8 @@ leadSchema.index({ user: 1, createdAt: -1 });
 leadSchema.index({ status: 1 });
 leadSchema.index({ date: 1 });
 
+/** Auto-remove lead documents ~30 days after createdAt (MongoDB TTL) */
+leadSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 });
+
 export default mongoose.models.Lead || mongoose.model('Lead', leadSchema);
 

@@ -2,6 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+import { FaTrashAlt } from 'react-icons/fa';
+import ConfirmDialog from '@/app/components/admin/ConfirmDialog';
+
+function autoRemoveLabel(uploadedAt) {
+  if (!uploadedAt) return null;
+  const d = new Date(uploadedAt);
+  if (Number.isNaN(d.getTime())) return null;
+  const expires = new Date(d.getTime() + 30 * 24 * 60 * 60 * 1000);
+  return expires.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+const deleteFileBtnClass =
+  'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-600 hover:text-white border border-red-200 hover:border-red-600 transition-colors flex-shrink-0 shadow-sm';
 
 export default function CRMPurchasersPage() {
   const router = useRouter();
@@ -14,6 +28,8 @@ export default function CRMPurchasersPage() {
   const [uploading, setUploading] = useState({});
   const [showUploadModal, setShowUploadModal] = useState(null); // Store userId instead of boolean
   const [selectedFile, setSelectedFile] = useState(null);
+  const [fileDelete, setFileDelete] = useState(null);
+  const [fileDeleting, setFileDeleting] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -35,6 +51,7 @@ export default function CRMPurchasersPage() {
         ...(searchTerm && { search: searchTerm })
       });
       const res = await fetch(`/api/admin/crm-purchasers?${params}`, {
+        cache: 'no-store',
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -85,6 +102,42 @@ export default function CRMPurchasersPage() {
     }
   };
 
+  const deleteCrmFile = async () => {
+    if (!fileDelete) return;
+    setFileDeleting(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      const body = fileDelete.legacy
+        ? { userId: fileDelete.userId, legacy: true }
+        : {
+            userId: fileDelete.userId,
+            ...(fileDelete.fileId ? { fileId: fileDelete.fileId } : {}),
+            ...(fileDelete.fileUrl ? { fileUrl: fileDelete.fileUrl } : {}),
+          };
+      if (!fileDelete.legacy && !body.fileId && !body.fileUrl) {
+        toast.error('Cannot delete: missing file reference');
+        return;
+      }
+      const res = await fetch('/api/admin/crm-file/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Delete failed');
+      toast.success('File removed');
+      setFileDelete(null);
+      loadUsers();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setFileDeleting(false);
+    }
+  };
+
   const handleUpload = async (userId) => {
     if (!selectedFile) {
       alert('Please select a file');
@@ -109,7 +162,7 @@ export default function CRMPurchasersPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Upload failed');
 
-      alert('File uploaded successfully for user!');
+      toast.success('File uploaded for user');
       setShowUploadModal(null);
       setSelectedFile(null);
       
@@ -118,7 +171,7 @@ export default function CRMPurchasersPage() {
         loadUsers();
       }, 500);
     } catch (e) {
-      alert('Upload failed: ' + e.message);
+      toast.error('Upload failed: ' + e.message);
     } finally {
       setUploading(prev => ({ ...prev, [userId]: false }));
     }
@@ -127,7 +180,14 @@ export default function CRMPurchasersPage() {
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">CRM Course Purchasers</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">CRM Course Purchasers</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Each file shows when it will auto-delete (30 days after upload). Cleanup also runs when you open this page.
+            Optional: schedule <code className="text-xs bg-gray-100 px-1 rounded">GET /api/cron/maintenance</code> with{' '}
+            <code className="text-xs bg-gray-100 px-1 rounded">CRON_SECRET</code> for extra runs.
+          </p>
+        </div>
         <div className="flex gap-2">
           <button
             className="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded text-sm"
@@ -175,15 +235,15 @@ export default function CRMPurchasersPage() {
           <p className="mt-2 text-gray-600">Loading...</p>
         </div>
       ) : (
-        <div className="bg-white border rounded overflow-x-auto">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="text-left border-b bg-gray-50">
+              <tr className="text-left border-b border-gray-200 bg-gray-50">
                 <th className="py-3 px-4">Name</th>
                 <th className="py-3 px-4">Email</th>
                 <th className="py-3 px-4">Mobile</th>
                 <th className="py-3 px-4">CRM Courses</th>
-                <th className="py-3 px-4">File</th>
+                <th className="py-3 px-4">Files (delete / auto-remove)</th>
                 <th className="py-3 px-4">Downloaded</th>
                 <th className="py-3 px-4">Downloaded At</th>
                 <th className="py-3 px-4">Actions</th>
@@ -192,7 +252,7 @@ export default function CRMPurchasersPage() {
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user._id} className="border-b hover:bg-gray-50">
+                <tr key={user._id} className="border-b border-gray-100 hover:bg-red-50/30 transition-colors">
                   <td className="py-3 px-4">
                     {user.profile?.firstName || ''} {user.profile?.lastName || ''}
                   </td>
@@ -210,35 +270,85 @@ export default function CRMPurchasersPage() {
                   <td className="py-3 px-4">
                     {user.crmFiles && user.crmFiles.length > 0 ? (
                       <div className="space-y-1">
-                        {user.crmFiles.map((file, idx) => (
-                          <div key={idx} className="text-xs border-b border-gray-200 pb-1 last:border-0">
-                            <div className="flex items-center gap-1">
-                              <p className="text-gray-700 font-medium truncate max-w-[150px]" title={file.originalName || file.filename}>
-                                {file.originalName || file.filename}
-                              </p>
-                              {file.downloaded && (
-                                <span className="inline-flex items-center justify-center w-4 h-4 bg-green-100 text-green-600 rounded-full flex-shrink-0">
-                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </span>
-                              )}
+                        {user.crmFiles.map((file, idx) => {
+                          const fid = file._id != null ? String(file._id) : null;
+                          const fUrl = typeof file.url === 'string' && file.url ? file.url : '';
+                          const canDelete = Boolean(fid || fUrl);
+                          return (
+                          <div key={fid || fUrl || idx} className="text-xs border-b border-gray-200 pb-2 last:border-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <p className="text-gray-800 font-medium truncate max-w-[140px]" title={file.originalName || file.filename}>
+                                  {file.originalName || file.filename}
+                                </p>
+                                {file.downloaded && (
+                                  <span className="inline-flex items-center justify-center w-4 h-4 bg-green-100 text-green-600 rounded-full flex-shrink-0">
+                                    <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  </span>
+                                )}
+                              </div>
+                              {canDelete ? (
+                                <button
+                                  type="button"
+                                  aria-label={`Delete ${file.originalName || file.filename}`}
+                                  title="Delete this file from storage and database"
+                                  onClick={() =>
+                                    setFileDelete({
+                                      userId: user._id,
+                                      ...(fid ? { fileId: fid } : {}),
+                                      ...(fUrl ? { fileUrl: fUrl } : {}),
+                                      label: file.originalName || file.filename,
+                                    })
+                                  }
+                                  className={deleteFileBtnClass}
+                                >
+                                  <FaTrashAlt className="w-3 h-3" />
+                                  Delete
+                                </button>
+                              ) : null}
                             </div>
-                            <p className="text-gray-500 text-xs">
-                              {file.uploadedAt ? new Date(file.uploadedAt).toLocaleDateString() : ''}
+                            <p className="text-gray-500 text-[11px] mt-0.5">
+                              Uploaded {file.uploadedAt ? new Date(file.uploadedAt).toLocaleDateString() : '—'}
+                              {autoRemoveLabel(file.uploadedAt) ? (
+                                <span className="text-amber-700"> · Auto-remove by {autoRemoveLabel(file.uploadedAt)}</span>
+                              ) : null}
                             </p>
                           </div>
-                        ))}
+                          );
+                        })}
                         <p className="text-gray-400 text-xs mt-1">({user.crmFiles.length} file{user.crmFiles.length !== 1 ? 's' : ''})</p>
                       </div>
                     ) : user.crmFile?.originalName ? (
-                      <div className="text-xs">
-                        <p className="text-gray-700 font-medium truncate max-w-[150px]" title={user.crmFile.originalName}>
-                          {user.crmFile.originalName}
-                        </p>
-                        <p className="text-gray-500 text-xs">
-                          {user.crmFile.uploadedAt ? new Date(user.crmFile.uploadedAt).toLocaleDateString() : ''}
-                        </p>
+                      <div className="text-xs flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-gray-800 font-medium truncate max-w-[140px]" title={user.crmFile.originalName}>
+                            {user.crmFile.originalName}
+                          </p>
+                          <p className="text-gray-500 text-[11px] mt-0.5">
+                            Uploaded {user.crmFile.uploadedAt ? new Date(user.crmFile.uploadedAt).toLocaleDateString() : '—'}
+                            {autoRemoveLabel(user.crmFile.uploadedAt) ? (
+                              <span className="text-amber-700"> · Auto-remove by {autoRemoveLabel(user.crmFile.uploadedAt)}</span>
+                            ) : null}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label="Delete legacy CRM file"
+                          title="Delete this file from storage and database"
+                          onClick={() =>
+                            setFileDelete({
+                              userId: user._id,
+                              legacy: true,
+                              label: user.crmFile.originalName,
+                            })
+                          }
+                          className={deleteFileBtnClass}
+                        >
+                          <FaTrashAlt className="w-3 h-3" />
+                          Delete
+                        </button>
                       </div>
                     ) : (
                       <span className="text-gray-400 text-xs">No file</span>
@@ -314,24 +424,69 @@ export default function CRMPurchasersPage() {
       )}
 
       {totalPages > 1 && (
-        <div className="mt-4 flex gap-2 justify-center">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
           <button
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            type="button"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-3 py-1 border rounded disabled:opacity-50"
+            className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-50 disabled:opacity-40"
           >
             Previous
           </button>
-          <span className="px-3 py-1">Page {currentPage} of {totalPages}</span>
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter((n) => {
+              const w = 4;
+              return n === 1 || n === totalPages || (n >= currentPage - w && n <= currentPage + w);
+            })
+            .reduce((acc, n, i, arr) => {
+              if (i > 0 && n - arr[i - 1] > 1) acc.push('…');
+              acc.push(n);
+              return acc;
+            }, [])
+            .map((n, i) =>
+              n === '…' ? (
+                <span key={`e-${i}`} className="px-2 text-gray-400">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setCurrentPage(n)}
+                  className={`min-w-[2.5rem] px-3 py-2 rounded-lg text-sm font-medium ${
+                    currentPage === n
+                      ? 'bg-red-600 text-white shadow'
+                      : 'border border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {n}
+                </button>
+              )
+            )}
           <button
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            type="button"
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="px-3 py-1 border rounded disabled:opacity-50"
+            className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium hover:bg-gray-50 disabled:opacity-40"
           >
             Next
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!fileDelete}
+        title="Delete CRM file"
+        message={
+          fileDelete
+            ? `Remove "${fileDelete.label}" from storage and database? This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete file"
+        onConfirm={deleteCrmFile}
+        onCancel={() => setFileDelete(null)}
+        loading={fileDeleting}
+      />
 
       {/* Upload Modal */}
       {showUploadModal && (() => {
@@ -365,21 +520,71 @@ export default function CRMPurchasersPage() {
                   </p>
                   {user.crmFiles && user.crmFiles.length > 0 ? (
                     <div className="space-y-2">
-                      {user.crmFiles.map((file, idx) => (
-                        <div key={idx} className="text-xs text-blue-700 border-l-2 border-blue-300 pl-2">
-                          <p className="font-medium">{file.originalName || file.filename}</p>
-                          <p className="text-blue-600">
-                            Uploaded: {file.uploadedAt ? new Date(file.uploadedAt).toLocaleString() : 'N/A'}
-                          </p>
-                        </div>
-                      ))}
+                      {user.crmFiles.map((file, idx) => {
+                        const fid = file._id != null ? String(file._id) : null;
+                        const fUrl = typeof file.url === 'string' && file.url ? file.url : '';
+                        const canDelete = Boolean(fid || fUrl);
+                        return (
+                          <div key={fid || fUrl || idx} className="flex items-start justify-between gap-2 text-xs text-blue-700 border-l-2 border-blue-300 pl-2">
+                            <div>
+                              <p className="font-medium">{file.originalName || file.filename}</p>
+                              <p className="text-blue-600">
+                                Uploaded: {file.uploadedAt ? new Date(file.uploadedAt).toLocaleString() : 'N/A'}
+                                {autoRemoveLabel(file.uploadedAt) ? (
+                                  <span className="text-amber-800"> · Auto-remove by {autoRemoveLabel(file.uploadedAt)}</span>
+                                ) : null}
+                              </p>
+                            </div>
+                            {canDelete ? (
+                              <button
+                                type="button"
+                                title="Delete file from storage and database"
+                                aria-label="Delete file"
+                                onClick={() => {
+                                  setFileDelete({
+                                    userId: user._id,
+                                    ...(fid ? { fileId: fid } : {}),
+                                    ...(fUrl ? { fileUrl: fUrl } : {}),
+                                    label: file.originalName || file.filename,
+                                  });
+                                }}
+                                className={deleteFileBtnClass}
+                              >
+                                <FaTrashAlt className="w-3 h-3" />
+                                Delete
+                              </button>
+                            ) : null}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="text-xs text-blue-700">
-                      <p className="font-medium">{user.crmFile.originalName}</p>
-                      <p className="text-blue-600 mt-1">
-                        Uploaded: {user.crmFile.uploadedAt ? new Date(user.crmFile.uploadedAt).toLocaleString() : 'N/A'}
-                      </p>
+                    <div className="flex items-start justify-between gap-2 text-xs text-blue-700">
+                      <div>
+                        <p className="font-medium">{user.crmFile.originalName}</p>
+                        <p className="text-blue-600 mt-1">
+                          Uploaded: {user.crmFile.uploadedAt ? new Date(user.crmFile.uploadedAt).toLocaleString() : 'N/A'}
+                          {autoRemoveLabel(user.crmFile.uploadedAt) ? (
+                            <span className="text-amber-800"> · Auto-remove by {autoRemoveLabel(user.crmFile.uploadedAt)}</span>
+                          ) : null}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        title="Delete file from storage and database"
+                        aria-label="Delete legacy file"
+                        onClick={() =>
+                          setFileDelete({
+                            userId: user._id,
+                            legacy: true,
+                            label: user.crmFile.originalName,
+                          })
+                        }
+                        className={deleteFileBtnClass}
+                      >
+                        <FaTrashAlt className="w-3 h-3" />
+                        Delete
+                      </button>
                     </div>
                   )}
                 </div>

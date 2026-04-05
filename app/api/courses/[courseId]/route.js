@@ -12,15 +12,15 @@ export async function GET(request, { params }) {
     const url = new URL(request.url);
     const includeVideos = url.searchParams.get('includeVideos') === 'true';
     
-    // Check if user is authenticated and has purchased the course
-    let hasAccess = false;
     const session = await getServerSession(authOptions);
-    
-    if (session && includeVideos) {
-      const user = await User.findById(session.user.id);
-      if (user && user.courses) {
+
+    // Purchased / enrolled (used for video list + client purchase CTA)
+    let hasAccess = false;
+    if (session?.user?.id) {
+      const user = await User.findById(session.user.id).select('courses').lean();
+      if (user?.courses?.length) {
         hasAccess = user.courses.some(
-          c => c.courseId && c.courseId.toString() === courseId
+          (c) => c.courseId && c.courseId.toString() === courseId
         );
       }
     }
@@ -51,7 +51,7 @@ export async function GET(request, { params }) {
       );
     }
 
-    return Response.json({ course });
+    return Response.json({ course, hasAccess });
   } catch (error) {
     console.error('Error fetching course:', error);
     return Response.json(

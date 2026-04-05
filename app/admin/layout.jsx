@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Toaster } from 'react-hot-toast';
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -91,6 +92,7 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-40 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)}></div>

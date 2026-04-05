@@ -17,29 +17,15 @@ export default function DownloadFilesPage() {
 			const response = await fetch('/api/crm/file/info', { cache: 'no-store' });
 			if (response.ok) {
 				const data = await response.json();
-				console.log('File info response:', data);
 				if (data.hasFile && data.files && data.files.length > 0) {
-					// Show all files, filter out ones that don't exist
-					const existingFiles = data.files.filter(f => f.fileExists);
-					if (existingFiles.length > 0) {
-						setFiles(existingFiles);
-						setError('');
-					} else {
-						setFiles([]);
-						setError('Files were uploaded but not found on server. Please contact admin.');
-					}
-				} else if (data.hasFile && data.file) {
-					// Backward compatibility: single file
-					if (data.fileExists) {
-						setFiles([data.file]);
-						setError('');
-					} else {
-						setFiles([]);
-						setError('File was uploaded but not found on server. Please contact admin.');
-					}
+					setFiles(data.files);
+					setError('');
 				} else {
 					setFiles([]);
-					setError(data.message || 'No file has been uploaded for your account yet. Please contact admin.');
+					setError(
+						data.message ||
+							'No file has been uploaded for your account yet. Please contact admin.'
+					);
 				}
 			} else {
 				const errorData = await response.json();

@@ -176,9 +176,19 @@ const BlogDetailPage = () => {
                 </div>
               </div>
 
-              {/* Article Body */}
-              <div 
-                className="prose prose-lg max-w-none"
+              {/* Article Body — Medium-style typography */}
+              <div
+                className="blog-article-body prose prose-lg prose-neutral max-w-none text-gray-800
+                  prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-gray-900
+                  prose-h1:text-4xl prose-h1:mt-10 prose-h1:mb-4 prose-h2:text-3xl prose-h2:mt-8 prose-h2:mb-3
+                  prose-h3:text-2xl prose-h3:mt-6 prose-h3:mb-2
+                  prose-p:text-lg prose-p:leading-relaxed prose-p:mb-5
+                  prose-a:text-red-600 prose-a:no-underline hover:prose-a:underline
+                  prose-strong:text-gray-900 prose-li:my-1
+                  prose-img:rounded-xl prose-img:shadow-md prose-img:my-8
+                  prose-blockquote:border-l-red-500 prose-blockquote:text-gray-600
+                  prose-code:text-red-700 prose-code:bg-red-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded
+                  prose-pre:bg-gray-900 prose-pre:text-gray-100"
                 dangerouslySetInnerHTML={{ __html: blog.content }}
               />
 

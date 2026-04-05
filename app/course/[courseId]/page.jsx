@@ -29,6 +29,7 @@ export default function CourseDetailPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [course, setCourse] = useState(null);
+  const [hasAccess, setHasAccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -47,6 +48,7 @@ export default function CourseDetailPage() {
       if (response.ok) {
         const data = await response.json();
         setCourse(data.course);
+        setHasAccess(Boolean(data.hasAccess));
         
         // Check if there are any videos (preview or purchased)
         if (!data.course.videos || data.course.videos.length === 0) {
@@ -138,6 +140,17 @@ export default function CourseDetailPage() {
   // Sort videos by order
   const sortedVideos = course.videos ? [...course.videos].sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
 
+  const purchaseHref = session
+    ? `/purchase/${courseId}`
+    : `/login?redirect=${encodeURIComponent(`/purchase/${courseId}`)}`;
+
+  const priceLabel =
+    course.price != null && course.price !== ''
+      ? `₹${Number(course.price).toLocaleString('en-IN')}`
+      : null;
+
+  const firstPlayableVideoId = sortedVideos[0]?._id;
+
   return (
     <>
       {courseSchema && (
@@ -164,8 +177,38 @@ export default function CourseDetailPage() {
               </Link>
               <h1 className="text-xl font-semibold text-gray-900">{course.title}</h1>
             </div>
-            <div className="text-sm text-gray-500">
-              {sortedVideos.length} {sortedVideos.length === 1 ? 'Video' : 'Videos'}
+            <div className="flex items-center gap-3 flex-wrap justify-end">
+              <span className="text-sm text-gray-500">
+                {sortedVideos.length} {sortedVideos.length === 1 ? 'Video' : 'Videos'}
+              </span>
+              {hasAccess ? (
+                <>
+                  <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-full">
+                    Enrolled
+                  </span>
+                  {firstPlayableVideoId && (
+                    <Link
+                      href={`/course/${courseId}/video/${firstPlayableVideoId}`}
+                      className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Start learning
+                    </Link>
+                  )}
+                  <Link
+                    href="/my-courses"
+                    className="text-sm font-medium text-gray-700 hover:text-red-600 underline"
+                  >
+                    My courses
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  href={purchaseHref}
+                  className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors"
+                >
+                  {priceLabel ? `Purchase · ${priceLabel}` : 'Purchase course'}
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -222,6 +265,38 @@ export default function CourseDetailPage() {
                     <p className="text-sm text-gray-700 mt-2">{course.description}</p>
                   </div>
                 )}
+
+                <div className="pt-2 border-t border-gray-100 space-y-3">
+                  {priceLabel && !hasAccess && (
+                    <p className="text-lg font-bold text-gray-900">{priceLabel}</p>
+                  )}
+                  {hasAccess ? (
+                    <div className="space-y-2">
+                      <p className="text-sm text-green-800 font-medium">You have access to this course.</p>
+                      {firstPlayableVideoId ? (
+                        <Link
+                          href={`/course/${courseId}/video/${firstPlayableVideoId}`}
+                          className="block w-full text-center bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                        >
+                          Start learning
+                        </Link>
+                      ) : null}
+                      <Link
+                        href="/my-courses"
+                        className="block w-full text-center border border-gray-300 text-gray-800 font-medium py-2.5 px-4 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                      >
+                        View my courses
+                      </Link>
+                    </div>
+                  ) : (
+                    <Link
+                      href={purchaseHref}
+                      className="block w-full text-center bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors"
+                    >
+                      {priceLabel ? `Purchase for ${priceLabel}` : 'Purchase this course'}
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -229,7 +304,17 @@ export default function CourseDetailPage() {
           {/* Videos List */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Course Videos</h2>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <h2 className="text-2xl font-semibold text-gray-900">Course Videos</h2>
+                {!hasAccess && (
+                  <Link
+                    href={purchaseHref}
+                    className="inline-flex items-center justify-center shrink-0 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors w-full sm:w-auto"
+                  >
+                    {priceLabel ? `Purchase · ${priceLabel}` : 'Purchase course'}
+                  </Link>
+                )}
+              </div>
               
               {sortedVideos.length > 0 ? (
                 <div className="space-y-3">

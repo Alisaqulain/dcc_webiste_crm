@@ -64,41 +64,53 @@ export async function GET(request) {
     
     console.log('Files found:', JSON.stringify(files, null, 2));
     
-    // Check if files still exist and add fileExists status
-    const filesWithStatus = files.map(fileInfo => {
-      let filePath;
+    // Check if files still exist on disk; only expose rows the user can actually download
+    const filesWithStatus = files.map((fileInfo) => {
       let fileExists = false;
-      
+
       if (fileInfo.url && !fileInfo.url.startsWith('data:')) {
-        // File is stored on filesystem
         const urlPath = fileInfo.url.startsWith('/') ? fileInfo.url : `/${fileInfo.url}`;
-        filePath = path.join(process.cwd(), 'public', urlPath);
+        const filePath = path.join(process.cwd(), 'public', urlPath);
         fileExists = fs.existsSync(filePath);
       } else if (fileInfo.filename) {
-        // Try user-specific path
         const userIdStr = user._id.toString ? user._id.toString() : String(user._id);
-        const userFilePath = path.join(process.cwd(), 'public', 'crm-files', 'users', userIdStr, fileInfo.filename);
+        const userFilePath = path.join(
+          process.cwd(),
+          'public',
+          'crm-files',
+          'users',
+          userIdStr,
+          fileInfo.filename
+        );
         const oldPath = path.join(process.cwd(), 'public', 'crm-files', fileInfo.filename);
-        if (fs.existsSync(userFilePath)) {
-          filePath = userFilePath;
-          fileExists = true;
-        } else if (fs.existsSync(oldPath)) {
-          filePath = oldPath;
-          fileExists = true;
-        }
+        fileExists = fs.existsSync(userFilePath) || fs.existsSync(oldPath);
       }
-      
+
       return {
         ...fileInfo,
-        fileExists
+        fileExists,
       };
     });
 
+    const existingOnly = filesWithStatus.filter((f) => f.fileExists);
+
+    if (existingOnly.length === 0) {
+      return NextResponse.json({
+        hasFile: false,
+        files: [],
+        file: null,
+        fileExists: false,
+        message: hasFiles
+          ? 'No files are available to download right now. If an admin removed them or they expired, ask for a new upload.'
+          : 'No file uploaded yet for your account',
+      });
+    }
+
     return NextResponse.json({
       hasFile: true,
-      files: filesWithStatus,
-      file: filesWithStatus[filesWithStatus.length - 1], // Latest file for backward compatibility
-      fileExists: filesWithStatus.some(f => f.fileExists) // At least one file exists
+      files: existingOnly,
+      file: existingOnly[existingOnly.length - 1],
+      fileExists: true,
     });
 
   } catch (error) {

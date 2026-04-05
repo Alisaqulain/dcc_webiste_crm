@@ -1,15 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+import ConfirmDialog from '@/app/components/admin/ConfirmDialog';
+
+const PAGE_SIZE = 50;
 
 export default function AdminLeadsPage() {
   const router = useRouter();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    totalPages: 1,
+    limit: PAGE_SIZE,
+    hasNext: false,
+    hasPrev: false,
+  });
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -18,18 +32,24 @@ export default function AdminLeadsPage() {
         router.push('/admin/login');
         return;
       }
-      const res = await fetch('/api/admin/leads', { headers: { Authorization: `Bearer ${token}` } });
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      const res = await fetch(`/api/admin/leads?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to load');
       setItems(data.leads || []);
+      if (data.pagination) setPagination(data.pagination);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, page]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const updateStatus = async (id, status) => {
     try {
@@ -37,108 +57,240 @@ export default function AdminLeadsPage() {
       const res = await fetch('/api/admin/leads', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ id, status })
+        body: JSON.stringify({ id, status }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.message || 'Update failed');
-      setItems(prev => prev.map(x => x._id === id ? data.lead : x));
+      toast.success('Lead updated');
+      setItems((prev) => prev.map((x) => (x._id === id ? data.lead : x)));
     } catch (e) {
-      alert(e.message);
+      toast.error(e.message);
     }
   };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch('/api/admin/leads', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ id: deleteTarget._id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Delete failed');
+      toast.success('Lead deleted');
+      setDeleteTarget(null);
+      await load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const pageNumbers = () => {
+    const total = pagination.totalPages || 1;
+    const windowSize = 5;
+    let start = Math.max(1, page - 2);
+    let end = Math.min(total, start + windowSize - 1);
+    start = Math.max(1, end - windowSize + 1);
+    const nums = [];
+    for (let i = start; i <= end; i++) nums.push(i);
+    return nums;
+  };
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Manage Leads</h1>
-      
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
-      
-      {loading ? (
-        <div className="text-center py-8">Loading...</div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {items.map((lead) => (
-                <tr key={lead._id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(lead.date).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {lead.user?.email || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {lead.clientEmail}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {lead.service}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {lead.country}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                    ₹{lead.amount || 100}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      lead.status === 'approved' ? 'bg-green-100 text-green-800' :
-                      lead.status === 'paid' ? 'bg-blue-100 text-blue-800' :
-                      lead.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex gap-2">
-                      {lead.status === 'pending' && (
-                        <button
-                          onClick={() => updateStatus(lead._id, 'approved')}
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          Approve
-                        </button>
-                      )}
-                      {lead.status === 'approved' && (
-                        <button
-                          onClick={() => updateStatus(lead._id, 'paid')}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Mark Paid
-                        </button>
-                      )}
-                      {lead.status !== 'rejected' && (
-                        <button
-                          onClick={() => updateStatus(lead._id, 'rejected')}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Reject
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {items.length === 0 && (
-            <div className="text-center py-8 text-gray-500">No leads found</div>
-          )}
+    <div className="p-6 max-w-[1600px] mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Manage Leads</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {pagination.total} total · auto-removed ~30 days after creation (MongoDB TTL)
+          </p>
         </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">{error}</div>
       )}
+
+      {loading ? (
+        <div className="text-center py-16 text-gray-500">Loading leads…</div>
+      ) : (
+        <>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Created
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Client
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Service
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Country
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      ₹
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {items.map((lead) => (
+                    <tr
+                      key={lead._id}
+                      className="hover:bg-red-50/40 transition-colors duration-150"
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        {lead.createdAt
+                          ? new Date(lead.createdAt).toLocaleString()
+                          : new Date(lead.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        {lead.user?.email || '—'}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                        {lead.clientEmail}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600 max-w-[140px] truncate" title={lead.service}>
+                        {lead.service}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{lead.country}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
+                        ₹{lead.amount ?? 100}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span
+                          className={`inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                            lead.status === 'approved'
+                              ? 'bg-green-100 text-green-800'
+                              : lead.status === 'paid'
+                                ? 'bg-blue-100 text-blue-800'
+                                : lead.status === 'rejected'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {lead.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {lead.status === 'pending' && (
+                            <button
+                              type="button"
+                              onClick={() => updateStatus(lead._id, 'approved')}
+                              className="text-green-700 hover:text-green-900 font-medium"
+                            >
+                              Approve
+                            </button>
+                          )}
+                          {lead.status === 'approved' && (
+                            <button
+                              type="button"
+                              onClick={() => updateStatus(lead._id, 'paid')}
+                              className="text-blue-700 hover:text-blue-900 font-medium"
+                            >
+                              Paid
+                            </button>
+                          )}
+                          {lead.status !== 'rejected' && (
+                            <button
+                              type="button"
+                              onClick={() => updateStatus(lead._id, 'rejected')}
+                              className="text-amber-700 hover:text-amber-900 font-medium"
+                            >
+                              Reject
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTarget(lead)}
+                            className="text-red-600 hover:text-red-800 font-medium"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {items.length === 0 && (
+              <div className="text-center py-12 text-gray-500">No leads on this page.</div>
+            )}
+          </div>
+
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-gray-600">
+              Page {pagination.page} of {pagination.totalPages} ({pagination.total} leads)
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={!pagination.hasPrev}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Previous
+              </button>
+              {pageNumbers().map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setPage(n)}
+                  className={`min-w-[2.5rem] px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    n === page
+                      ? 'bg-red-600 text-white shadow'
+                      : 'border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                disabled={!pagination.hasNext}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete lead"
+        message={
+          deleteTarget
+            ? `Remove this lead permanently? ${deleteTarget.clientEmail} · ${deleteTarget.service}`
+            : ''
+        }
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
+      />
     </div>
   );
 }
-

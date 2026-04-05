@@ -29,21 +29,22 @@ export default function CrmDashboard() {
 
 		const fetchFileInfo = async () => {
 			try {
-				const response = await fetch('/api/crm/file/info');
+				const response = await fetch('/api/crm/file/info', { cache: 'no-store' });
 				if (response.ok) {
 					const data = await response.json();
-					console.log('File info response:', data);
-					if (data.hasFile && data.fileExists) {
+					if (data.hasFile && data.file) {
 						setFileInfo(data.file);
-					} else if (data.hasFile && !data.fileExists) {
-						console.warn('File exists in database but not on server:', data);
+					} else {
+						setFileInfo(null);
 					}
 				} else {
 					const errorData = await response.json();
 					console.error('File info error:', errorData);
+					setFileInfo(null);
 				}
 			} catch (error) {
 				console.error('Error fetching file info:', error);
+				setFileInfo(null);
 			}
 		};
 
@@ -85,11 +86,13 @@ export default function CrmDashboard() {
 
 			// Refresh file info to update download status
 			setTimeout(() => {
-				fetch('/api/crm/file/info')
-					.then(res => res.json())
-					.then(data => {
-						if (data.hasFile && data.fileExists) {
+				fetch('/api/crm/file/info', { cache: 'no-store' })
+					.then((res) => res.json())
+					.then((data) => {
+						if (data.hasFile && data.file) {
 							setFileInfo(data.file);
+						} else {
+							setFileInfo(null);
 						}
 					})
 					.catch(console.error);
