@@ -2,6 +2,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { INDIAN_STATE_OPTIONS } from '@/lib/indianStateOptions';
 // import Header from '../components/Header';
 // import Footer from '../components/Footer';
 
@@ -12,9 +13,11 @@ function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [refLockedFromUrl, setRefLockedFromUrl] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', mobile: '', password: '',
-    state: '', referralCode: '', agreeToTerms: false
+    state: '', referralCode: '', courseId: '', agreeToTerms: false
   });
 
   useEffect(() => {
@@ -29,6 +32,31 @@ function SignupForm() {
       document.cookie = 'signup_ref=; path=/; max-age=0';
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const preselect = searchParams.get('course');
+    if (preselect && String(preselect).trim()) {
+      setFormData(prev => ({ ...prev, courseId: String(preselect).trim() }));
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/courses?published=true&limit=100&sortBy=newest');
+        const data = await res.json();
+        if (!cancelled && res.ok) {
+          setCourses(data.courses || []);
+        }
+      } catch {
+        if (!cancelled) setCourses([]);
+      } finally {
+        if (!cancelled) setCoursesLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -45,6 +73,12 @@ function SignupForm() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+
+    if (!formData.courseId) {
+      setError('Select a course to continue. Signup completes after you purchase your course.');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch('/api/auth/signup', {
@@ -66,7 +100,9 @@ function SignupForm() {
         });
 
         if (result?.ok) {
-          router.push('/courses?pendingPurchase=1');
+          router.push(
+            `/purchase/${formData.courseId}?pendingPurchase=1`
+          );
         } else {
           router.push('/login?message=Account created successfully. Please login.');
         }
@@ -81,9 +117,16 @@ function SignupForm() {
   };
 
   const handleGoogleSignup = async () => {
+    if (!formData.courseId) {
+      setError('Select a course first, then continue with Google.');
+      return;
+    }
     setIsLoading(true);
+    setError('');
     try {
-      await signIn('google', { callbackUrl: '/courses?pendingPurchase=1' });
+      await signIn('google', {
+        callbackUrl: `/purchase/${formData.courseId}?pendingPurchase=1`,
+      });
     } catch (error) {
       setError('Google signup failed. Please try again.');
     } finally {
@@ -108,7 +151,7 @@ function SignupForm() {
               </span>
             </h1>
             <p className="text-gray-600 text-lg">
-              Create your account, then purchase a course to unlock the full platform (dashboard, CRM, referrals).
+              Choose a course and create your account. You&apos;ll complete signup by paying for that course — the platform stays locked until purchase.
             </p>
           </div>
 
@@ -128,7 +171,7 @@ function SignupForm() {
             <button
               type="button"
               onClick={handleGoogleSignup}
-              disabled={isLoading}
+              disabled={isLoading || coursesLoading || !courses.length || !formData.courseId}
               className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 flex items-center justify-center space-x-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -139,6 +182,9 @@ function SignupForm() {
               </svg>
               <span>Continue with Google</span>
             </button>
+            {(!formData.courseId && courses.length > 0) && (
+              <p className="mt-2 text-xs text-amber-800">Select a course below before using Google.</p>
+            )}
             <div className="mt-4 text-sm text-gray-600">
               <span className="bg-white px-2">or</span>
             </div>
@@ -242,45 +288,55 @@ function SignupForm() {
                     required
                   >
                     <option value="">Select State</option>
-                    <option value="Andhra Pradesh">Andhra Pradesh</option>
-                    <option value="Arunachal Pradesh">Arunachal Pradesh</option>
-                    <option value="Assam">Assam</option>
-                    <option value="Bihar">Bihar</option>
-                    <option value="Chhattisgarh">Chhattisgarh</option>
-                    <option value="Goa">Goa</option>
-                    <option value="Gujarat">Gujarat</option>
-                    <option value="Haryana">Haryana</option>
-                    <option value="Himachal Pradesh">Himachal Pradesh</option>
-                    <option value="Jharkhand">Jharkhand</option>
-                    <option value="Karnataka">Karnataka</option>
-                    <option value="Kerala">Kerala</option>
-                    <option value="Madhya Pradesh">Madhya Pradesh</option>
-                    <option value="Maharashtra">Maharashtra</option>
-                    <option value="Manipur">Manipur</option>
-                    <option value="Meghalaya">Meghalaya</option>
-                    <option value="Mizoram">Mizoram</option>
-                    <option value="Nagaland">Nagaland</option>
-                    <option value="Odisha">Odisha</option>
-                    <option value="Punjab">Punjab</option>
-                    <option value="Rajasthan">Rajasthan</option>
-                    <option value="Sikkim">Sikkim</option>
-                    <option value="Tamil Nadu">Tamil Nadu</option>
-                    <option value="Telangana">Telangana</option>
-                    <option value="Tripura">Tripura</option>
-                    <option value="Uttar Pradesh">Uttar Pradesh</option>
-                    <option value="Uttarakhand">Uttarakhand</option>
-                    <option value="West Bengal">West Bengal</option>
-                    <option value="Andaman and Nicobar Islands">Andaman and Nicobar Islands</option>
-                    <option value="Chandigarh">Chandigarh</option>
-                    <option value="Dadra and Nagar Haveli and Daman and Diu">Dadra and Nagar Haveli and Daman and Diu</option>
-                    <option value="Delhi">Delhi</option>
-                    <option value="Jammu and Kashmir">Jammu and Kashmir</option>
-                    <option value="Ladakh">Ladakh</option>
-                    <option value="Lakshadweep">Lakshadweep</option>
-                    <option value="Puducherry">Puducherry</option>
+                    {INDIAN_STATE_OPTIONS.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-xl border-2 border-red-100">
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">Choose your course <span className="text-red-600">*</span></h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Required — after account creation you&apos;ll pay for this course. Until payment succeeds, dashboard and CRM stay locked.
+              </p>
+              {coursesLoading ? (
+                <p className="text-sm text-gray-500">Loading courses…</p>
+              ) : courses.length === 0 ? (
+                <p className="text-sm text-red-600">No courses are available right now. Please try again later or contact support.</p>
+              ) : (
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                  {courses.map((c) => (
+                    <label
+                      key={c._id}
+                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
+                        formData.courseId === c._id
+                          ? 'border-red-600 bg-red-50'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="courseId"
+                        value={c._id}
+                        checked={formData.courseId === c._id}
+                        onChange={handleInputChange}
+                        className="mt-1 h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
+                      />
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-medium text-gray-900">{c.title}</span>
+                        <span className="block text-sm text-gray-600 mt-0.5">
+                          ₹{typeof c.price === 'number' ? c.price.toLocaleString() : c.price}
+                          {c.category ? ` · ${c.category}` : ''}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-50 p-6 rounded-xl">
@@ -334,7 +390,7 @@ function SignupForm() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || coursesLoading || !courses.length || !formData.courseId}
               className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
@@ -346,7 +402,7 @@ function SignupForm() {
                   Creating Account...
                 </span>
               ) : (
-                'Create account & go to courses'
+                'Create account & pay for course'
               )}
             </button>
           </form>

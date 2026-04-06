@@ -1,10 +1,9 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import PaymentModal from "../components/PaymentModal";
 
 // Helper function to normalize course thumbnail URL
 const getCourseThumbnail = (thumbnail) => {
@@ -43,17 +42,61 @@ const CoursesPage = () => {
   const [filterCategory, setFilterCategory] = useState("");
   const [filterLevel, setFilterLevel] = useState("");
   const [sortBy, setSortBy] = useState("newest");
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showViewMoreModal, setShowViewMoreModal] = useState(false);
   const [viewMoreCourse, setViewMoreCourse] = useState(null);
   const [showPendingBanner, setShowPendingBanner] = useState(false);
+  const [ownedCourseIds, setOwnedCourseIds] = useState(() => new Set());
+
+  const refreshOwnedCourses = useCallback(async () => {
+    if (!session) {
+      setOwnedCourseIds(new Set());
+      return;
+    }
+    try {
+      const r = await fetch("/api/my-courses", { cache: "no-store" });
+      if (!r.ok) return;
+      const d = await r.json();
+      const next = new Set(
+        (d.courses || []).map((c) => String(c._id))
+      );
+      setOwnedCourseIds(next);
+    } catch {
+      /* ignore */
+    }
+  }, [session]);
+
+  useEffect(() => {
+    refreshOwnedCourses();
+  }, [refreshOwnedCourses]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onVis = () => {
+      if (document.visibilityState === "visible") refreshOwnedCourses();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [refreshOwnedCourses]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const q = new URLSearchParams(window.location.search).get("pendingPurchase");
     setShowPendingBanner(q === "1");
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || status !== "authenticated" || !session) return;
+    const params = new URLSearchParams(window.location.search);
+    const checkoutId = params.get("checkout");
+    if (!checkoutId) return;
+    const q = new URLSearchParams();
+    if (params.get("pendingPurchase") === "1") q.set("pendingPurchase", "1");
+    const coupon = params.get("coupon");
+    if (coupon) q.set("coupon", coupon);
+    router.replace(
+      `/purchase/${checkoutId}${q.toString() ? `?${q}` : ""}`
+    );
+  }, [session, status, router]);
 
   const categories = [
     "Digital Marketing",
@@ -96,18 +139,10 @@ const CoursesPage = () => {
 
   const handlePurchase = (course) => {
     if (!session) {
-      router.push("/login?redirect=/courses");
+      router.push(`/login?redirect=${encodeURIComponent(`/purchase/${course._id}`)}`);
       return;
     }
-    setSelectedCourse(course);
-    setShowPaymentModal(true);
-  };
-
-  const handlePaymentSuccess = (course) => {
-    setShowPaymentModal(false);
-    setSelectedCourse(null);
-    // Show success message or redirect
-    router.push('/my-courses');
+    router.push(`/purchase/${course._id}`);
   };
 
   const handleViewMore = (course) => {
@@ -207,7 +242,9 @@ const CoursesPage = () => {
         {/* Courses Grid */}
         {courses.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {courses.map((course) => (
+            {courses.map((course) => {
+              const isOwned = ownedCourseIds.has(String(course._id));
+              return (
               <div key={course._id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
                 {/* Course Image */}
                 <div className="relative h-48 w-full bg-gray-200">
@@ -336,23 +373,41 @@ const CoursesPage = () => {
 
                   {/* Price and Purchase */}
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center space-x-2">
-                        <span className="text-2xl font-bold text-gray-900">
-                          ₹{course.price?.toLocaleString()}
-                        </span>
-                        {course.originalPrice && course.originalPrice > course.price && (
-                          <span className="text-sm text-gray-500 line-through">
-                            ₹{course.originalPrice.toLocaleString()}
+                        {isOwned ? (
+                          <span className="text-lg font-semibold text-green-700">
+                            In your library
                           </span>
+                        ) : (
+                          <>
+                            <span className="text-2xl font-bold text-gray-900">
+                              ₹{course.price?.toLocaleString()}
+                            </span>
+                            {course.originalPrice && course.originalPrice > course.price && (
+                              <span className="text-sm text-gray-500 line-through">
+                                ₹{course.originalPrice.toLocaleString()}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
-                      <button
-                        onClick={() => handlePurchase(course)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                      >
-                        {session ? 'Purchase' : 'Login to Purchase'}
-                      </button>
+                      {isOwned ? (
+                        <Link
+                          href={`/course/${course._id}`}
+                          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors text-center shrink-0"
+                        >
+                          Continue learning
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handlePurchase(course)}
+                          className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors shrink-0"
+                        >
+                          {session ? "Purchase" : "Login to Purchase"}
+                        </button>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       <Link
@@ -378,7 +433,8 @@ const CoursesPage = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         ) : (
           <div className="text-center py-12">
@@ -392,19 +448,6 @@ const CoursesPage = () => {
           </div>
         )}
       </div>
-
-      {/* Payment Modal */}
-      {selectedCourse && (
-        <PaymentModal
-          course={selectedCourse}
-          isOpen={showPaymentModal}
-          onClose={() => {
-            setShowPaymentModal(false);
-            setSelectedCourse(null);
-          }}
-          onSuccess={handlePaymentSuccess}
-        />
-      )}
 
       {/* View More Modal */}
       {showViewMoreModal && viewMoreCourse && (

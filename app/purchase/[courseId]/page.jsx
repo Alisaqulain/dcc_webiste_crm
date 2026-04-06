@@ -3,6 +3,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import CoursePayCard from "../../components/CoursePayCard";
 
 const getCourseThumbnail = (thumbnail) => {
@@ -22,6 +23,7 @@ function PurchaseContent() {
   const courseId = params.courseId;
   const couponFromUrl = searchParams.get("coupon") || "";
   const couponLockedFromUrl = Boolean(couponFromUrl);
+  const pendingPurchase = searchParams.get("pendingPurchase") === "1";
 
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -92,9 +94,18 @@ function PurchaseContent() {
   }
 
   const c = { ...course, _id: course._id || courseId };
+  const mustCompletePurchase =
+    (session?.user && session.user.isActive === false) || pendingPurchase;
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {mustCompletePurchase && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-950 px-4 py-3 text-center text-sm">
+          <span className="font-semibold">Payment required.</span> Finish checkout on this page to
+          access your courses, profile, and learning content. This is a full checkout page — not a popup
+          you can close without paying.
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
@@ -122,14 +133,28 @@ function PurchaseContent() {
           </div>
 
           <div className="lg:sticky lg:top-8">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Checkout</h2>
+            <div className="bg-white rounded-lg shadow-lg border-2 border-red-100 p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Secure checkout</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Pay with Razorpay. No cancel button — complete payment to continue using your account.
+              </p>
               <CoursePayCard
                 course={c}
                 initialCouponCode={couponFromUrl}
                 couponLockedFromUrl={couponLockedFromUrl}
-                onSuccess={() => router.push("/my-courses?purchased=true")}
+                onSuccess={() =>
+                  router.push("/my-courses?purchased=true&completeProfile=1")
+                }
               />
+              {session?.user?.isActive === false && (
+                <p className="mt-6 text-center text-sm text-gray-500">
+                  Wrong course?{' '}
+                  <Link href="/courses" className="text-red-600 font-medium hover:underline">
+                    Browse all courses
+                  </Link>{' '}
+                  (you still need to purchase one to unlock your account).
+                </p>
+              )}
             </div>
           </div>
         </div>

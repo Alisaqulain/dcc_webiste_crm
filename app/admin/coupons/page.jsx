@@ -10,8 +10,9 @@ export default function AdminCouponsPage() {
   const [courses, setCourses] = useState([]);
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
+  /** Page sections: admin bulk / site codes vs learner profile coupons */
+  const [pageTab, setPageTab] = useState('admin');
   const [filterCourse, setFilterCourse] = useState('');
-  const [filterCreatedBy, setFilterCreatedBy] = useState('');
   const [filterActive, setFilterActive] = useState('');
   const [filterExpired, setFilterExpired] = useState('');
 
@@ -28,6 +29,17 @@ export default function AdminCouponsPage() {
 
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({});
+
+  const [learners, setLearners] = useState([]);
+  const [learnersLoading, setLearnersLoading] = useState(false);
+  const [grantEmail, setGrantEmail] = useState('');
+  const [grantDiscountTop, setGrantDiscountTop] = useState('percent');
+  const [grantDiscountVal, setGrantDiscountVal] = useState('20');
+  const [grantCount, setGrantCount] = useState('1');
+  const [grantCourseId, setGrantCourseId] = useState('__ALL__');
+  const [grantUsageLimit, setGrantUsageLimit] = useState('1');
+  const [grantExpires, setGrantExpires] = useState('');
+  const [filterOwnerId, setFilterOwnerId] = useState('');
 
   const authHeaders = useCallback(() => {
     const t = token || (typeof window !== 'undefined' ? localStorage.getItem('adminToken') : '');
@@ -48,7 +60,7 @@ export default function AdminCouponsPage() {
     if (res.ok) {
       const list = data.courses || [];
       setCourses(list);
-      setBulkCourseId((prev) => prev || (list[0]?._id ?? ''));
+      setBulkCourseId((prev) => (prev !== undefined && prev !== null ? prev : ''));
     }
   }, [router]);
 
@@ -56,12 +68,17 @@ export default function AdminCouponsPage() {
     const t = localStorage.getItem('adminToken');
     if (!t) return;
     const params = new URLSearchParams();
-    if (filterCourse) params.set('courseId', filterCourse);
-    if (filterCreatedBy) params.set('createdBy', filterCreatedBy);
+    if (filterCourse === '__global__') {
+      params.set('courseId', '__global__');
+    } else if (filterCourse) {
+      params.set('courseId', filterCourse);
+    }
+    params.set('createdBy', pageTab === 'admin' ? 'admin' : 'user');
     if (filterActive === 'true') params.set('active', 'true');
     if (filterActive === 'false') params.set('active', 'false');
     if (filterExpired === 'true') params.set('expired', 'true');
     if (filterExpired === 'false') params.set('expired', 'false');
+    if (pageTab === 'learners' && filterOwnerId) params.set('ownerId', filterOwnerId);
 
     const res = await fetch(`/api/admin/coupons?${params}`, {
       headers: { Authorization: `Bearer ${t}` },
@@ -73,7 +90,23 @@ export default function AdminCouponsPage() {
       toast.error(data.message || 'Failed to load coupons');
     }
     setLoading(false);
-  }, [filterCourse, filterCreatedBy, filterActive, filterExpired]);
+  }, [pageTab, filterCourse, filterActive, filterExpired, filterOwnerId]);
+
+  const loadLearners = useCallback(async () => {
+    const t = localStorage.getItem('adminToken');
+    if (!t) return;
+    setLearnersLoading(true);
+    const res = await fetch('/api/admin/coupons/learners', {
+      headers: { Authorization: `Bearer ${t}` },
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setLearners(data.learners || []);
+    } else {
+      toast.error(data.message || 'Failed to load learners');
+    }
+    setLearnersLoading(false);
+  }, []);
 
   useEffect(() => {
     loadCourses();
@@ -82,6 +115,12 @@ export default function AdminCouponsPage() {
   useEffect(() => {
     loadCoupons();
   }, [loadCoupons]);
+
+  useEffect(() => {
+    if (pageTab === 'learners') {
+      loadLearners();
+    }
+  }, [pageTab, loadLearners]);
 
   const submitBulk = async (e) => {
     e.preventDefault();
@@ -93,8 +132,10 @@ export default function AdminCouponsPage() {
       }))
       .filter((b) => b.discountValue >= 0 && b.count > 0);
 
-    if (!bulkCourseId || batches.length === 0) {
-      toast.error('Select course and add at least one batch');
+    const isAllCourses = bulkCourseId === '__ALL__';
+    const hasCourse = Boolean(bulkCourseId) && !isAllCourses;
+    if ((!isAllCourses && !hasCourse) || batches.length === 0) {
+      toast.error('Choose a specific course or "All courses", and add at least one batch');
       return;
     }
 
@@ -102,7 +143,7 @@ export default function AdminCouponsPage() {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({
-        courseId: bulkCourseId,
+        courseId: isAllCourses ? '__ALL__' : bulkCourseId,
         usageLimit: parseInt(bulkUsageLimit, 10) >= 0 ? parseInt(bulkUsageLimit, 10) : 1,
         expiresAt: bulkExpires || null,
         batches,
@@ -120,16 +161,24 @@ export default function AdminCouponsPage() {
 
   const saveEdit = async () => {
     if (!editId) return;
+    const { editCourseId, ownerEmail, ...rest } = editForm;
+    const payload = {
+      ...rest,
+      courseId:
+        editCourseId === '__ALL__' ? '__ALL__' : editCourseId,
+      ownerEmail: ownerEmail !== undefined ? String(ownerEmail).trim() : undefined,
+    };
     const res = await fetch(`/api/admin/coupons/${editId}`, {
       method: 'PUT',
       headers: authHeaders(),
-      body: JSON.stringify(editForm),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (res.ok) {
       toast.success('Coupon updated');
       setEditId(null);
       loadCoupons();
+      loadLearners();
     } else {
       toast.error(data.message || 'Update failed');
     }
@@ -144,6 +193,7 @@ export default function AdminCouponsPage() {
     if (res.ok) {
       toast.success('Deleted');
       loadCoupons();
+      loadLearners();
     } else {
       const d = await res.json();
       toast.error(d.message || 'Delete failed');
@@ -152,6 +202,7 @@ export default function AdminCouponsPage() {
 
   const openEdit = (c) => {
     setEditId(c._id);
+    const cid = c.courseId?._id || c.courseId;
     setEditForm({
       discountType: c.discountType,
       discountValue: c.discountValue,
@@ -159,141 +210,443 @@ export default function AdminCouponsPage() {
       expiresAt: c.expiresAt ? new Date(c.expiresAt).toISOString().slice(0, 16) : '',
       isActive: c.isActive,
       isLocked: c.isLocked,
+      editCourseId: cid ? String(cid) : '__ALL__',
+      ownerEmail: c.ownerId?.email || '',
     });
+  };
+
+  const submitGrant = async (e) => {
+    e.preventDefault();
+    const email = String(grantEmail || '').trim();
+    if (!email) {
+      toast.error('Enter learner email');
+      return;
+    }
+    const res = await fetch('/api/admin/coupons/grant-to-user', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        userEmail: email,
+        discountType: grantDiscountTop,
+        discountValue: Number(grantDiscountVal),
+        count: parseInt(grantCount, 10) || 1,
+        courseId: grantCourseId === '__ALL__' ? '__ALL__' : grantCourseId,
+        usageLimit: parseInt(grantUsageLimit, 10) >= 0 ? parseInt(grantUsageLimit, 10) : 1,
+        expiresAt: grantExpires || null,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      toast.success(`Granted ${data.count} user coupon(s)`);
+      setGrantEmail('');
+      loadCoupons();
+      loadLearners();
+    } else {
+      toast.error(data.message || 'Grant failed');
+    }
   };
 
   if (loading && coupons.length === 0) {
     return <div className="p-6">Loading…</div>;
   }
 
+  const ownerLabel = (c) => {
+    const p = c.ownerId?.profile;
+    if (p) {
+      const n = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+      if (n) return n;
+    }
+    return c.ownerId?.email || '—';
+  };
+
+  const filterBar = (
+    <div className="flex flex-wrap gap-3 mb-4">
+      <select
+        value={filterCourse}
+        onChange={(e) => setFilterCourse(e.target.value)}
+        className="border rounded px-3 py-2 text-sm"
+      >
+        <option value="">Every coupon</option>
+        <option value="__global__">Global only (all courses)</option>
+        {courses.map((c) => (
+          <option key={c._id} value={c._id}>
+            {c.title}
+          </option>
+        ))}
+      </select>
+      <select
+        value={filterActive}
+        onChange={(e) => setFilterActive(e.target.value)}
+        className="border rounded px-3 py-2 text-sm"
+      >
+        <option value="">Active + inactive</option>
+        <option value="true">Active only</option>
+        <option value="false">Inactive only</option>
+      </select>
+      <select
+        value={filterExpired}
+        onChange={(e) => setFilterExpired(e.target.value)}
+        className="border rounded px-3 py-2 text-sm"
+      >
+        <option value="">Any expiry</option>
+        <option value="true">Expired date passed</option>
+        <option value="false">Not expired</option>
+      </select>
+      {pageTab === 'learners' && filterOwnerId && (
+        <button
+          type="button"
+          onClick={() => setFilterOwnerId('')}
+          className="border border-amber-300 bg-amber-50 px-3 py-2 rounded text-sm text-amber-900 hover:bg-amber-100"
+        >
+          Show all learners&apos; coupons
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => {
+          loadCoupons();
+          if (pageTab === 'learners') loadLearners();
+        }}
+        className="border px-3 py-2 rounded text-sm hover:bg-gray-50"
+      >
+        Refresh
+      </button>
+    </div>
+  );
+
+  const couponsTable = (
+    <div className="overflow-x-auto bg-white border rounded-lg">
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="text-left border-b bg-gray-50">
+            <th className="py-2 px-3">Code</th>
+            <th className="py-2 px-3">Course</th>
+            {pageTab === 'learners' && <th className="py-2 px-3">Learner</th>}
+            <th className="py-2 px-3">Discount</th>
+            <th className="py-2 px-3">Uses</th>
+            <th className="py-2 px-3">Expires</th>
+            <th className="py-2 px-3">Flags</th>
+            <th className="py-2 px-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {coupons.map((c) => (
+            <tr key={c._id} className="border-b hover:bg-gray-50">
+              <td className="py-2 px-3 font-mono text-xs">{c.code}</td>
+              <td className="py-2 px-3 max-w-[140px] truncate">
+                {!c.courseId ? 'All courses' : c.courseId?.title || '—'}
+              </td>
+              {pageTab === 'learners' && (
+                <td className="py-2 px-3 text-xs max-w-[120px]">
+                  <span className="block truncate" title={ownerLabel(c)}>
+                    {ownerLabel(c)}
+                  </span>
+                  {c.ownerId?.email && (
+                    <span className="block text-[10px] text-gray-500 truncate" title={c.ownerId.email}>
+                      {c.ownerId.email}
+                    </span>
+                  )}
+                </td>
+              )}
+              <td className="py-2 px-3">
+                {c.discountType === 'percent' ? `${c.discountValue}%` : `₹${c.discountValue}`}
+              </td>
+              <td className="py-2 px-3">
+                {c.usedCount}/{c.usageLimit === 0 ? '∞' : c.usageLimit}
+              </td>
+              <td className="py-2 px-3 text-xs">
+                {c.expiresAt ? new Date(c.expiresAt).toLocaleDateString() : '—'}
+              </td>
+              <td className="py-2 px-3 text-xs">
+                {c.isActive ? 'on' : 'off'} / {c.isLocked ? 'locked' : 'open'}
+              </td>
+              <td className="py-2 px-3 space-x-1 whitespace-nowrap">
+                <button
+                  type="button"
+                  className="text-blue-600 hover:underline text-xs"
+                  onClick={() => openEdit(c)}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="text-red-600 hover:underline text-xs"
+                  onClick={() => deleteCoupon(c._id)}
+                >
+                  Del
+                </button>
+              </td>
+            </tr>
+          ))}
+          {coupons.length === 0 && (
+            <tr>
+              <td
+                colSpan={pageTab === 'learners' ? 8 : 7}
+                className="py-8 text-center text-gray-500"
+              >
+                No coupons match filters.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold">Coupons</h1>
-        <button
-          type="button"
-          onClick={() => setBulkOpen(true)}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-        >
-          Bulk create
-        </button>
+        <div className="mt-4 flex flex-wrap gap-2 border-b border-gray-200">
+          <button
+            type="button"
+            className={`px-4 py-3 text-sm font-semibold rounded-t-lg border-b-2 -mb-px transition-colors ${
+              pageTab === 'admin'
+                ? 'border-red-600 text-red-700 bg-red-50/40'
+                : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+            onClick={() => {
+              setPageTab('admin');
+              setFilterOwnerId('');
+            }}
+          >
+            All coupons (admin)
+          </button>
+          <button
+            type="button"
+            className={`px-4 py-3 text-sm font-semibold rounded-t-lg border-b-2 -mb-px transition-colors ${
+              pageTab === 'learners'
+                ? 'border-green-600 text-green-800 bg-green-50/50'
+                : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+            onClick={() => {
+              setPageTab('learners');
+              setFilterOwnerId('');
+            }}
+          >
+            Learner coupons
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-4">
-        <select
-          value={filterCourse}
-          onChange={(e) => setFilterCourse(e.target.value)}
-          className="border rounded px-3 py-2 text-sm"
-        >
-          <option value="">All courses</option>
-          {courses.map((c) => (
-            <option key={c._id} value={c._id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
-        <select
-          value={filterCreatedBy}
-          onChange={(e) => setFilterCreatedBy(e.target.value)}
-          className="border rounded px-3 py-2 text-sm"
-        >
-          <option value="">All types</option>
-          <option value="admin">Admin</option>
-          <option value="user">User reward</option>
-        </select>
-        <select
-          value={filterActive}
-          onChange={(e) => setFilterActive(e.target.value)}
-          className="border rounded px-3 py-2 text-sm"
-        >
-          <option value="">Active + inactive</option>
-          <option value="true">Active only</option>
-          <option value="false">Inactive only</option>
-        </select>
-        <select
-          value={filterExpired}
-          onChange={(e) => setFilterExpired(e.target.value)}
-          className="border rounded px-3 py-2 text-sm"
-        >
-          <option value="">Any expiry</option>
-          <option value="true">Expired date passed</option>
-          <option value="false">Not expired</option>
-        </select>
-        <button
-          type="button"
-          onClick={() => loadCoupons()}
-          className="border px-3 py-2 rounded text-sm hover:bg-gray-50"
-        >
-          Refresh
-        </button>
-      </div>
+      {pageTab === 'admin' && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <p className="text-sm text-gray-600 max-w-3xl">
+              Site-wide and course-specific codes for general checkout. Learner profile codes live on the other tab.
+            </p>
+            <button
+              type="button"
+              onClick={() => setBulkOpen(true)}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 shrink-0"
+            >
+              Bulk create (admin)
+            </button>
+          </div>
+          {filterBar}
+          {couponsTable}
+        </>
+      )}
 
-      <div className="overflow-x-auto bg-white border rounded-lg">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="text-left border-b bg-gray-50">
-              <th className="py-2 px-3">Code</th>
-              <th className="py-2 px-3">Course</th>
-              <th className="py-2 px-3">Type</th>
-              <th className="py-2 px-3">Discount</th>
-              <th className="py-2 px-3">Uses</th>
-              <th className="py-2 px-3">Owner</th>
-              <th className="py-2 px-3">Expires</th>
-              <th className="py-2 px-3">Flags</th>
-              <th className="py-2 px-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {coupons.map((c) => (
-              <tr key={c._id} className="border-b hover:bg-gray-50">
-                <td className="py-2 px-3 font-mono text-xs">{c.code}</td>
-                <td className="py-2 px-3 max-w-[140px] truncate">
-                  {c.courseId?.title || '—'}
-                </td>
-                <td className="py-2 px-3 capitalize">{c.createdBy}</td>
-                <td className="py-2 px-3">
-                  {c.discountType === 'percent' ? `${c.discountValue}%` : `₹${c.discountValue}`}
-                </td>
-                <td className="py-2 px-3">
-                  {c.usedCount}/{c.usageLimit === 0 ? '∞' : c.usageLimit}
-                </td>
-                <td className="py-2 px-3 text-xs">
-                  {c.ownerId?.email || '—'}
-                </td>
-                <td className="py-2 px-3 text-xs">
-                  {c.expiresAt ? new Date(c.expiresAt).toLocaleDateString() : '—'}
-                </td>
-                <td className="py-2 px-3 text-xs">
-                  {c.isActive ? 'on' : 'off'} / {c.isLocked ? 'locked' : 'open'}
-                </td>
-                <td className="py-2 px-3 space-x-1 whitespace-nowrap">
-                  <button
-                    type="button"
-                    className="text-blue-600 hover:underline text-xs"
-                    onClick={() => openEdit(c)}
+      {pageTab === 'learners' && (
+        <>
+          <p className="text-sm text-gray-600 mb-4 max-w-3xl">
+            Profile coupons for one account: they appear on that user&apos;s profile and only work when that user is
+            logged in at checkout. Grant codes, see who has redemptions, then edit or delete rows below.
+          </p>
+
+          <div className="bg-white border rounded-xl p-5 mb-6 shadow-sm">
+            <h2 className="text-base font-bold mb-1">Grant coupons to a learner</h2>
+            <p className="text-xs text-gray-500 mb-4">Use a registered email. Codes appear in their profile after you grant.</p>
+            <form onSubmit={submitGrant} className="space-y-4 max-w-2xl">
+              <div>
+                <label className="block text-sm font-medium mb-1">Learner email</label>
+                <input
+                  type="email"
+                  required
+                  className="w-full border rounded px-3 py-2"
+                  value={grantEmail}
+                  onChange={(e) => setGrantEmail(e.target.value)}
+                  placeholder="user@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Applies to</label>
+                <select
+                  className="w-full border rounded px-3 py-2"
+                  value={grantCourseId}
+                  onChange={(e) => setGrantCourseId(e.target.value)}
+                >
+                  <option value="__ALL__">All courses</option>
+                  {courses.map((c) => (
+                    <option key={c._id} value={String(c._id)}>
+                      {c.title} only
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Discount</label>
+                  <select
+                    className="w-full border rounded px-3 py-2"
+                    value={grantDiscountTop}
+                    onChange={(e) => setGrantDiscountTop(e.target.value)}
                   >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="text-red-600 hover:underline text-xs"
-                    onClick={() => deleteCoupon(c._id)}
-                  >
-                    Del
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {coupons.length === 0 && (
-              <tr>
-                <td colSpan={9} className="py-8 text-center text-gray-500">
-                  No coupons match filters.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                    <option value="percent">Percent %</option>
+                    <option value="flat">Flat ₹</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Value</label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-full border rounded px-3 py-2"
+                    value={grantDiscountVal}
+                    onChange={(e) => setGrantDiscountVal(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1"># Codes</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    className="w-full border rounded px-3 py-2"
+                    value={grantCount}
+                    onChange={(e) => setGrantCount(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Uses / code</label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-full border rounded px-3 py-2"
+                    value={grantUsageLimit}
+                    onChange={(e) => setGrantUsageLimit(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">0 = unlimited</p>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Expiry (optional)</label>
+                <input
+                  type="datetime-local"
+                  className="w-full border rounded px-3 py-2 max-w-xs"
+                  value={grantExpires}
+                  onChange={(e) => setGrantExpires(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="bg-green-700 text-white px-6 py-2 rounded-lg hover:bg-green-800">
+                Grant coupons
+              </button>
+            </form>
+          </div>
+
+          <div className="mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <h2 className="text-lg font-bold">Learners with profile coupons</h2>
+              <button
+                type="button"
+                onClick={() => loadLearners()}
+                className="text-sm border px-3 py-1.5 rounded hover:bg-gray-50"
+                disabled={learnersLoading}
+              >
+                {learnersLoading ? 'Loading…' : 'Refresh directory'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              Names and usage: &quot;Redeemed&quot; means at least one of their codes was used at checkout.
+            </p>
+            <div className="overflow-x-auto border rounded-lg bg-white">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-left border-b bg-gray-50">
+                    <th className="py-2 px-3">Name</th>
+                    <th className="py-2 px-3">Email</th>
+                    <th className="py-2 px-3">Codes</th>
+                    <th className="py-2 px-3">Active</th>
+                    <th className="py-2 px-3">Total uses</th>
+                    <th className="py-2 px-3">Redeemed</th>
+                    <th className="py-2 px-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {learnersLoading && (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-gray-500">
+                        Loading…
+                      </td>
+                    </tr>
+                  )}
+                  {!learnersLoading &&
+                    learners.map((L) => (
+                      <tr key={L.userId || L.email} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-3 font-medium">{L.name}</td>
+                        <td className="py-2 px-3 text-xs break-all">{L.email}</td>
+                        <td className="py-2 px-3">{L.couponCount}</td>
+                        <td className="py-2 px-3">{L.activeCoupons}</td>
+                        <td className="py-2 px-3">{L.totalUses}</td>
+                        <td className="py-2 px-3">
+                          {L.hasAnyRedemption ? (
+                            <span className="text-green-700 font-medium">Yes ({L.couponsWithUse} code(s))</span>
+                          ) : (
+                            <span className="text-gray-500">No</span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3 whitespace-nowrap space-x-1">
+                          <button
+                            type="button"
+                            className="text-green-700 hover:underline text-xs"
+                            disabled={!L.email || L.email.includes('(')}
+                            title={
+                              L.missingUser ? 'No account — enter a valid email above' : 'Prefill grant form'
+                            }
+                            onClick={() => {
+                              if (L.email && !L.email.includes('(')) {
+                                setGrantEmail(L.email);
+                              }
+                            }}
+                          >
+                            Grant more
+                          </button>
+                          <button
+                            type="button"
+                            className="text-blue-600 hover:underline text-xs"
+                            disabled={!L.userId}
+                            onClick={() => setFilterOwnerId(L.userId)}
+                          >
+                            Their codes only
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  {!learnersLoading && learners.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-gray-500">
+                        No learners with profile coupons yet. Grant codes with the form above.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="mb-2">
+            <h2 className="text-lg font-bold mb-1">All learner coupons</h2>
+            <p className="text-xs text-gray-500 mb-3">
+              {filterOwnerId
+                ? 'Showing the selected learner\'s codes only. Use “Show all learners’ coupons” to widen the list.'
+                : 'Every user-owned coupon.'}
+            </p>
+          </div>
+          {filterBar}
+          {couponsTable}
+        </>
+      )}
 
       {bulkOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -301,20 +654,24 @@ export default function AdminCouponsPage() {
             <h2 className="text-lg font-bold mb-4">Bulk create (admin)</h2>
             <form onSubmit={submitBulk} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Course</label>
+                <label className="block text-sm font-medium mb-1">Applies to</label>
                 <select
                   required
                   value={bulkCourseId}
                   onChange={(e) => setBulkCourseId(e.target.value)}
                   className="w-full border rounded px-3 py-2"
                 >
-                  <option value="">Select course</option>
+                  <option value="">Select…</option>
+                  <option value="__ALL__">All courses (site-wide)</option>
                   {courses.map((c) => (
                     <option key={c._id} value={c._id}>
-                      {c.title}
+                      {c.title} only
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Use &quot;All courses&quot; so the code works on any checkout. Pick one course to restrict it.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -423,6 +780,32 @@ export default function AdminCouponsPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-3">
             <h2 className="text-lg font-bold">Edit coupon</h2>
+            <label className="block text-sm font-medium">Applies to</label>
+            <select
+              value={editForm.editCourseId || '__ALL__'}
+              onChange={(e) =>
+                setEditForm({ ...editForm, editCourseId: e.target.value })
+              }
+              className="w-full border rounded px-3 py-2"
+            >
+              <option value="__ALL__">All courses</option>
+              {courses.map((co) => (
+                <option key={co._id} value={String(co._id)}>
+                  {co.title} only
+                </option>
+              ))}
+            </select>
+            <label className="block text-sm font-medium">Learner email (user-owned)</label>
+            <input
+              type="email"
+              className="w-full border rounded px-3 py-2"
+              value={editForm.ownerEmail ?? ''}
+              onChange={(e) => setEditForm({ ...editForm, ownerEmail: e.target.value })}
+              placeholder="Empty = admin coupon (anyone), or set email for user-only"
+            />
+            <p className="text-xs text-gray-500">
+              Clearing email turns this into an admin coupon. Setting email assigns it to that account (type User).
+            </p>
             <select
               value={editForm.discountType}
               onChange={(e) => setEditForm({ ...editForm, discountType: e.target.value })}

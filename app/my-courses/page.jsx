@@ -1,9 +1,10 @@
 "use client";
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import ProfileCompletionModal from "../components/ProfileCompletionModal";
 
 // Helper function to normalize course thumbnail URL
 const getCourseThumbnail = (thumbnail) => {
@@ -30,6 +31,17 @@ function MyCoursesContent() {
   const [courses, setCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [profilePayload, setProfilePayload] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const r = await fetch("/api/user/profile");
+      if (r.ok) setProfilePayload(await r.json());
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -40,7 +52,8 @@ function MyCoursesContent() {
     }
 
     fetchMyCourses();
-  }, [session, status]);
+    fetchProfile();
+  }, [session, status, fetchProfile]);
 
   const fetchMyCourses = async () => {
     try {
@@ -60,6 +73,42 @@ function MyCoursesContent() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!profilePayload?.profile) return;
+    const p = profilePayload.profile;
+    const incomplete =
+      !String(p.mobile || "").trim() || !String(p.state || "").trim();
+    if (!incomplete) {
+      setShowProfileModal(false);
+      return;
+    }
+    if (typeof window === "undefined") return;
+    const snoozeUntil = parseInt(
+      localStorage.getItem("dcc_profile_snooze_until") || "0",
+      10
+    );
+    const snoozed = Date.now() < snoozeUntil;
+    const fromPayment =
+      new URLSearchParams(window.location.search).get("completeProfile") ===
+      "1";
+    if (fromPayment || !snoozed) setShowProfileModal(true);
+  }, [profilePayload]);
+
+  const closeProfileModal = useCallback(() => {
+    setShowProfileModal(false);
+    fetchProfile();
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("completeProfile")) {
+      url.searchParams.delete("completeProfile");
+      window.history.replaceState(
+        {},
+        "",
+        url.pathname + (url.search || "")
+      );
+    }
+  }, [fetchProfile]);
 
   if (status === "loading" || isLoading) {
     return (
@@ -92,6 +141,12 @@ function MyCoursesContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ProfileCompletionModal
+        open={showProfileModal}
+        onClose={closeProfileModal}
+        initialMobile={profilePayload?.profile?.mobile || ""}
+        initialState={profilePayload?.profile?.state || ""}
+      />
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

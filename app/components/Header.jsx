@@ -24,6 +24,43 @@ const Header = () => {
     await signOut({ callbackUrl: '/' });
   };
 
+  /** Full-page checkout only: no nav away from payment until user is active */
+  const isMandatoryCheckout =
+    typeof pathname === 'string' &&
+    pathname.startsWith('/purchase') &&
+    status === 'authenticated' &&
+    session &&
+    session.user?.isActive === false;
+
+  if (isMandatoryCheckout) {
+    return (
+      <header className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3 sm:py-4 shadow-sm bg-white border-b-2 border-red-600">
+        <div className="flex items-center gap-3 min-w-0">
+          <img
+            src="/logo.jpg"
+            alt=""
+            className="w-11 h-11 sm:w-12 sm:h-12 rounded-full shrink-0 object-cover"
+          />
+          <div className="min-w-0">
+            <div className="text-sm sm:text-base font-bold text-gray-900 truncate">
+              Digital Career Center
+            </div>
+            <p className="text-xs text-amber-900 truncate">
+              Complete secure payment below to unlock courses & profile
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="shrink-0 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-full transition-colors"
+        >
+          Logout
+        </button>
+      </header>
+    );
+  }
+
   // Close mobile menu handler
   const closeMobileMenu = () => {
     setMenuOpen(false);

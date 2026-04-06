@@ -12,7 +12,7 @@ export default function DemoPage() {
             <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-          </div>
+          </div>  
 
           {/* Title */}
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">

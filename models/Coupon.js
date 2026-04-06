@@ -20,11 +20,12 @@ const couponSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    /** null = valid on any published course (admin “all courses” + user reward coupons) */
     courseId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Course',
-      required: true,
-      index: true,
+      required: false,
+      default: null,
     },
     createdBy: {
       type: String,
@@ -76,4 +77,8 @@ couponSchema.pre('save', function normalizeCode(next) {
   next();
 });
 
-export default mongoose.models.Coupon || mongoose.model('Coupon', couponSchema);
+// Next.js dev keeps mongoose.models in memory; old schemas stick without this.
+if (mongoose.models.Coupon) {
+  delete mongoose.models.Coupon;
+}
+export default mongoose.model('Coupon', couponSchema);

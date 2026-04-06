@@ -1,5 +1,7 @@
 import connectDB from '@/lib/mongodb';
 import Coupon from '@/models/Coupon';
+import Course from '@/models/Course';
+import User from '@/models/User';
 
 const verifyAdminToken = (request) => {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -58,6 +60,36 @@ export async function PUT(request, { params }) {
     }
     if (body.isLocked !== undefined) {
       coupon.isLocked = Boolean(body.isLocked);
+    }
+    if (body.courseId !== undefined) {
+      const raw = body.courseId;
+      if (raw === null || raw === '' || raw === '__ALL__') {
+        coupon.set('courseId', null);
+      } else {
+        const exists = await Course.findById(raw).select('_id').lean();
+        if (!exists) {
+          return Response.json({ message: 'Course not found' }, { status: 400 });
+        }
+        coupon.courseId = raw;
+      }
+    }
+
+    if (body.ownerEmail !== undefined) {
+      const em = String(body.ownerEmail || '').toLowerCase().trim();
+      if (!em) {
+        coupon.ownerId = null;
+        coupon.createdBy = 'admin';
+      } else {
+        const u = await User.findOne({ email: em }).select('_id');
+        if (!u) {
+          return Response.json(
+            { message: 'Owner user not found for that email' },
+            { status: 400 }
+          );
+        }
+        coupon.ownerId = u._id;
+        coupon.createdBy = 'user';
+      }
     }
 
     await coupon.save();

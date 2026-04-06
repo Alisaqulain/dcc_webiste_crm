@@ -20,17 +20,24 @@ export async function middleware(req) {
   });
 
   if (token && token.isActive === false) {
-    const blocked =
-      pathname === '/profile' ||
-      pathname.startsWith('/profile/') ||
-      pathname === '/my-courses' ||
-      pathname.startsWith('/my-courses/') ||
-      pathname === '/referral' ||
-      pathname.startsWith('/referral/') ||
-      pathname === '/crm' ||
-      pathname.startsWith('/crm/');
+    const path = pathname;
+    const allowedForUnpaid =
+      path === '/' ||
+      path.startsWith('/courses') ||
+      path.startsWith('/purchase') ||
+      path.startsWith('/course/') ||
+      path.startsWith('/login') ||
+      path.startsWith('/signup') ||
+      path.startsWith('/forgot-password') ||
+      path.startsWith('/reset-password') ||
+      path.startsWith('/privacy-policy') ||
+      path.startsWith('/terms-and-conditions') ||
+      path.startsWith('/refund-policy') ||
+      path.startsWith('/cookie-policy') ||
+      path.startsWith('/disclaimer') ||
+      path.startsWith('/contact');
 
-    if (blocked) {
+    if (!allowedForUnpaid) {
       const u = new URL('/courses', req.url);
       u.searchParams.set('pendingPurchase', '1');
       return NextResponse.redirect(u);

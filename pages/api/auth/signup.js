@@ -1,5 +1,7 @@
+import mongoose from 'mongoose';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import Course from '@/models/Course';
 import bcrypt from 'bcryptjs';
 import { sendWelcomeEmail } from '@/lib/email';
 import { generateUniqueReferralCode } from '@/lib/referralCode';
@@ -20,11 +22,28 @@ export default async function handler(req, res) {
       password,
       state,
       referralCode: referralCodeInput,
+      courseId: courseIdRaw,
     } = req.body;
 
     const emailNorm = String(email || '').toLowerCase().trim();
     if (!emailNorm) {
       return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const courseId = String(courseIdRaw || '').trim();
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        message: 'Select a course to complete signup. Registration requires a course purchase.',
+      });
+    }
+    const selectedCourse = await Course.findOne({
+      _id: courseId,
+      isPublished: true,
+    }).select('_id title').lean();
+    if (!selectedCourse) {
+      return res.status(400).json({
+        message: 'That course is not available. Choose another course.',
+      });
     }
 
     const existingUser = await User.findOne({ email: emailNorm });

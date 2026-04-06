@@ -33,28 +33,35 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .lean();
 
-    const list = coupons.map((c) => ({
-      _id: c._id,
-      code: c.code,
-      discountType: c.discountType,
-      discountValue: c.discountValue,
-      courseId: c.courseId?._id || c.courseId,
-      courseTitle: c.courseId?.title || 'Course',
-      courseThumbnail: c.courseId?.thumbnail,
-      coursePrice: c.courseId?.price,
-      expiresAt: c.expiresAt,
-      usageLimit: c.usageLimit,
-      usedCount: c.usedCount,
-      isActive: c.isActive,
-      isLocked: c.isLocked,
-      createdBy: c.createdBy,
-      status: couponStatus(c),
-      sharePath: `/course/${c.courseId?._id || c.courseId}?coupon=${encodeURIComponent(c.code)}`,
-    }));
+    const list = coupons.map((c) => {
+      const cid = c.courseId?._id || c.courseId || null;
+      const sharePath = cid
+        ? `/course/${cid}?coupon=${encodeURIComponent(c.code)}`
+        : `/courses?coupon=${encodeURIComponent(c.code)}`;
+      return {
+        _id: c._id,
+        code: c.code,
+        discountType: c.discountType,
+        discountValue: c.discountValue,
+        courseId: cid,
+        courseTitle: c.courseId?.title || 'Any course',
+        courseThumbnail: c.courseId?.thumbnail,
+        coursePrice: c.courseId?.price,
+        appliesAllCourses: !cid,
+        expiresAt: c.expiresAt,
+        usageLimit: c.usageLimit,
+        usedCount: c.usedCount,
+        isActive: c.isActive,
+        isLocked: c.isLocked,
+        createdBy: c.createdBy,
+        status: couponStatus(c),
+        sharePath,
+      };
+    });
 
     const byCourse = {};
     for (const row of list) {
-      const key = String(row.courseId);
+      const key = row.courseId ? String(row.courseId) : '__any__';
       if (!byCourse[key]) {
         byCourse[key] = {
           courseId: row.courseId,

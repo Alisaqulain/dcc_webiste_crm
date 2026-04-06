@@ -29,13 +29,21 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const courseId = searchParams.get('courseId');
+    const ownerId = searchParams.get('ownerId');
     const createdBy = searchParams.get('createdBy');
     const active = searchParams.get('active');
     const locked = searchParams.get('locked');
     const now = new Date();
 
     const q = {};
-    if (courseId) q.courseId = courseId;
+    if (courseId === '__global__') {
+      q.courseId = null;
+    } else if (courseId) {
+      q.courseId = courseId;
+    }
+    if (ownerId) {
+      q.ownerId = ownerId;
+    }
     if (createdBy === 'admin' || createdBy === 'user') q.createdBy = createdBy;
     if (active === 'true') q.isActive = true;
     if (active === 'false') q.isActive = false;
@@ -77,21 +85,27 @@ export async function POST(request) {
     await connectDB();
 
     const body = await request.json();
-    const { courseId, batches, usageLimit, expiresAt } = body;
+    const { courseId: courseIdRaw, batches, usageLimit, expiresAt } = body;
 
-    if (!courseId || !Array.isArray(batches) || batches.length === 0) {
-      return Response.json(
-        { message: 'courseId and batches[] required' },
-        { status: 400 }
-      );
+    if (!Array.isArray(batches) || batches.length === 0) {
+      return Response.json({ message: 'batches[] required' }, { status: 400 });
     }
 
-    const course = await Course.findById(courseId).select('title price');
-    if (!course) {
-      return Response.json({ message: 'Course not found' }, { status: 404 });
-    }
+    const isGlobal =
+      !courseIdRaw ||
+      courseIdRaw === '__ALL__' ||
+      String(courseIdRaw).trim() === '';
 
-    const slug = courseSlugPrefix(course.title, 6);
+    let resolvedCourseId = null;
+    let slug = 'ALL';
+    if (!isGlobal) {
+      const course = await Course.findById(courseIdRaw).select('title price');
+      if (!course) {
+        return Response.json({ message: 'Course not found' }, { status: 404 });
+      }
+      resolvedCourseId = course._id;
+      slug = courseSlugPrefix(course.title, 6);
+    }
     const limit =
       usageLimit === undefined || usageLimit === null
         ? 1
@@ -121,11 +135,10 @@ export async function POST(request) {
 
       for (let i = 0; i < n; i++) {
         const code = await generateUniqueCouponCode(Coupon, prefixBase);
-        const doc = await Coupon.create({
+        const baseFields = {
           code,
           discountType,
           discountValue: dv,
-          courseId,
           createdBy: 'admin',
           ownerId: null,
           usageLimit: limit,
@@ -133,7 +146,11 @@ export async function POST(request) {
           expiresAt: exp,
           isActive: true,
           isLocked: false,
-        });
+        };
+        if (resolvedCourseId) {
+          baseFields.courseId = resolvedCourseId;
+        }
+        const doc = await Coupon.create(baseFields);
         created.push(doc);
       }
     }
