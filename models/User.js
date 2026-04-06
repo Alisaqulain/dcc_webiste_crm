@@ -47,7 +47,16 @@ const userSchema = new mongoose.Schema({
       enum: ['active', 'completed', 'expired'], 
       default: 'active' 
     },
-    progress: { type: Number, default: 0, min: 0, max: 100 }
+    progress: { type: Number, default: 0, min: 0, max: 100 },
+    /** INR actually charged (set on payment verify / recorded purchase) */
+    paidAmountRupees: { type: Number, min: 0 },
+    /** Course list price in INR at checkout */
+    listPriceRupees: { type: Number, min: 0 },
+    couponId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Coupon',
+      default: null,
+    },
   }],
   /** Full platform access after first course purchase. Omitted/false-y on legacy users treated as active in auth. */
   isActive: { type: Boolean, default: false },

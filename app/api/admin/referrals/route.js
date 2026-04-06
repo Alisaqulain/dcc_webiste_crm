@@ -20,8 +20,8 @@ export async function GET(request) {
     }
     await connectDB();
     const referrals = await Referral.find()
-      .populate('referrer', 'email')
-      .populate('referredUser', 'email')
+      .populate('referrer', 'email profile.firstName profile.lastName referralCode')
+      .populate('referredUser', 'email profile.firstName profile.lastName')
       .populate('course', 'title price')
       .sort({ createdAt: -1 })
       .lean();

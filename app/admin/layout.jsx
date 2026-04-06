@@ -37,6 +37,7 @@ export default function AdminLayout({ children }) {
     { name: 'Courses', href: '/admin/courses', icon: 'courses' },
     { name: 'Coupons', href: '/admin/coupons', icon: 'courses' },
     { name: 'CRM Purchasers', href: '/admin/crm-purchasers', icon: 'users' },
+    { name: 'Purchases', href: '/admin/purchases', icon: 'analytics' },
     { name: 'Referrals', href: '/admin/referrals', icon: 'users' },
     { name: 'Leads', href: '/admin/leads', icon: 'users' },
     { name: 'Blogs', href: '/admin/blogs', icon: 'blogs' },

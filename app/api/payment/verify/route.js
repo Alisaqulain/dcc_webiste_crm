@@ -132,11 +132,18 @@ export async function POST(request) {
       );
     }
 
+    const paidRupees = Math.round(expectedPaise) / 100;
+    const listRupees = coursePrice;
     user.courses.push({
       courseId,
       purchasedAt: new Date(),
       status: 'active',
       progress: 0,
+      paidAmountRupees: paidRupees,
+      listPriceRupees: listRupees,
+      ...(couponIdFromNote
+        ? { couponId: couponIdFromNote }
+        : {}),
     });
     user.isActive = true;
     await user.save();

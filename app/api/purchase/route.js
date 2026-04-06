@@ -8,6 +8,7 @@ import {
   validateCouponForCheckout,
   consumeCouponById,
   createPostPurchaseUserCoupons,
+  computeFinalPrice,
 } from '@/lib/couponService';
 
 export async function POST(request) {
@@ -57,6 +58,8 @@ export async function POST(request) {
     }
 
     let couponIdToConsume = null;
+    const listRupees = Number(course.price) || 0;
+    let paidRupees = listRupees;
     if (couponCode && String(couponCode).trim()) {
       const v = await validateCouponForCheckout({
         code: couponCode,
@@ -67,6 +70,12 @@ export async function POST(request) {
         return Response.json({ message: v.message }, { status: 400 });
       }
       couponIdToConsume = v.coupon._id.toString();
+      const { finalPrice } = computeFinalPrice(
+        listRupees,
+        v.coupon.discountType,
+        v.coupon.discountValue
+      );
+      paidRupees = finalPrice;
     }
 
     user.courses.push({
@@ -74,6 +83,9 @@ export async function POST(request) {
       purchasedAt: new Date(),
       status: 'active',
       progress: 0,
+      paidAmountRupees: paidRupees,
+      listPriceRupees: listRupees,
+      ...(couponIdToConsume ? { couponId: couponIdToConsume } : {}),
     });
     user.isActive = true;
     await user.save();
