@@ -3,12 +3,18 @@ import Course from '@/models/Course';
 import User from '@/models/User';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { distributePurchaseReferrals } from '@/lib/referralCommission';
+import {
+  validateCouponForCheckout,
+  consumeCouponById,
+  createPostPurchaseUserCoupons,
+} from '@/lib/couponService';
 
 export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
-    
-    if (!session) {
+
+    if (!session?.user?.id) {
       return Response.json(
         { message: 'Authentication required' },
         { status: 401 }
@@ -16,8 +22,8 @@ export async function POST(request) {
     }
 
     await connectDB();
-    
-    const { courseId, userId } = await request.json();
+
+    const { courseId, userId, couponCode } = await request.json();
 
     if (!courseId || !userId) {
       return Response.json(
@@ -26,26 +32,23 @@ export async function POST(request) {
       );
     }
 
-    // Verify the course exists
+    if (session.user.id !== userId) {
+      return Response.json({ message: 'Forbidden' }, { status: 403 });
+    }
+
     const course = await Course.findById(courseId);
     if (!course) {
-      return Response.json(
-        { message: 'Course not found' },
-        { status: 404 }
-      );
+      return Response.json({ message: 'Course not found' }, { status: 404 });
     }
 
-    // Check if user already purchased this course
     const user = await User.findById(userId);
     if (!user) {
-      return Response.json(
-        { message: 'User not found' },
-        { status: 404 }
-      );
+      return Response.json({ message: 'User not found' }, { status: 404 });
     }
 
-    // Check if course is already purchased
-    const existingCourse = user.courses.find(c => c.courseId.toString() === courseId);
+    const existingCourse = user.courses.find(
+      (c) => c.courseId.toString() === courseId
+    );
     if (existingCourse) {
       return Response.json(
         { message: 'Course already purchased' },
@@ -53,26 +56,64 @@ export async function POST(request) {
       );
     }
 
-    // Add course to user's purchased courses
+    let couponIdToConsume = null;
+    if (couponCode && String(couponCode).trim()) {
+      const v = await validateCouponForCheckout({
+        code: couponCode,
+        courseId,
+        userId: session.user.id,
+      });
+      if (!v.ok) {
+        return Response.json({ message: v.message }, { status: 400 });
+      }
+      couponIdToConsume = v.coupon._id.toString();
+    }
+
     user.courses.push({
-      courseId: courseId,
+      courseId,
       purchasedAt: new Date(),
       status: 'active',
-      progress: 0
+      progress: 0,
     });
+    user.isActive = true;
     await user.save();
 
-    // Update course enrollment count
     course.enrollmentCount = (course.enrollmentCount || 0) + 1;
     await course.save();
 
+    if (couponIdToConsume) {
+      const consumed = await consumeCouponById(couponIdToConsume);
+      if (!consumed.ok) {
+        user.courses = user.courses.filter(
+          (c) => !(c.courseId && c.courseId.toString() === String(courseId))
+        );
+        await user.save();
+        course.enrollmentCount = Math.max(0, (course.enrollmentCount || 1) - 1);
+        await course.save();
+        return Response.json({ message: consumed.message }, { status: 400 });
+      }
+    }
+
+    await distributePurchaseReferrals({
+      buyerUser: user,
+      course,
+      User,
+    });
+
+    try {
+      await createPostPurchaseUserCoupons(user._id, course);
+    } catch (rewardErr) {
+      console.error('Post-purchase coupon generation failed:', rewardErr);
+    }
+
     return Response.json({
       message: 'Course purchased successfully',
+      isActive: true,
       course: {
         id: course._id,
         title: course.title,
-        price: course.price
-      }
+        price: course.price,
+      },
     });
   } catch (error) {
     console.error('Error processing purchase:', error);

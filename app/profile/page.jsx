@@ -3,6 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
+import toast from 'react-hot-toast';
 
 function ProfileContent() {
   const { data: session, status } = useSession();
@@ -12,6 +13,12 @@ function ProfileContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [referrals, setReferrals] = useState([]);
   const [hasCrmAccess, setHasCrmAccess] = useState(false);
+  const [origin, setOrigin] = useState('');
+  const [couponData, setCouponData] = useState(null);
+
+  useEffect(() => {
+    setOrigin(typeof window !== 'undefined' ? window.location.origin : '');
+  }, []);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -38,6 +45,11 @@ function ProfileContent() {
       if (crmRes.ok) {
         const crmData = await crmRes.json();
         setHasCrmAccess(crmData.hasCrmAccess || false);
+      }
+
+      const cup = await fetch('/api/user/coupons');
+      if (cup.ok) {
+        setCouponData(await cup.json());
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -122,11 +134,11 @@ function ProfileContent() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
                       <p className="text-gray-900">{userData.profile?.state || 'Not provided'}</p>
                     </div>
-                    {userData?.courses && userData.courses.length > 0 && (
+                    {userData?.referralCode && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Referral Code</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Your referral code</label>
                         <p className="text-gray-900 font-mono bg-gray-100 px-3 py-1 rounded">
-                          {userData.referralCode || userData.referral?.code || 'Not available'}
+                          {userData.referralCode}
                         </p>
                       </div>
                     )}
@@ -140,6 +152,107 @@ function ProfileContent() {
                 )}
               </div>
             </div>
+
+            {userData?.referralChain && userData.referralChain.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">Referral chain (upline)</h2>
+                <p className="text-sm text-gray-600 mb-4">Locked at signup — level 1 is whoever referred you.</p>
+                <ul className="space-y-2">
+                  {userData.referralChain.map((node) => (
+                    <li
+                      key={`${node.level}-${node.referralCode}`}
+                      className="flex justify-between text-sm border-b border-gray-100 pb-2"
+                    >
+                      <span className="text-gray-700">Level {node.level}</span>
+                      <span className="font-mono text-gray-900">{node.referralCode || '—'}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {couponData?.grouped && couponData.grouped.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">My coupons</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Reward coupons from your purchases (20% off, 30 days). Share the link to apply automatically at checkout.
+                </p>
+                <div className="space-y-6">
+                  {couponData.grouped.map((g) => (
+                    <div key={String(g.courseId)} className="border border-gray-100 rounded-lg p-4">
+                      <h3 className="font-semibold text-gray-900 mb-3">{g.courseTitle}</h3>
+                      <ul className="space-y-3">
+                        {g.coupons.map((cp) => {
+                          const fullLink =
+                            origin && cp.sharePath ? `${origin}${cp.sharePath}` : cp.sharePath || '';
+                          const daysLeft =
+                            cp.expiresAt && cp.status === 'active'
+                              ? Math.max(
+                                  0,
+                                  Math.ceil(
+                                    (new Date(cp.expiresAt) - Date.now()) / (86400000)
+                                  )
+                                )
+                              : null;
+                          const statusClass =
+                            cp.status === 'active'
+                              ? 'bg-green-100 text-green-800'
+                              : cp.status === 'used'
+                                ? 'bg-gray-200 text-gray-700'
+                                : cp.status === 'expired'
+                                  ? 'bg-amber-100 text-amber-900'
+                                  : 'bg-red-100 text-red-800';
+                          return (
+                            <li
+                              key={cp._id}
+                              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm border-b border-gray-50 pb-3 last:border-0"
+                            >
+                              <div>
+                                <span className="font-mono font-medium text-gray-900">{cp.code}</span>
+                                <span className="text-gray-600 ml-2">
+                                  {cp.discountType === 'percent'
+                                    ? `${cp.discountValue}% off`
+                                    : `₹${cp.discountValue} off`}
+                                </span>
+                                {daysLeft != null && (
+                                  <span className="block text-xs text-gray-500 mt-1">
+                                    Expires in ~{daysLeft} day{daysLeft === 1 ? '' : 's'}
+                                  </span>
+                                )}
+                                {cp.expiresAt && cp.status !== 'active' && (
+                                  <span className="block text-xs text-gray-500 mt-1">
+                                    Expires {new Date(cp.expiresAt).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span
+                                  className={`text-xs font-medium px-2 py-1 rounded capitalize ${statusClass}`}
+                                >
+                                  {cp.status}
+                                </span>
+                                {fullLink && cp.status === 'active' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(fullLink);
+                                      toast.success('Coupon link copied');
+                                    }}
+                                    className="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                                  >
+                                    Copy link
+                                  </button>
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* My Courses */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -171,10 +284,12 @@ function ProfileContent() {
               )}
             </div>
 
-            {/* Refer & Earn - Only show if user has purchased at least one course */}
-            {userData?.courses && userData.courses.length > 0 && userData?.referralCode && (
+            {userData?.referralCode && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Refer & Earn</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Refer & earn</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Commissions: 35% direct, 10% level 2, 5% level 3 on each referred purchase. Request payout from the table below (admin marks paid).
+                </p>
                 <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Your Referral Code</label>
@@ -187,7 +302,11 @@ function ProfileContent() {
                     <input
                       readOnly
                       className="w-full border rounded px-3 py-2 text-sm"
-                      value={`https://digitalcareercenter.com/signup?ref=${userData?.referralCode || ''}`}
+                      value={
+                        origin && userData?.referralCode
+                          ? `${origin}/signup?ref=${userData.referralCode}`
+                          : ''
+                      }
                     />
                   </div>
                 </div>
@@ -210,6 +329,7 @@ function ProfileContent() {
                       <tr className="text-left border-b">
                         <th className="py-2 pr-4">Friend Email</th>
                         <th className="py-2 pr-4">Course</th>
+                        <th className="py-2 pr-4">Level</th>
                         <th className="py-2 pr-4">Amount</th>
                         <th className="py-2 pr-4">Status</th>
                         <th className="py-2">Withdraw</th>
@@ -220,6 +340,7 @@ function ProfileContent() {
                         <tr key={idx} className="border-b">
                           <td className="py-2 pr-4">{r.referredEmail}</td>
                           <td className="py-2 pr-4">{r.course?.title || '-'}</td>
+                          <td className="py-2 pr-4">{r.level ?? 1}</td>
                           <td className="py-2 pr-4">₹{r.amount}</td>
                           <td className="py-2 pr-4 capitalize">{r.status}</td>
                           <td className="py-2">
@@ -241,7 +362,7 @@ function ProfileContent() {
                       ))}
                       {referrals.length === 0 && (
                         <tr>
-                          <td className="py-4 text-gray-500" colSpan={5}>No referrals yet. Share your link to start earning.</td>
+                          <td className="py-4 text-gray-500" colSpan={6}>No referral commissions yet. Share your signup link from the field above.</td>
                         </tr>
                       )}
                     </tbody>
@@ -335,24 +456,23 @@ function ProfileContent() {
               </button>
             </div>
 
-            {/* Referral Link - Only show if user has purchased at least one course */}
-            {userData?.courses && userData.courses.length > 0 && userData?.referralCode && (
+            {userData?.referralCode && (
               <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-sm p-6 text-white">
-                <h3 className="text-lg font-semibold mb-3">Your Referral Link</h3>
+                <h3 className="text-lg font-semibold mb-3">Your referral link</h3>
                 <div className="bg-white bg-opacity-20 rounded-lg p-3 mb-3">
                   <code className="text-sm break-all">
-                    https://digitalcareercenter.com/signup?ref={userData.referralCode}
+                    {origin ? `${origin}/signup?ref=${userData.referralCode}` : 'Loading…'}
                   </code>
                 </div>
                 <button
                   onClick={() => {
-                    const link = `https://digitalcareercenter.com/signup?ref=${userData.referralCode}`;
+                    const link = `${origin}/signup?ref=${userData.referralCode}`;
                     navigator.clipboard.writeText(link);
                     alert('Referral link copied to clipboard!');
                   }}
                   className="w-full bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-2 px-4 rounded-lg transition-colors"
                 >
-                  Copy Referral Link
+                  Copy referral link
                 </button>
               </div>
             )}

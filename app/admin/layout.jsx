@@ -30,11 +30,12 @@ export default function AdminLayout({ children }) {
   };
 
   const navigation = [
-    { name: 'Home', href: '/admin/home', icon: 'home' },
+    { name: 'Homepage', href: '/admin/home', icon: 'home' },
     { name: 'Dashboard', href: '/admin/dashboard', icon: 'dashboard' },
     { name: 'Users', href: '/admin/users', icon: 'users' },
     { name: 'Check User', href: '/admin/check-user', icon: 'users' },
     { name: 'Courses', href: '/admin/courses', icon: 'courses' },
+    { name: 'Coupons', href: '/admin/coupons', icon: 'courses' },
     { name: 'CRM Purchasers', href: '/admin/crm-purchasers', icon: 'users' },
     { name: 'Referrals', href: '/admin/referrals', icon: 'users' },
     { name: 'Leads', href: '/admin/leads', icon: 'users' },
@@ -91,7 +92,7 @@ export default function AdminLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-40 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
@@ -133,74 +134,65 @@ export default function AdminLayout({ children }) {
         </div>
       </div>
 
-      {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:flex-shrink-0">
-        <div className="flex flex-col w-64">
-          <div className="flex flex-col h-0 flex-1 bg-white border-r border-gray-200">
-            <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
-              <div className="flex items-center flex-shrink-0 px-4">
-                <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-              </div>
-              <nav className="mt-5 flex-1 px-2 space-y-1">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`${
-                      pathname === item.href
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
-                  >
-                    {getIcon(item.icon)}
-                    <span className="ml-3">{item.name}</span>
-                  </Link>
-                ))}
-              </nav>
+      {/* Desktop: sidebar + main in one row (fixes main content stacking below sidebar) */}
+      <div className="flex flex-1 min-h-0 lg:flex-row flex-col">
+        {/* Desktop sidebar */}
+        <aside className="hidden lg:flex lg:w-64 lg:flex-shrink-0 lg:flex-col bg-white border-r border-gray-200">
+          <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto min-h-0">
+            <div className="flex items-center flex-shrink-0 px-4">
+              <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
             </div>
-            <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-red-600 flex items-center justify-center">
-                    <span className="text-sm font-medium text-white">
-                      {adminInfo?.name?.charAt(0)}
-                    </span>
-                  </div>
+            <nav className="mt-5 flex-1 px-2 space-y-1">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`${
+                    pathname === item.href
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
+                >
+                  {getIcon(item.icon)}
+                  <span className="ml-3">{item.name}</span>
+                </Link>
+              ))}
+            </nav>
+          </div>
+          <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-red-600 flex items-center justify-center">
+                  <span className="text-sm font-medium text-white">
+                    {adminInfo?.name?.charAt(0)}
+                  </span>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                    {adminInfo?.name}
-                  </p>
-                  <p className="text-xs font-medium text-gray-500 group-hover:text-gray-700">
-                    {adminInfo?.role}
-                  </p>
-                </div>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-700">{adminInfo?.name}</p>
+                <p className="text-xs font-medium text-gray-500">{adminInfo?.role}</p>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </aside>
 
-      {/* Main content */}
-      <div className="lg:pl-64 flex flex-col flex-1">
-        {/* Top bar */}
-        <div className="sticky top-0 z-10 lg:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-gray-100">
-          <button
-            type="button"
-            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <span className="sr-only">Open sidebar</span>
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
+        {/* Main column */}
+        <div className="flex flex-1 flex-col min-w-0 min-h-0">
+          <div className="sticky top-0 z-10 lg:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-gray-100 border-b border-gray-200/80">
+            <button
+              type="button"
+              className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <span className="sr-only">Open sidebar</span>
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
 
-        {/* Page content */}
-        <main className="flex-1">
-          {children}
-        </main>
+          <main className="flex-1 min-w-0 overflow-x-auto">{children}</main>
+        </div>
       </div>
     </div>
   );

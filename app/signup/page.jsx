@@ -11,21 +11,30 @@ function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [refLockedFromUrl, setRefLockedFromUrl] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', mobile: '', password: '',
     state: '', referralCode: '', agreeToTerms: false
   });
 
-  // Handle referral code from URL
   useEffect(() => {
     const refCode = searchParams.get('ref');
-    if (refCode) {
-      setFormData(prev => ({ ...prev, referralCode: refCode }));
+    if (refCode && String(refCode).trim()) {
+      const trimmed = String(refCode).trim();
+      setFormData(prev => ({ ...prev, referralCode: trimmed.toUpperCase() }));
+      setRefLockedFromUrl(true);
+      const maxAge = 600;
+      document.cookie = `signup_ref=${encodeURIComponent(trimmed)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+    } else {
+      document.cookie = 'signup_ref=; path=/; max-age=0';
     }
   }, [searchParams]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'referralCode' && refLockedFromUrl) {
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -57,7 +66,7 @@ function SignupForm() {
         });
 
         if (result?.ok) {
-          router.push('/courses');
+          router.push('/courses?pendingPurchase=1');
         } else {
           router.push('/login?message=Account created successfully. Please login.');
         }
@@ -74,7 +83,7 @@ function SignupForm() {
   const handleGoogleSignup = async () => {
     setIsLoading(true);
     try {
-      await signIn('google', { callbackUrl: '/courses' });
+      await signIn('google', { callbackUrl: '/courses?pendingPurchase=1' });
     } catch (error) {
       setError('Google signup failed. Please try again.');
     } finally {
@@ -99,8 +108,12 @@ function SignupForm() {
               </span>
             </h1>
             <p className="text-gray-600 text-lg">
-              Create your account and explore our courses
+              Create your account, then purchase a course to unlock the full platform (dashboard, CRM, referrals).
             </p>
+          </div>
+
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Referral codes are set only at signup and cannot be changed. If you opened this page from a friend&apos;s link, your code is applied automatically.
           </div>
 
           {/* Error Message */}
@@ -270,7 +283,30 @@ function SignupForm() {
               </div>
             </div>
 
-
+            <div className="bg-gray-50 p-6 rounded-xl">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Referral code (optional)</h3>
+              <label htmlFor="referralCode" className="block text-sm font-medium text-gray-700 mb-2">
+                Referral code
+              </label>
+              <input
+                type="text"
+                id="referralCode"
+                name="referralCode"
+                value={formData.referralCode}
+                onChange={handleInputChange}
+                readOnly={refLockedFromUrl}
+                autoComplete="off"
+                className={`w-full max-w-md px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent uppercase ${
+                  refLockedFromUrl ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''
+                }`}
+                placeholder="Enter a friend's code"
+              />
+              {refLockedFromUrl ? (
+                <p className="mt-2 text-sm text-gray-600">This code was applied from your invite link and cannot be edited.</p>
+              ) : (
+                <p className="mt-2 text-sm text-gray-600">Leave blank if you were not referred. You won&apos;t be able to add or change this later.</p>
+              )}
+            </div>
 
             {/* Terms and Conditions */}
             <div className="flex items-start space-x-3">
@@ -310,7 +346,7 @@ function SignupForm() {
                   Creating Account...
                 </span>
               ) : (
-                'Create Account & Browse Courses'
+                'Create account & go to courses'
               )}
             </button>
           </form>

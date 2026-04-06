@@ -344,12 +344,20 @@ export default function AdminHomeEditorPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Homepage Editor</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Homepage editor</h1>
+          <p className="text-sm text-gray-600 mt-1 max-w-xl">
+            Change the public marketing homepage (hero slides, packages, testimonials). Use the forms below; open “Advanced” only if you need raw JSON.
+          </p>
+        </div>
         <button
-          className="bg-gray-200 px-3 py-2 rounded"
+          type="button"
+          className="bg-gray-200 px-3 py-2 rounded hover:bg-gray-300"
           onClick={() => loadContent(token)}
-        >Reload</button>
+        >
+          Reload
+        </button>
       </div>
 
       {error && (
@@ -362,22 +370,50 @@ export default function AdminHomeEditorPage() {
         </div>
       )}
 
+      <div className="mb-6 rounded-lg border border-gray-200 bg-white shadow-sm">
+        <details className="group">
+          <summary className="cursor-pointer list-none px-4 py-3 font-medium text-gray-900 flex items-center justify-between gap-2 hover:bg-gray-50 rounded-lg">
+            <span>Advanced: edit raw JSON</span>
+            <span className="text-xs font-normal text-gray-500 group-open:hidden">Click to expand</span>
+            <span className="text-xs font-normal text-gray-500 hidden group-open:inline">Click to collapse</span>
+          </summary>
+          <div className="px-4 pb-4 border-t border-gray-100 pt-4">
+            <p className="text-sm text-gray-600 mb-2">
+              For power users. Invalid JSON will be rejected on save. Prefer the forms below when possible.
+            </p>
+            <textarea
+              className="w-full h-[320px] font-mono text-sm border rounded p-3"
+              value={jsonDraft}
+              onChange={(e) => setJsonDraft(e.target.value)}
+              spellCheck={false}
+            />
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save from JSON'}
+              </button>
+            </div>
+          </div>
+        </details>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Editor */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Edit JSON</h2>
-          <p className="text-sm text-gray-600 mb-2">Edit texts, images, slides, packages, instructors, and testimonials. Save to apply.</p>
-          <textarea
-            className="w-full h-[600px] font-mono text-sm border rounded p-3"
-            value={jsonDraft}
-            onChange={(e) => setJsonDraft(e.target.value)}
-          />
-          <div className="mt-3 flex gap-2">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">Content</h2>
             <button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+              type="button"
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded"
               onClick={handleSave}
               disabled={saving}
-            >{saving ? 'Saving...' : 'Save Changes'}</button>
+            >
+              {saving ? 'Saving...' : 'Save all changes'}
+            </button>
           </div>
 
           {/* Slides Form */}

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -24,8 +24,9 @@ const getCourseThumbnail = (thumbnail) => {
   return `/${thumbnail}`;
 };
 
-export default function CourseDetailPage() {
+function CourseDetailPageInner() {
   const { courseId } = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, status } = useSession();
   const [course, setCourse] = useState(null);
@@ -140,9 +141,13 @@ export default function CourseDetailPage() {
   // Sort videos by order
   const sortedVideos = course.videos ? [...course.videos].sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
 
+  const couponQ = searchParams.get('coupon');
+  const purchaseSuffix = couponQ
+    ? `?coupon=${encodeURIComponent(couponQ)}`
+    : '';
   const purchaseHref = session
-    ? `/purchase/${courseId}`
-    : `/login?redirect=${encodeURIComponent(`/purchase/${courseId}`)}`;
+    ? `/purchase/${courseId}${purchaseSuffix}`
+    : `/login?redirect=${encodeURIComponent(`/purchase/${courseId}${purchaseSuffix}`)}`;
 
   const priceLabel =
     course.price != null && course.price !== ''
@@ -446,5 +451,19 @@ export default function CourseDetailPage() {
       </div>
     </div>
     </>
+  );
+}
+
+export default function CourseDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600" />
+        </div>
+      }
+    >
+      <CourseDetailPageInner />
+    </Suspense>
   );
 }

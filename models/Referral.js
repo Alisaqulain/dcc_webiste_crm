@@ -6,6 +6,8 @@ const referralSchema = new mongoose.Schema({
   referredEmail: { type: String, required: true },
   course: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
   amount: { type: Number, required: true },
+  /** 1 = direct (35%), 2 = 10%, 3 = 5% */
+  level: { type: Number, enum: [1, 2, 3], default: 1 },
   status: { type: String, enum: ['pending', 'approved', 'paid', 'rejected'], default: 'pending' },
   notes: { type: String },
   createdAt: { type: Date, default: Date.now },

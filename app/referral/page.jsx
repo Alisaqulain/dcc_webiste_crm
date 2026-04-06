@@ -27,7 +27,7 @@ const ReferralPage = () => {
       const response = await fetch('/api/user/profile');
       if (response.ok) {
         const userData = await response.json();
-        setUser(userData.user);
+        setUser(userData);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -77,7 +77,9 @@ const ReferralPage = () => {
         <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">Refer & Earn</h1>
-            <p className="text-gray-600">Share your referral code and earn 50% commission on every course purchase!</p>
+            <p className="text-gray-600">
+              Share your signup link. When your network buys courses, you earn up to three levels: 35% direct, 10% level 2, and 5% level 3 on each purchase amount.
+            </p>
           </div>
 
           {/* Referral Code Section */}
@@ -129,10 +131,25 @@ const ReferralPage = () => {
               <div className="text-gray-600">Successful Referrals</div>
             </div>
             <div className="bg-purple-50 rounded-lg p-6 text-center">
-              <div className="text-3xl font-bold text-purple-600 mb-2">50%</div>
-              <div className="text-gray-600">Commission Rate</div>
+              <div className="text-lg font-bold text-purple-600 mb-2 leading-tight">35% / 10% / 5%</div>
+              <div className="text-gray-600 text-sm">Levels 1–3 (max depth)</div>
             </div>
           </div>
+
+          {user.referralChain && user.referralChain.length > 0 && (
+            <div className="bg-gray-50 rounded-lg p-6 mb-8 border border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">Your referral chain</h2>
+              <p className="text-sm text-gray-600 mb-4">People above you in the network (informational).</p>
+              <ul className="space-y-2">
+                {user.referralChain.map((node) => (
+                  <li key={`${node.level}-${node.referralCode}`} className="flex justify-between text-sm border-b border-gray-200 pb-2">
+                    <span className="text-gray-700">Level {node.level}</span>
+                    <span className="font-mono text-gray-900">{node.referralCode || '—'}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* How it Works Section */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -157,7 +174,7 @@ const ReferralPage = () => {
                   <span className="text-red-600 font-bold text-lg">3</span>
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-2">You Earn</h3>
-                <p className="text-gray-600 text-sm">Earn 50% commission when they purchase any course</p>
+                <p className="text-gray-600 text-sm">You earn on their course purchases across three upline levels (35% / 10% / 5%)</p>
               </div>
             </div>
           </div>

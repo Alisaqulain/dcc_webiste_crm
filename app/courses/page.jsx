@@ -47,6 +47,13 @@ const CoursesPage = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showViewMoreModal, setShowViewMoreModal] = useState(false);
   const [viewMoreCourse, setViewMoreCourse] = useState(null);
+  const [showPendingBanner, setShowPendingBanner] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search).get("pendingPurchase");
+    setShowPendingBanner(q === "1");
+  }, []);
 
   const categories = [
     "Digital Marketing",
@@ -121,6 +128,11 @@ const CoursesPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {showPendingBanner && session && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-3 text-center text-sm">
+          Complete your first course purchase below to unlock your dashboard, referrals, and CRM (if included with your course).
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

@@ -32,6 +32,8 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User' 
   },
+  /** Set true after signup; referredBy cannot be changed once locked */
+  referralLocked: { type: Boolean, default: false },
   referralEarnings: { type: Number, default: 0 },
   referralCount: { type: Number, default: 0 },
   courses: [{
@@ -47,7 +49,8 @@ const userSchema = new mongoose.Schema({
     },
     progress: { type: Number, default: 0, min: 0, max: 100 }
   }],
-  isActive: { type: Boolean, default: true },
+  /** Full platform access after first course purchase. Omitted/false-y on legacy users treated as active in auth. */
+  isActive: { type: Boolean, default: false },
   lastLogin: { type: Date },
   crmFiles: [{
     filename: { type: String },
@@ -80,14 +83,6 @@ const userSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 }, {
   timestamps: true
-});
-
-// Generate referral code before saving
-userSchema.pre('save', function(next) {
-  if (this.isNew && !this.referralCode) {
-    this.referralCode = 'DCC' + Math.random().toString(36).substr(2, 6).toUpperCase();
-  }
-  next();
 });
 
 // Update the updatedAt field

@@ -116,6 +116,8 @@ export default function CrmDashboard() {
 		totalLeads: 0,
 		leadsChange: 0,
 		totalEarning: 0,
+		currentMonthLabel: '',
+		earningsByMonth: [],
 		earningsChange: 0,
 		todayEarning: 0,
 		todayEarningsChange: 0,
@@ -153,10 +155,13 @@ export default function CrmDashboard() {
 				<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
 					<div className="flex items-center justify-between">
 						<div>
-							<div className="text-sm font-medium text-gray-600 mb-1">Total Earning</div>
-							<div className="text-3xl font-bold text-gray-900">₹{data.totalEarning.toFixed(2) || '0.00'}</div>
+							<div className="text-sm font-medium text-gray-600 mb-1">This month</div>
+							{data.currentMonthLabel ? (
+								<div className="text-xs font-medium text-gray-500 mb-1">{data.currentMonthLabel}</div>
+							) : null}
+							<div className="text-3xl font-bold text-gray-900">₹{(Number(data.totalEarning) || 0).toFixed(2)}</div>
 							<div className={`text-xs mt-1 ${data.earningsChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-								{data.earningsChange >= 0 ? '+' : ''}{data.earningsChange.toFixed(1)}% from last month
+								{data.earningsChange >= 0 ? '+' : ''}{(Number(data.earningsChange) || 0).toFixed(1)}% vs previous month
 							</div>
 						</div>
 						<div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -191,6 +196,51 @@ export default function CrmDashboard() {
 							<span className="text-2xl">🎯</span>
 						</div>
 					</div>
+				</div>
+			</div>
+
+			<div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+				<div className="p-6 border-b border-gray-200">
+					<h3 className="text-lg font-semibold text-gray-900">Total earnings by month</h3>
+					<p className="text-sm text-gray-600">All months from your approved lead commissions. Totals use the grand total at the bottom.</p>
+				</div>
+				<div className="overflow-x-auto">
+					<table className="w-full text-sm">
+						<thead className="bg-gray-50">
+							<tr>
+								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
+								<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+							</tr>
+						</thead>
+						<tbody className="bg-white divide-y divide-gray-200">
+							{data.earningsByMonth && data.earningsByMonth.length > 0 ? (
+								data.earningsByMonth.map((row) => (
+									<tr key={row.monthKey} className="hover:bg-gray-50">
+										<td className="px-6 py-4 whitespace-nowrap text-gray-900">{row.label}</td>
+										<td className="px-6 py-4 whitespace-nowrap text-right font-medium text-gray-900">
+											₹{Number(row.amount).toFixed(2)}
+										</td>
+									</tr>
+								))
+							) : (
+								<tr>
+									<td colSpan={2} className="px-6 py-8 text-center text-gray-500">
+										No monthly earnings yet. Approved leads will appear here by month.
+									</td>
+								</tr>
+							)}
+						</tbody>
+						{data.earningsByMonth && data.earningsByMonth.length > 0 ? (
+							<tfoot className="bg-gray-50 border-t-2 border-gray-200">
+								<tr>
+									<td className="px-6 py-4 font-semibold text-gray-900">Total (all time)</td>
+									<td className="px-6 py-4 text-right font-bold text-gray-900">
+										₹{(Number(data.grandTotalEarning) || 0).toFixed(2)}
+									</td>
+								</tr>
+							</tfoot>
+						) : null}
+					</table>
 				</div>
 			</div>
 

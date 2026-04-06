@@ -1,5 +1,6 @@
 import connectDB from '@/lib/mongodb';
 import { cleanupExpiredCrmFiles } from '@/lib/services/crmFileCleanup';
+import { lockExpiredCouponsNow } from '@/lib/couponService';
 
 /**
  * Scheduled maintenance: CRM file TTL-style cleanup.
@@ -21,10 +22,12 @@ export async function GET(request) {
   try {
     await connectDB();
     const crm = await cleanupExpiredCrmFiles(30);
+    const couponsLocked = await lockExpiredCouponsNow();
     return Response.json({
       ok: true,
       crmUsersUpdated: crm.usersTouched,
       crmFilesRemoved: crm.filesRemoved,
+      couponsLocked,
       note: 'Leads expire via MongoDB TTL index on createdAt (30 days).',
     });
   } catch (e) {

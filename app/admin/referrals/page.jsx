@@ -64,6 +64,7 @@ export default function AdminReferralsPage() {
                 <th className="py-2 px-3">Referrer</th>
                 <th className="py-2 px-3">Friend</th>
                 <th className="py-2 px-3">Course</th>
+                <th className="py-2 px-3">Level</th>
                 <th className="py-2 px-3">Amount</th>
                 <th className="py-2 px-3">Status</th>
                 <th className="py-2 px-3">Actions</th>
@@ -75,6 +76,7 @@ export default function AdminReferralsPage() {
                   <td className="py-2 px-3">{r.referrer?.email}</td>
                   <td className="py-2 px-3">{r.referredEmail}</td>
                   <td className="py-2 px-3">{r.course?.title}</td>
+                  <td className="py-2 px-3">{r.level ?? 1}</td>
                   <td className="py-2 px-3">₹{r.amount}</td>
                   <td className="py-2 px-3 capitalize">{r.status}</td>
                   <td className="py-2 px-3 space-x-2">
@@ -90,7 +92,7 @@ export default function AdminReferralsPage() {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td className="py-4 px-3 text-gray-500" colSpan={6}>No referrals found.</td>
+                  <td className="py-4 px-3 text-gray-500" colSpan={7}>No referrals found.</td>
                 </tr>
               )}
             </tbody>

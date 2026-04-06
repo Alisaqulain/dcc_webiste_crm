@@ -14,6 +14,7 @@ export default function CrmLayout({ children }) {
 	const [isOpen, setIsOpen] = useState(true);
 	const [userData, setUserData] = useState(null);
 	const [currentTime, setCurrentTime] = useState('');
+	const [sidebarRevenue, setSidebarRevenue] = useState(null);
 
 	// Fetch user data
 	useEffect(() => {
@@ -23,6 +24,22 @@ export default function CrmLayout({ children }) {
 				.then(data => setUserData(data))
 				.catch(err => console.error('Error fetching user data:', err));
 		}
+	}, [session]);
+
+	// Sidebar: today vs yesterday (lead commissions)
+	useEffect(() => {
+		if (!session) return;
+		fetch('/api/crm/dashboard')
+			.then((res) => (res.ok ? res.json() : null))
+			.then((d) => {
+				if (d && typeof d.todayEarning === 'number') {
+					setSidebarRevenue({
+						today: d.todayEarning,
+						change: typeof d.todayEarningsChange === 'number' ? d.todayEarningsChange : 0,
+					});
+				}
+			})
+			.catch(() => {});
 	}, [session]);
 
 	// Update current time
@@ -147,13 +164,25 @@ export default function CrmLayout({ children }) {
 				
 				{/* Revenue Display */}
 				<div className="px-6 py-4 border-b border-gray-700 bg-gradient-to-r from-green-600/20 to-green-500/20">
-					<div className="text-xs text-gray-300 uppercase tracking-wide">Today&apos;s Revenue</div>
-					<div className="text-2xl font-bold text-green-400">$0.00</div>
-					<div className="text-xs text-gray-400 mt-1">+0% from yesterday</div>
+					<div className="text-xs text-gray-300 uppercase tracking-wide">Today&apos;s earnings</div>
+					<div className="text-2xl font-bold text-green-400">
+						₹{sidebarRevenue ? sidebarRevenue.today.toFixed(2) : '—'}
+					</div>
+					<div className="text-xs text-gray-400 mt-1">
+						{sidebarRevenue ? (
+							<>
+								{sidebarRevenue.change >= 0 ? '+' : ''}
+								{sidebarRevenue.change.toFixed(1)}% from yesterday
+							</>
+						) : (
+							<span className="text-gray-500">Loading…</span>
+						)}
+					</div>
 				</div>
 				
 				<nav className="p-4 space-y-2 overflow-y-auto">
 					<NavItem href="/crm" label="Dashboard" icon="📊" />
+					<NavItem href="/crm/last-month-earnings" label="Last month earnings" icon="📅" />
 					<NavItem href="/crm/lead-add" label="Lead + Add" icon="➕" />
 					<NavItem href="/crm/training-videos" label="Training Video&apos;s" icon="🎥" />
 					<NavItem href="/crm/data-store" label="Data Store" icon="💾" />

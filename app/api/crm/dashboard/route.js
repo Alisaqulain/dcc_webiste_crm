@@ -56,30 +56,92 @@ export async function GET(request) {
     });
     const todayEarnings = todayApprovedLeads.reduce((sum, lead) => sum + (lead.amount || 100), 0);
 
-    // Total earnings (all approved leads that were approved more than 24 hours ago)
-    // This means leads approved today show in "Today Earning", and after 24 hours move to "Total Earning"
-    const totalEarningLeads = approvedLeads.filter(lead => {
+    const yesterdayApprovedLeads = approvedLeads.filter((lead) => {
       const approvedDate = lead.approvedAt ? new Date(lead.approvedAt) : new Date(lead.updatedAt);
-      const hoursSinceApproval = (today - approvedDate) / (1000 * 60 * 60);
-      return hoursSinceApproval >= 24;
+      return approvedDate >= yesterday && approvedDate < today;
     });
-    const totalEarning = totalEarningLeads.reduce((sum, lead) => sum + (lead.amount || 100), 0);
+    const yesterdayEarnings = yesterdayApprovedLeads.reduce(
+      (sum, lead) => sum + (lead.amount || 100),
+      0
+    );
+    const todayEarningsChange = parseFloat(
+      (yesterdayEarnings > 0
+        ? ((todayEarnings - yesterdayEarnings) / yesterdayEarnings) * 100
+        : todayEarnings > 0
+          ? 100
+          : 0
+      ).toFixed(1)
+    );
 
-    // Get last month's date range
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    lastMonth.setHours(0, 0, 0, 0);
-    
-    const lastMonthApprovedLeads = approvedLeads.filter(lead => {
+    // Earnings by calendar month (approval / update date) for lead commissions
+    const monthKey = (d) => {
+      const x = new Date(d);
+      return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`;
+    };
+    const monthLabel = (key) => {
+      const [y, m] = key.split('-').map(Number);
+      return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    };
+
+    const totalsByMonth = new Map();
+    for (const lead of approvedLeads) {
       const approvedDate = lead.approvedAt ? new Date(lead.approvedAt) : new Date(lead.updatedAt);
-      return approvedDate >= lastMonth && approvedDate < today;
-    });
-    const lastMonthEarnings = lastMonthApprovedLeads.reduce((sum, lead) => sum + (lead.amount || 100), 0);
+      const key = monthKey(approvedDate);
+      const amt = lead.amount || 100;
+      totalsByMonth.set(key, (totalsByMonth.get(key) || 0) + amt);
+    }
 
-    // Calculate percentage change
-    const earningsChange = lastMonthEarnings > 0 
-      ? ((totalEarning - lastMonthEarnings) / lastMonthEarnings * 100).toFixed(1)
-      : totalEarning > 0 ? '100' : '0';
+    const sortedMonthKeys = [...totalsByMonth.keys()].sort((a, b) => b.localeCompare(a));
+    const earningsByMonth = sortedMonthKeys.map((k) => ({
+      monthKey: k,
+      label: monthLabel(k),
+      amount: totalsByMonth.get(k),
+    }));
+
+    // "Total Earning" KPI = current calendar month only (resets each new month)
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const currentMonthKey = monthKey(startOfMonth);
+    const currentMonthLabel = monthLabel(currentMonthKey);
+
+    const currentMonthEarnings = approvedLeads.reduce((sum, lead) => {
+      const approvedDate = lead.approvedAt ? new Date(lead.approvedAt) : new Date(lead.updatedAt);
+      if (approvedDate >= startOfMonth && approvedDate < startOfNextMonth) {
+        return sum + (lead.amount || 100);
+      }
+      return sum;
+    }, 0);
+
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthEnd = startOfMonth;
+    const previousMonthEarnings = approvedLeads.reduce((sum, lead) => {
+      const approvedDate = lead.approvedAt ? new Date(lead.approvedAt) : new Date(lead.updatedAt);
+      if (approvedDate >= prevMonthStart && approvedDate < prevMonthEnd) {
+        return sum + (lead.amount || 100);
+      }
+      return sum;
+    }, 0);
+    const previousMonthLabel = monthLabel(monthKey(prevMonthStart));
+    const previousMonthLeadCount = approvedLeads.filter((lead) => {
+      const approvedDate = lead.approvedAt ? new Date(lead.approvedAt) : new Date(lead.updatedAt);
+      return approvedDate >= prevMonthStart && approvedDate < prevMonthEnd;
+    }).length;
+
+    const totalEarning = currentMonthEarnings;
+
+    const earningsChange = previousMonthEarnings > 0
+      ? ((currentMonthEarnings - previousMonthEarnings) / previousMonthEarnings * 100).toFixed(1)
+      : currentMonthEarnings > 0 ? '100' : '0';
+
+    // Rolling ~last 30 days vs today for "Total leads" KPI % (unchanged behavior)
+    const lastMonthRolling = new Date();
+    lastMonthRolling.setMonth(lastMonthRolling.getMonth() - 1);
+    lastMonthRolling.setHours(0, 0, 0, 0);
+    const lastMonthApprovedLeads = approvedLeads.filter((lead) => {
+      const approvedDate = lead.approvedAt ? new Date(lead.approvedAt) : new Date(lead.updatedAt);
+      return approvedDate >= lastMonthRolling && approvedDate < today;
+    });
 
     // Total leads count (only approved leads)
     const totalLeads = approvedLeads.length;
@@ -123,9 +185,14 @@ export async function GET(request) {
       totalLeads,
       leadsChange: parseFloat(leadsChange),
       totalEarning,
+      currentMonthLabel,
+      previousMonthLabel,
+      previousMonthEarning: previousMonthEarnings,
+      previousMonthLeadCount,
+      earningsByMonth,
       earningsChange: parseFloat(earningsChange),
       todayEarning: todayEarnings,
-      todayEarningsChange: 0,
+      todayEarningsChange,
       conversionRate: parseFloat(conversionRate),
       conversionRateChange: 0,
       grandTotalEarning,

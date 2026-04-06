@@ -1,140 +1,174 @@
 import connectDB from '@/lib/mongodb';
 import Course from '@/models/Course';
 import User from '@/models/User';
-import Referral from '@/models/Referral';
+import Coupon from '@/models/Coupon';
+import razorpay from '@/lib/razorpay';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import crypto from 'crypto';
 import { sendEmail } from '@/lib/email';
+import { distributePurchaseReferrals } from '@/lib/referralCommission';
+import {
+  computeFinalPrice,
+  getCouponValidationError,
+  consumeCouponById,
+  createPostPurchaseUserCoupons,
+} from '@/lib/couponService';
+
+function rupeesToPaiseSafe(rupees) {
+  const r = Math.max(0, Number(rupees) || 0);
+  const paise = Math.round(r * 100);
+  return Math.max(100, paise);
+}
 
 export async function POST(request) {
   try {
     await connectDB();
-    
-    // Get user session
+
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return Response.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, courseId, referralCode } = await request.json();
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      courseId,
+    } = await request.json();
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !courseId) {
-      return Response.json({ message: 'Missing required payment details' }, { status: 400 });
+    if (
+      !razorpay_order_id ||
+      !razorpay_payment_id ||
+      !razorpay_signature ||
+      !courseId
+    ) {
+      return Response.json(
+        { message: 'Missing required payment details' },
+        { status: 400 }
+      );
     }
 
-    // Verify payment signature
-    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const body = razorpay_order_id + '|' + razorpay_payment_id;
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
       .update(body.toString())
-      .digest("hex");
+      .digest('hex');
 
     if (expectedSignature !== razorpay_signature) {
       return Response.json({ message: 'Invalid payment signature' }, { status: 400 });
     }
 
-    // Get course details
+    const order = await razorpay.orders.fetch(razorpay_order_id);
+    const payment = await razorpay.payments.fetch(razorpay_payment_id);
+
+    if (payment.order_id !== razorpay_order_id) {
+      return Response.json({ message: 'Payment does not match order' }, { status: 400 });
+    }
+
+    const notes = order.notes || {};
+    const noteCourseId = notes.courseId ? String(notes.courseId) : null;
+    if (noteCourseId && noteCourseId !== String(courseId)) {
+      return Response.json({ message: 'Order course mismatch' }, { status: 400 });
+    }
+
+    if (notes.userEmail && notes.userEmail !== session.user.email) {
+      return Response.json({ message: 'Order user mismatch' }, { status: 403 });
+    }
+
     const course = await Course.findById(courseId);
     if (!course) {
       return Response.json({ message: 'Course not found' }, { status: 404 });
     }
 
-    // Get user details
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return Response.json({ message: 'User not found' }, { status: 404 });
     }
 
-    // Check if user already has this course
+    const userIdStr = user._id.toString();
 
-    const existingCourse = user.courses.find(
-      c => c.courseId && c.courseId.toString() === courseId
-    );
-    if (existingCourse) {
-      return Response.json({ message: 'Course already purchased' }, { status: 400 });
+    const origFromNote = Number(notes.originalPriceRupees);
+    const coursePrice = Number(course.price) || 0;
+    if (Number.isFinite(origFromNote) && Math.abs(origFromNote - coursePrice) > 0.01) {
+      return Response.json({ message: 'Price changed — create a new order' }, { status: 400 });
     }
 
-    // Add course to user's courses with proper structure
+    let expectedPaise;
+    const couponIdFromNote = notes.couponId ? String(notes.couponId) : '';
+
+    if (couponIdFromNote) {
+      const coupon = await Coupon.findById(couponIdFromNote);
+      const err = getCouponValidationError(coupon, courseId, userIdStr);
+      if (err) {
+        return Response.json({ message: err }, { status: 400 });
+      }
+      const { finalPrice } = computeFinalPrice(
+        coursePrice,
+        coupon.discountType,
+        coupon.discountValue
+      );
+      expectedPaise = rupeesToPaiseSafe(finalPrice);
+    } else {
+      expectedPaise = rupeesToPaiseSafe(coursePrice);
+    }
+
+    const orderAmount = Number(order.amount);
+    const payAmount = Number(payment.amount);
+    if (orderAmount !== expectedPaise || payAmount !== expectedPaise) {
+      return Response.json(
+        { message: 'Paid amount does not match order' },
+        { status: 400 }
+      );
+    }
+
+    const existingCourse = user.courses.find(
+      (c) => c.courseId && c.courseId.toString() === courseId
+    );
+    if (existingCourse) {
+      return Response.json(
+        { message: 'Course already purchased' },
+        { status: 400 }
+      );
+    }
+
     user.courses.push({
-      courseId: courseId,
+      courseId,
       purchasedAt: new Date(),
       status: 'active',
-      progress: 0
+      progress: 0,
     });
+    user.isActive = true;
     await user.save();
 
-    // Update course enrollment count
     course.enrollmentCount += 1;
     await course.save();
 
-    // Handle referral system
-    // Priority: 1. referralCode from payment, 2. user's referredBy field
-    let referrer = null;
-    let referralCodeUsed = null;
-
-    // First, check if referralCode was passed during payment
-    if (referralCode) {
-      referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
-      if (referrer && referrer.email !== user.email) {
-        referralCodeUsed = referralCode.toUpperCase();
-      }
-    }
-    
-    // If no referral code from payment, check if user was referred by someone (from signup)
-    if (!referrer && user.referredBy) {
-      referrer = await User.findById(user.referredBy);
-      if (referrer && referrer.referralCode) {
-        referralCodeUsed = referrer.referralCode;
+    if (couponIdFromNote) {
+      const consumed = await consumeCouponById(couponIdFromNote);
+      if (!consumed.ok) {
+        user.courses = user.courses.filter(
+          (c) => !(c.courseId && c.courseId.toString() === String(courseId))
+        );
+        await user.save();
+        course.enrollmentCount = Math.max(0, (course.enrollmentCount || 1) - 1);
+        await course.save();
+        return Response.json({ message: consumed.message }, { status: 400 });
       }
     }
 
-    // Process referral if we have a valid referrer
-    if (referrer && referrer.email !== user.email) {
-      // Check if referral already exists for this course and user
-      const existingReferral = await Referral.findOne({
-        referrer: referrer._id,
-        referredUser: user._id,
-        course: course._id
-      });
+    await distributePurchaseReferrals({
+      buyerUser: user,
+      course,
+      User,
+    });
 
-      // Only create referral if it doesn't already exist
-      if (!existingReferral) {
-        const commission = Math.round(course.price * 0.5); // 50%
-
-        // Create referral record
-        await Referral.create({
-          referrer: referrer._id,
-          referredUser: user._id,
-          referredEmail: user.email,
-          course: course._id,
-          amount: commission,
-          status: 'pending'
-        });
-
-        // Update aggregates
-        referrer.referralEarnings = (referrer.referralEarnings || 0) + commission;
-        referrer.referralCount = (referrer.referralCount || 0) + 1;
-        await referrer.save();
-
-        // Notify referrer
-        await sendEmail({
-          to: referrer.email,
-          subject: 'Referral Bonus Earned! 🎉',
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #dc2626;">Congratulations! You've earned a referral bonus!</h2>
-              <p>Your friend <strong>${user.email}</strong> purchased <strong>"${course.title}"</strong> using your referral code${referralCodeUsed ? ` (${referralCodeUsed})` : ''}.</p>
-              <p><strong>Referral Bonus:</strong> ₹${commission}</p>
-              <p><strong>Total Referral Earnings:</strong> ₹${referrer.referralEarnings}</p>
-              <p>Track and withdraw from your profile referrals section.</p>
-            </div>
-          `
-        });
-      }
+    try {
+      await createPostPurchaseUserCoupons(user._id, course);
+    } catch (rewardErr) {
+      console.error('Post-purchase coupon generation failed:', rewardErr);
     }
 
-    // Send purchase confirmation email
     await sendEmail({
       to: user.email,
       subject: 'Course Purchase Successful! 🎉',
@@ -144,39 +178,41 @@ export async function POST(request) {
           <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3>Course Details:</h3>
             <p><strong>Course:</strong> ${course.title}</p>
-            <p><strong>Price:</strong> ₹${course.price}</p>
+            <p><strong>List price:</strong> ₹${course.price}</p>
             <p><strong>Payment ID:</strong> ${razorpay_payment_id}</p>
             <p><strong>Order ID:</strong> ${razorpay_order_id}</p>
           </div>
-          
           <div style="background: #e7f3ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3>Refer & Earn Program:</h3>
-            <p>Share your referral code with friends and earn 50% commission on their course purchases!</p>
-            <p><strong>Your Referral Code:</strong> <span style="background: #dc2626; color: white; padding: 4px 8px; border-radius: 4px;">${user.referralCode || 'REF' + user._id.toString().slice(-6).toUpperCase()}</span></p>
-            <p>Share this code: <strong>${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/signup?ref=${user.referralCode || 'REF' + user._id.toString().slice(-6).toUpperCase()}</strong></p>
+            <p>Share your referral link at signup. Earn up to 35% / 10% / 5% across three levels when your network purchases courses.</p>
+            <p><strong>Your Referral Code:</strong> <span style="background: #dc2626; color: white; padding: 4px 8px; border-radius: 4px;">${user.referralCode || ''}</span></p>
+            <p><strong>Share:</strong> ${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/signup?ref=${user.referralCode || ''}</p>
           </div>
-          
+          <p>Check your profile for reward coupons (20% off this course, valid 30 days).</p>
           <p>You can now access your course in the "My Courses" section.</p>
           <p>Thank you for choosing Digital Career Center!</p>
         </div>
-      `
+      `,
     });
 
     return Response.json({
       success: true,
       message: 'Payment verified successfully',
+      isActive: true,
       course: {
         id: course._id,
         title: course.title,
-        price: course.price
-      }
+        price: course.price,
+      },
     });
-
   } catch (error) {
     console.error('Error verifying payment:', error);
-    return Response.json({ 
-      message: 'Error verifying payment',
-      error: error.message 
-    }, { status: 500 });
+    return Response.json(
+      {
+        message: 'Error verifying payment',
+        error: error.message,
+      },
+      { status: 500 }
+    );
   }
 }

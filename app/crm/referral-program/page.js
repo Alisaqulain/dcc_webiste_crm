@@ -62,7 +62,7 @@ export default function ReferralProgramPage() {
 		<div className="space-y-6">
 			<div className="bg-white border rounded-md p-4">
 				<h2 className="text-lg font-semibold">Referral Program</h2>
-				<p className="text-sm text-gray-600 mt-1">Invite friends and earn 50% commission when they purchase courses.</p>
+				<p className="text-sm text-gray-600 mt-1">Invite friends at signup. Earn 35% on direct purchases, 10% at level 2, and 5% at level 3.</p>
 				<div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
 					<div className="border rounded-md p-3">
 						<div className="text-gray-700">Your Referral Link</div>
