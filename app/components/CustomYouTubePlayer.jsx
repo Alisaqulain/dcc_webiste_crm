@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useMobileLandscapeImmersive } from '@/lib/useMobileLandscapeImmersive';
 
 /**
  * Custom Video Player Using YouTube (Hidden YouTube Player)
@@ -16,7 +17,8 @@ import { useRouter } from 'next/navigation';
 const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   const { data: session } = useSession();
   const router = useRouter();
-  const containerRef = useRef(null);
+  const { immersiveLandscape, shellRef } = useMobileLandscapeImmersive();
+  const zoomHostRef = useRef(null);
   const playerRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -122,9 +124,9 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     onVideoEndRef.current = onVideoEnd;
   }, [onVideoStart, onVideoEnd]);
 
-  // Initialize YouTube player (hidden)
+  // Initialize YouTube player (hidden) — mount inside zoomHostRef so scale applies to video
   useEffect(() => {
-    if (!hasAccess || !containerRef.current) return;
+    if (!hasAccess || !zoomHostRef.current) return;
 
     const videoId = getYouTubeVideoId();
     if (!videoId) return;
@@ -147,7 +149,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
           } catch (e) {}
         }
 
-        const host = containerRef.current;
+        const host = zoomHostRef.current;
         if (!host || cancelled) return;
 
         // Create YouTube player container (visible but YouTube UI hidden)
@@ -245,7 +247,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
         } catch (e) {}
         playerRef.current = null;
       }
-      const host = containerRef.current;
+      const host = zoomHostRef.current;
       if (host) {
         host.querySelectorAll('[id^="youtube-player-"]').forEach((el) => el.remove());
       }
@@ -268,7 +270,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
 
   // Show controls on touch for mobile
   useEffect(() => {
-    if (!isMobile || !containerRef.current) return;
+    if (!isMobile || !shellRef.current) return;
     
     const handleTouchStart = () => {
       setShowControls(true);
@@ -278,7 +280,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
       }, 5000);
     };
 
-    const container = containerRef.current;
+    const container = shellRef.current;
     container.addEventListener('touchstart', handleTouchStart);
     
     return () => {
@@ -289,7 +291,9 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   // Fullscreen handling
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(
+        !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement)
+      );
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -307,7 +311,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
 
   // Block stray YouTube UI clicks only inside the player — never on document (that broke navbar / whole page).
   useEffect(() => {
-    const root = containerRef.current;
+    const root = shellRef.current;
     if (!root) return;
 
     const preventAllClicks = (e) => {
@@ -393,7 +397,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   };
 
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.25, 2));
+    setZoomLevel((prev) => Math.min(prev + 0.25, 2.5));
   };
 
   const handleZoomOut = () => {
@@ -412,17 +416,18 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   };
 
   const handleFullscreen = () => {
-    if (!containerRef.current) return;
+    if (!shellRef.current) return;
 
     if (!isFullscreen) {
-      if (containerRef.current.requestFullscreen) {
-        containerRef.current.requestFullscreen();
-      } else if (containerRef.current.webkitRequestFullscreen) {
-        containerRef.current.webkitRequestFullscreen();
-      } else if (containerRef.current.mozRequestFullScreen) {
-        containerRef.current.mozRequestFullScreen();
-      } else if (containerRef.current.msRequestFullscreen) {
-        containerRef.current.msRequestFullscreen();
+      const el = shellRef.current;
+      if (el.requestFullscreen) {
+        el.requestFullscreen();
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      } else if (el.mozRequestFullScreen) {
+        el.mozRequestFullScreen();
+      } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
       }
     } else {
       if (document.exitFullscreen) {
@@ -510,8 +515,12 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   return (
     <>
       <div 
-        ref={containerRef}
-        className="custom-video-player relative bg-black rounded-lg overflow-hidden aspect-video w-full"
+        ref={shellRef}
+        className={`custom-video-player relative bg-black overflow-hidden w-full ${
+          immersiveLandscape
+            ? '!fixed !inset-0 !z-[5000] !h-[100dvh] !min-h-[100dvh] !w-screen !max-w-none !rounded-none aspect-auto'
+            : 'aspect-video rounded-lg'
+        }`}
         style={{
           userSelect: 'none',
           WebkitUserSelect: 'none',
@@ -546,15 +555,14 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
           </div>
         )}
 
-        {/* Video display area with zoom - YouTube iframe is inside containerRef */}
+        {/* YouTube iframe mounts inside this node so zoom applies to the video */}
         <div
-          className="absolute inset-0"
+          ref={zoomHostRef}
+          className="absolute inset-0 z-0"
           style={{
             transform: `scale(${zoomLevel})`,
             transformOrigin: 'center center',
-            transition: 'transform 0.3s ease',
-            width: '100%',
-            height: '100%',
+            transition: 'transform 0.2s ease',
             overflow: 'hidden',
           }}
         />
@@ -721,6 +729,45 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
                 >
                   <svg className={`${isMobile ? 'w-7 h-7' : 'w-5 h-5'}`} fill="currentColor" viewBox="0 0 24 24">
                     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Zoom (applies to video area) */}
+              <div className={`flex items-center ${isMobile ? 'space-x-2' : 'space-x-1'}`}>
+                <button
+                  type="button"
+                  onClick={handleZoomOut}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    handleZoomOut();
+                  }}
+                  className={`custom-control-button ${isMobile ? 'p-3' : 'p-2'} hover:bg-white/20 rounded transition-colors text-red-600 touch-manipulation disabled:opacity-40`}
+                  aria-label="Zoom out"
+                  disabled={zoomLevel <= 1}
+                >
+                  <svg className={isMobile ? 'w-7 h-7' : 'w-5 h-5'} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z" />
+                  </svg>
+                </button>
+                <span
+                  className={`${isMobile ? 'text-sm' : 'text-xs'} font-mono text-white/90 min-w-[2.75rem] text-center tabular-nums`}
+                >
+                  {Math.round(zoomLevel * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={handleZoomIn}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    handleZoomIn();
+                  }}
+                  className={`custom-control-button ${isMobile ? 'p-3' : 'p-2'} hover:bg-white/20 rounded transition-colors text-red-600 touch-manipulation disabled:opacity-40`}
+                  aria-label="Zoom in"
+                  disabled={zoomLevel >= 2.5}
+                >
+                  <svg className={isMobile ? 'w-7 h-7' : 'w-5 h-5'} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM12 7v5H7v1h5v5h1v-5h5v-1h-5V7h-1z" />
                   </svg>
                 </button>
               </div>

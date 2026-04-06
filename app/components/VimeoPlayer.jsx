@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useMobileLandscapeImmersive } from '@/lib/useMobileLandscapeImmersive';
 
 /**
  * Vimeo Player Component
@@ -18,6 +19,9 @@ const VimeoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   const { data: session } = useSession();
   const router = useRouter();
   const iframeRef = useRef(null);
+  const { immersiveLandscape, shellRef } = useMobileLandscapeImmersive();
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasAccess, setHasAccess] = useState(false);
@@ -119,6 +123,37 @@ const VimeoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     return () => window.removeEventListener('message', handleMessage);
   }, [hasAccess, video, onVideoStart, onVideoEnd]);
 
+  useEffect(() => {
+    const onFs = () => {
+      setIsFullscreen(
+        !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement)
+      );
+    };
+    document.addEventListener('fullscreenchange', onFs);
+    document.addEventListener('webkitfullscreenchange', onFs);
+    document.addEventListener('MSFullscreenChange', onFs);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFs);
+      document.removeEventListener('webkitfullscreenchange', onFs);
+      document.removeEventListener('MSFullscreenChange', onFs);
+    };
+  }, []);
+
+  const handleZoomIn = () => setZoomLevel((z) => Math.min(z + 0.25, 2.5));
+  const handleZoomOut = () => setZoomLevel((z) => Math.max(z - 0.25, 1));
+
+  const handleFullscreen = () => {
+    const el = shellRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      req?.call(el);
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen;
+      exit?.call(document);
+    }
+  };
+
   const vimeoVideoId = getVimeoVideoId();
 
   // Show loading state
@@ -196,7 +231,14 @@ const VimeoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   }).toString();
 
   return (
-    <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+    <div
+      ref={shellRef}
+      className={`relative bg-black overflow-hidden w-full ${
+        immersiveLandscape
+          ? '!fixed !inset-0 !z-[5000] !h-[100dvh] !min-h-[100dvh] !w-screen !max-w-none !rounded-none aspect-auto'
+          : 'aspect-video rounded-lg'
+      }`}
+    >
       {/* Loading overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
@@ -228,23 +270,78 @@ const VimeoPlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
         </div>
       )}
 
-      {/* Vimeo iframe */}
-      <iframe
-        ref={iframeRef}
-        src={vimeoEmbedUrl}
-        className="w-full h-full"
-        frameBorder="0"
-        allow="autoplay; fullscreen; picture-in-picture"
-        allowFullScreen
+      {/* Scaled wrapper so zoom affects the iframe */}
+      <div
+        className="absolute inset-0 z-0"
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%'
+          transform: `scale(${zoomLevel})`,
+          transformOrigin: 'center center',
+          transition: 'transform 0.2s ease',
         }}
-        onLoad={() => setIsLoading(false)}
-      />
+      >
+        <iframe
+          ref={iframeRef}
+          src={vimeoEmbedUrl}
+          className="w-full h-full border-0"
+          title={video?.title ? `Vimeo: ${video.title}` : 'Vimeo video'}
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+          }}
+          onLoad={() => setIsLoading(false)}
+        />
+      </div>
+
+      {/* Zoom + fullscreen toolbar (above iframe) */}
+      <div
+        className="absolute top-2 right-2 z-20 flex flex-wrap items-center justify-end gap-1 rounded-lg bg-black/75 px-1.5 py-1 text-white shadow-lg pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={handleZoomOut}
+          className="rounded p-2 hover:bg-white/15 disabled:opacity-40 touch-manipulation"
+          aria-label="Zoom out"
+          disabled={zoomLevel <= 1}
+        >
+          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z" />
+          </svg>
+        </button>
+        <span className="min-w-[2.5rem] text-center text-xs font-mono tabular-nums">{Math.round(zoomLevel * 100)}%</span>
+        <button
+          type="button"
+          onClick={handleZoomIn}
+          className="rounded p-2 hover:bg-white/15 disabled:opacity-40 touch-manipulation"
+          aria-label="Zoom in"
+          disabled={zoomLevel >= 2.5}
+        >
+          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM12 7v5H7v1h5v5h1v-5h5v-1h-5V7h-1z" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          onClick={handleFullscreen}
+          className="rounded p-2 hover:bg-white/15 touch-manipulation"
+          aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        >
+          {isFullscreen ? (
+            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
+            </svg>
+          ) : (
+            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
+            </svg>
+          )}
+        </button>
+      </div>
     </div>
   );
 };
