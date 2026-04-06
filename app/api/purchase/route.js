@@ -110,6 +110,7 @@ export async function POST(request) {
       buyerUser: user,
       course,
       User,
+      purchaseAmountRupees: paidRupees,
     });
 
     try {

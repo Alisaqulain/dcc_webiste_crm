@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { referralPercentForLevel } from '@/lib/referralRates';
 
 function personLabel(u) {
   if (!u) return '—';
@@ -139,7 +140,8 @@ export default function AdminReferralsPage() {
       {tab === 'commissions' && (
         <>
           <p className="text-sm text-gray-600 mb-4">
-            Payout lines from course purchases (35% / 10% / 5% by level). Approve or mark paid here.
+            Payout lines use <strong>35% / 10% / 5%</strong> of the buyer’s <em>paid</em> amount (not list price when a coupon
+            applied). Approve or mark paid here.
           </p>
           {loading ? (
             <div>Loading...</div>
@@ -172,7 +174,12 @@ export default function AdminReferralsPage() {
                         <span className="block text-xs text-gray-500">{r.referredEmail}</span>
                       </td>
                       <td className="py-2 px-3">{r.course?.title}</td>
-                      <td className="py-2 px-3">{r.level ?? 1}</td>
+                      <td className="py-2 px-3">
+                        L{r.level ?? 1}{' '}
+                        <span className="text-gray-500">
+                          ({referralPercentForLevel(r.level ?? 1)}%)
+                        </span>
+                      </td>
                       <td className="py-2 px-3">₹{r.amount}</td>
                       <td className="py-2 px-3 capitalize">{r.status}</td>
                       <td className="py-2 px-3 space-x-1">

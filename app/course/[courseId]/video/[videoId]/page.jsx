@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import VimeoPlayer from '../../../../components/VimeoPlayer';
@@ -18,10 +18,9 @@ export default function VideoPlayerPage() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    
-    // Allow access to preview videos even without login
     fetchCourseData();
-  }, [session, status, courseId, videoId, router]);
+    // Do not depend on full `session` — NextAuth refreshes it often and would reload the whole page during playback.
+  }, [status, courseId, videoId, session?.user?.id]);
 
   // Prevent sharing and URL copying
   useEffect(() => {
@@ -153,16 +152,13 @@ export default function VideoPlayerPage() {
     }
   };
 
-  const handleVideoEnd = (video) => {
+  const handleVideoEnd = useCallback((video) => {
     console.log('Video ended:', video.title);
-    // You can add logic here to mark video as completed
-    // or move to the next video
-  };
+  }, []);
 
-  const handleVideoStart = (video) => {
+  const handleVideoStart = useCallback((video) => {
     console.log('Video started:', video.title);
-    // You can add analytics tracking here
-  };
+  }, []);
 
   if (status === 'loading' || isLoading) {
     return (

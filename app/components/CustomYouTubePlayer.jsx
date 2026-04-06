@@ -55,7 +55,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     return null;
   };
 
-  // Check if user has access to this video
+  // Check if user has access to this video (avoid depending on whole `session` — it refreshes often)
   useEffect(() => {
     const checkAccess = async () => {
       setIsCheckingAccess(true);
@@ -89,7 +89,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     };
 
     checkAccess();
-  }, [session, courseId, video?.isFreePreview, video?.isPreview]);
+  }, [session?.user?.id, courseId, video?.isFreePreview, video?.isPreview]);
 
   // Load YouTube iframe API
   useEffect(() => {
@@ -115,6 +115,13 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     }
   }, []);
 
+  const onVideoStartRef = useRef(onVideoStart);
+  const onVideoEndRef = useRef(onVideoEnd);
+  useEffect(() => {
+    onVideoStartRef.current = onVideoStart;
+    onVideoEndRef.current = onVideoEnd;
+  }, [onVideoStart, onVideoEnd]);
+
   // Initialize YouTube player (hidden)
   useEffect(() => {
     if (!hasAccess || !containerRef.current) return;
@@ -122,9 +129,14 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     const videoId = getYouTubeVideoId();
     if (!videoId) return;
 
+    let cancelled = false;
+    let timeInterval = null;
+    let pollTimer = null;
+
     const initPlayer = () => {
+      if (cancelled) return;
       if (!window.YT || !window.YT.Player) {
-        setTimeout(initPlayer, 100);
+        pollTimer = setTimeout(initPlayer, 100);
         return;
       }
 
@@ -135,11 +147,16 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
           } catch (e) {}
         }
 
+        const host = containerRef.current;
+        if (!host || cancelled) return;
+
         // Create YouTube player container (visible but YouTube UI hidden)
         const playerContainer = document.createElement('div');
         playerContainer.id = `youtube-player-${Date.now()}`;
         playerContainer.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%;';
-        containerRef.current.appendChild(playerContainer);
+        host.appendChild(playerContainer);
+
+        const videoRef = video;
 
         playerRef.current = new window.YT.Player(playerContainer.id, {
           videoId: videoId,
@@ -162,6 +179,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
           host: 'https://www.youtube-nocookie.com',
           events: {
             onReady: (event) => {
+              if (cancelled) return;
               console.log('YouTube player ready');
               setIsLoading(false);
               setPlayerReady(true);
@@ -180,7 +198,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
                 console.log('Could not get quality levels');
               }
               
-              if (onVideoStart) onVideoStart(video);
+              onVideoStartRef.current?.(videoRef);
             },
             onStateChange: (event) => {
               if (event.data === window.YT.PlayerState.PLAYING) {
@@ -189,7 +207,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
                 setIsPlaying(false);
               } else if (event.data === window.YT.PlayerState.ENDED) {
                 setIsPlaying(false);
-                if (onVideoEnd) onVideoEnd(video);
+                onVideoEndRef.current?.(videoRef);
               }
             },
             onError: (event) => {
@@ -200,19 +218,14 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
           }
         });
 
-        // Update time periodically
-        const timeInterval = setInterval(() => {
+        timeInterval = setInterval(() => {
           if (playerRef.current && playerRef.current.getCurrentTime) {
             try {
               const time = playerRef.current.getCurrentTime();
               setCurrentTime(time);
             } catch (e) {}
           }
-        }, 100);
-
-        return () => {
-          clearInterval(timeInterval);
-        };
+        }, 250);
       } catch (error) {
         console.error('Error initializing YouTube player:', error);
         setError('Failed to initialize video player.');
@@ -223,14 +236,21 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     initPlayer();
 
     return () => {
+      cancelled = true;
+      if (pollTimer) clearTimeout(pollTimer);
+      if (timeInterval) clearInterval(timeInterval);
       if (playerRef.current) {
         try {
           playerRef.current.destroy();
         } catch (e) {}
         playerRef.current = null;
       }
+      const host = containerRef.current;
+      if (host) {
+        host.querySelectorAll('[id^="youtube-player-"]').forEach((el) => el.remove());
+      }
     };
-  }, [hasAccess, video, courseId, onVideoStart, onVideoEnd]);
+  }, [hasAccess, courseId, video?._id, video?.youtubeUrl]);
 
   // Mobile detection
   useEffect(() => {
@@ -285,21 +305,23 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     };
   }, []);
 
-  // Prevent all interactions with YouTube UI
+  // Block stray YouTube UI clicks only inside the player — never on document (that broke navbar / whole page).
   useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+
     const preventAllClicks = (e) => {
+      if (!root.contains(e.target)) return;
+
       // Allow clicks in fullscreen mode (for video playback)
       if (document.fullscreenElement || document.webkitFullscreenElement || 
           document.mozFullScreenElement || document.msFullscreenElement) {
-        // In fullscreen, allow video interactions
         if (e.target.closest('iframe') || e.target.tagName === 'IFRAME') {
-          return; // Allow iframe clicks in fullscreen
+          return;
         }
       }
       
-      // On mobile, allow touch events to pass through for video controls
       if (isMobile && (e.type === 'touchstart' || e.type === 'touchend')) {
-        // Allow touches on iframe in fullscreen on mobile
         if ((document.fullscreenElement || document.webkitFullscreenElement || 
             document.mozFullScreenElement || document.msFullscreenElement) &&
             (e.target.closest('iframe') || e.target.tagName === 'IFRAME')) {
@@ -307,7 +329,6 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
         }
       }
       
-      // Only allow clicks on our custom controls
       if (!e.target.closest('.custom-video-controls') && 
           !e.target.closest('.custom-control-button')) {
         e.preventDefault();
@@ -318,27 +339,24 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     };
 
     const preventContextMenu = (e) => {
-      // Allow right-click in fullscreen for video controls
+      if (!root.contains(e.target)) return;
       if (document.fullscreenElement || document.webkitFullscreenElement || 
           document.mozFullScreenElement || document.msFullscreenElement) {
         return;
       }
-      
-      if (e.target.closest('.custom-video-player')) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
     };
 
-    document.addEventListener('click', preventAllClicks, true);
-    document.addEventListener('contextmenu', preventContextMenu, true);
+    root.addEventListener('click', preventAllClicks, true);
+    root.addEventListener('contextmenu', preventContextMenu, true);
 
     return () => {
-      document.removeEventListener('click', preventAllClicks, true);
-      document.removeEventListener('contextmenu', preventContextMenu, true);
+      root.removeEventListener('click', preventAllClicks, true);
+      root.removeEventListener('contextmenu', preventContextMenu, true);
     };
-  }, [isMobile]);
+  }, [isMobile, hasAccess, playerReady]);
 
   // Player control functions
   const togglePlay = () => {
