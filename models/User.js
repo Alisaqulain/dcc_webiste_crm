@@ -57,6 +57,11 @@ const userSchema = new mongoose.Schema({
       ref: 'Coupon',
       default: null,
     },
+    comboPurchaseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ComboCourse',
+      default: null,
+    },
   }],
   /** Full platform access after first course purchase. Omitted/false-y on legacy users treated as active in auth. */
   isActive: { type: Boolean, default: false },

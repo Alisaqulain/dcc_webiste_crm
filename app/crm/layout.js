@@ -5,228 +5,208 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useCrmAccess } from '../hooks/useCrmAccess';
+import './crm-theme.css';
+
+const NAV = [
+  { href: '/crm', label: 'Dashboard', icon: '📊' },
+  { href: '/crm/referral-program', label: 'Referral Link', icon: '🔗' },
+  { href: '/crm/payment-center', label: 'My Payments', icon: '💳' },
+  { href: '/crm/lead-add', label: 'Lead + Add', icon: '➕', badge: 'NEW' },
+  { href: '/crm/training-videos', label: 'Training', icon: '🎥' },
+  { href: '/crm/last-month-earnings', label: 'Last month earnings', icon: '📅' },
+  { href: '/crm/data-store', label: 'Data Store', icon: '💾' },
+  { href: '/crm/download-files', label: 'Marketing Tools', icon: '📣' },
+  { href: '/crm/account-settings', label: 'KYC / Account', icon: '🪪' },
+  { href: '/crm/support', label: 'Support', icon: '🆘' },
+];
 
 export default function CrmLayout({ children }) {
-	const pathname = usePathname();
-	const router = useRouter();
-	const { data: session, status } = useSession();
-	const { hasCrmAccess, isLoading: checkingAccess } = useCrmAccess();
-	const [isOpen, setIsOpen] = useState(true);
-	const [userData, setUserData] = useState(null);
-	const [currentTime, setCurrentTime] = useState('');
-	const [sidebarRevenue, setSidebarRevenue] = useState(null);
+  const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const { hasCrmAccess, isLoading: checkingAccess } = useCrmAccess();
+  const [isOpen, setIsOpen] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [sidebarRevenue, setSidebarRevenue] = useState(null);
 
-	// Fetch user data
-	useEffect(() => {
-		if (session) {
-			fetch('/api/user/profile')
-				.then(res => res.json())
-				.then(data => setUserData(data))
-				.catch(err => console.error('Error fetching user data:', err));
-		}
-	}, [session]);
+  useEffect(() => {
+    if (session) {
+      fetch('/api/user/profile')
+        .then((res) => res.json())
+        .then((data) => setUserData(data))
+        .catch(() => {});
+    }
+  }, [session]);
 
-	// Sidebar: today vs yesterday (lead commissions)
-	useEffect(() => {
-		if (!session) return;
-		fetch('/api/crm/dashboard')
-			.then((res) => (res.ok ? res.json() : null))
-			.then((d) => {
-				if (d && typeof d.todayEarning === 'number') {
-					setSidebarRevenue({
-						today: d.todayEarning,
-						change: typeof d.todayEarningsChange === 'number' ? d.todayEarningsChange : 0,
-					});
-				}
-			})
-			.catch(() => {});
-	}, [session]);
+  useEffect(() => {
+    if (!session) return;
+    fetch('/api/crm/dashboard')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((d) => {
+        if (d && typeof d.todayEarning === 'number') {
+          setSidebarRevenue({
+            today: d.todayEarning,
+            change: typeof d.todayEarningsChange === 'number' ? d.todayEarningsChange : 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }, [session]);
 
-	// Update current time
-	useEffect(() => {
-		const updateTime = () => {
-			const now = new Date();
-			const hours = now.getHours();
-			const minutes = now.getMinutes();
-			const ampm = hours >= 12 ? 'pm' : 'am';
-			const displayHours = hours % 12 || 12;
-			const displayMinutes = minutes.toString().padStart(2, '0');
-			setCurrentTime(`${displayHours}:${displayMinutes}${ampm}`);
-		};
-		updateTime();
-		const interval = setInterval(updateTime, 60000); // Update every minute
-		return () => clearInterval(interval);
-	}, []);
+  useEffect(() => {
+    if (status === 'loading' || checkingAccess) return;
+    if (!session) {
+      router.push('/login?callbackUrl=' + encodeURIComponent(pathname));
+      return;
+    }
+    if (!checkingAccess && !hasCrmAccess) {
+      router.push('/profile?error=crm-access-required');
+    }
+  }, [session, status, hasCrmAccess, checkingAccess, router, pathname]);
 
-	// Get user initials
-	const getUserInitials = () => {
-		if (session?.user?.name) {
-			const names = session.user.name.split(' ');
-			return names.map(n => n[0]).join('').toUpperCase().slice(0, 2);
-		}
-		return 'U';
-	};
+  const getUserInitials = () => {
+    if (session?.user?.name) {
+      return session.user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return 'U';
+  };
 
-	useEffect(() => {
-		// Wait for session and access check to complete
-		if (status === 'loading' || checkingAccess) return;
-		
-		// If no session, redirect to login
-		if (!session) {
-			// Use callbackUrl for NextAuth compatibility
-			router.push('/login?callbackUrl=' + encodeURIComponent(pathname));
-			return;
-		}
+  if (status === 'loading' || checkingAccess) {
+    return (
+      <div className="min-h-screen crm-main-bg flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-violet-200 border-t-violet-700 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
-		// If session exists but no CRM access, redirect to profile with message
-		// Only redirect if we've confirmed they don't have access (not still loading)
-		if (!checkingAccess && !hasCrmAccess) {
-			router.push('/profile?error=crm-access-required');
-			return;
-		}
-	}, [session, status, hasCrmAccess, checkingAccess, router, pathname]);
+  if (session && !checkingAccess && !hasCrmAccess) {
+    return (
+      <div className="min-h-screen crm-main-bg flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <p className="text-lg font-semibold text-gray-900 mb-2">CRM access required</p>
+          <p className="text-gray-600 mb-4">Purchase a course with CRM access to continue.</p>
+          <button
+            type="button"
+            onClick={() => router.push('/profile')}
+            className="px-5 py-2.5 bg-violet-700 text-white rounded-lg font-medium"
+          >
+            Go to Profile
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-	// Show loading state while checking session or access
-	if (status === 'loading' || checkingAccess) {
-		return (
-			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
-				<div className="text-center">
-					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-					<p className="mt-4 text-gray-600">Checking access...</p>
-				</div>
-			</div>
-		);
-	}
+  if (!session && status !== 'loading') return null;
 
-	// Show loading if session exists but we're still verifying access
-	// Only show error if we've confirmed they don't have access
-	if (session && !checkingAccess && !hasCrmAccess) {
-		return (
-			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
-				<div className="text-center">
-					<div className="text-red-600 text-2xl mb-4">⚠️</div>
-					<p className="text-lg font-semibold text-gray-900 mb-2">Access Denied</p>
-					<p className="text-gray-600 mb-4">You need to purchase a course with CRM access to use this feature.</p>
-					<button
-						onClick={() => router.push('/profile')}
-						className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-					>
-						Go to Profile
-					</button>
-				</div>
-			</div>
-		);
-	}
+  const displayName =
+    userData?.profile?.firstName && userData?.profile?.lastName
+      ? `${userData.profile.firstName} ${userData.profile.lastName}`
+      : session?.user?.name || 'Member';
 
-	// If no session and not loading, redirect will happen in useEffect
-	if (!session && status !== 'loading') {
-		return null;
-	}
+  return (
+    <div className="min-h-screen flex crm-shell crm-main-bg">
+      {isOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          aria-label="Close menu"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
 
-	const NavItem = ({ href, label, icon }) => {
-		const active = pathname === href;
-		return (
-			<Link
-				href={href}
-				className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-					active 
-						? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg' 
-						: 'text-gray-200 hover:bg-gray-700 hover:text-white'
-				}`}
-			>
-				<span className="text-lg">{icon}</span>
-				<span className="font-medium">{label}</span>
-			</Link>
-		);
-	};
+      <aside
+        className={`crm-sidebar fixed md:relative text-white w-64 h-full z-50 shrink-0 transition-transform duration-300 shadow-xl ${
+          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
+        <div className="h-16 flex items-center justify-between px-5 border-b border-white/10">
+          <span className="font-bold text-lg tracking-tight">DCC CRM</span>
+          <button
+            type="button"
+            className="md:hidden text-white/80 hover:text-white p-1"
+            onClick={() => setIsOpen(false)}
+          >
+            ✕
+          </button>
+        </div>
 
-	return (
-		<div className="min-h-screen flex bg-gray-100">
-			{/* Mobile Overlay */}
-			{isOpen && (
-				<div 
-					className="fixed inset-0  bg-opacity-50 z-40 md:hidden"
-					onClick={() => setIsOpen(false)}
-				/>
-			)}
-			
-			{/* Sidebar */}
-			<aside className={`fixed md:relative bg-gradient-to-b from-gray-900 to-gray-800 text-white w-64 h-full z-50 shrink-0 transition-transform duration-300 ease-in-out shadow-2xl ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
-				<div className="h-16 flex items-center justify-between px-6 border-b border-gray-700">
-					<div className="flex items-center gap-3">
-						<div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-							<span className="text-white font-bold text-sm">D</span>
-						</div>
-						<span className="font-bold text-sm md:text-base">DCC CRM</span>
-					</div>
-					<button className="md:hidden text-gray-300 hover:text-white p-1 rounded" onClick={() => setIsOpen(false)}>✕</button>
-				</div>
-				
-				{/* Revenue Display */}
-				<div className="px-6 py-4 border-b border-gray-700 bg-gradient-to-r from-green-600/20 to-green-500/20">
-					<div className="text-xs text-gray-300 uppercase tracking-wide">Today&apos;s earnings</div>
-					<div className="text-2xl font-bold text-green-400">
-						₹{sidebarRevenue ? sidebarRevenue.today.toFixed(2) : '—'}
-					</div>
-					<div className="text-xs text-gray-400 mt-1">
-						{sidebarRevenue ? (
-							<>
-								{sidebarRevenue.change >= 0 ? '+' : ''}
-								{sidebarRevenue.change.toFixed(1)}% from yesterday
-							</>
-						) : (
-							<span className="text-gray-500">Loading…</span>
-						)}
-					</div>
-				</div>
-				
-				<nav className="p-4 space-y-2 overflow-y-auto">
-					<NavItem href="/crm" label="Dashboard" icon="📊" />
-					<NavItem href="/crm/last-month-earnings" label="Last month earnings" icon="📅" />
-					<NavItem href="/crm/lead-add" label="Lead + Add" icon="➕" />
-					<NavItem href="/crm/training-videos" label="Training Video&apos;s" icon="🎥" />
-					<NavItem href="/crm/data-store" label="Data Store" icon="💾" />
-					<NavItem href="/crm/download-files" label="Download Files" icon="📥" />
-					<NavItem href="/crm/referral-program" label="Referral Program" icon="👥" />
-					<NavItem href="/crm/payment-center" label="Payment Center" icon="💳" />
-					<NavItem href="/crm/account-settings" label="Account Settings" icon="⚙️" />
-					<NavItem href="/crm/support" label="Support" icon="🆘" />
-				</nav>
-			</aside>
+        <div className="p-4 crm-profile-card rounded-xl mx-3 mt-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-violet-400/40 flex items-center justify-center font-bold text-sm border-2 border-white/30">
+              {getUserInitials()}
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-sm truncate">{displayName}</p>
+              <p className="text-xs text-white/70">Affiliate member</p>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-white/15">
+            <p className="text-[10px] uppercase tracking-wide text-white/60">Today</p>
+            <p className="text-lg font-bold text-yellow-300">
+              ₹{sidebarRevenue ? Math.round(sidebarRevenue.today).toLocaleString('en-IN') : '—'}
+            </p>
+          </div>
+        </div>
 
-			{/* Main */}
-			<div className="flex-1 min-w-0 flex flex-col bg-gray-50">
-				<header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-30 shadow-sm">
-					<div className="flex items-center gap-3">
-						<button className="md:hidden px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors" onClick={() => setIsOpen(v => !v)}>
-							<span className="text-lg">☰</span>
-						</button>
-						<div className="flex items-center gap-3">
-							<div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-								<span className="text-white font-bold">{getUserInitials()}</span>
-							</div>
-							<div>
-								<h1 className="font-semibold text-sm md:text-base text-gray-900">
-									Welcome: {session?.user?.name?.toUpperCase() || 'User'}
-								</h1>
-								<p className="text-xs text-gray-500">
-									Affiliate: #{userData?.referralCode || session?.user?.referralCode || 'N/A'}
-								</p>
-							</div>
-						</div>
-					</div>
-					<div className="flex items-center gap-4">
-						<div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
-							<span className="w-2 h-2 bg-green-500 rounded-full"></span>
-							<span>Server Time: {currentTime || new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-						</div>
-						
-					</div>
-				</header>
-				<main className="flex-1 p-4 sm:p-6 overflow-auto bg-gray-50">{children}</main>
-			</div>
-		</div>
-	);
+        <nav className="p-3 space-y-0.5 overflow-y-auto max-h-[calc(100vh-220px)]">
+          {NAV.map((item) => {
+            const active = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                  active ? 'crm-nav-active' : 'crm-nav-item'
+                }`}
+              >
+                <span className="text-base">{item.icon}</span>
+                <span className="flex-1 font-medium">{item.label}</span>
+                {item.badge && (
+                  <span className="text-[10px] font-bold bg-red-500 text-white px-1.5 py-0.5 rounded">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="h-16 bg-white border-b border-violet-100 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-30 shadow-sm">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="md:hidden px-3 py-2 border border-violet-200 rounded-lg text-violet-800"
+              onClick={() => setIsOpen(true)}
+            >
+              ☰
+            </button>
+            <div>
+              <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                Welcome, {displayName.split(' ')[0]}
+              </p>
+              <p className="text-xs text-violet-600 font-mono">
+                #{userData?.referralCode || session?.user?.referralCode || '—'}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/courses"
+            className="hidden sm:inline-flex text-sm font-medium text-violet-700 hover:text-violet-900"
+          >
+            Browse courses
+          </Link>
+        </header>
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
+    </div>
+  );
 }
-
-

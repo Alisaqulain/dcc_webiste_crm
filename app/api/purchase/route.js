@@ -15,7 +15,7 @@ export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       return Response.json(
         { message: 'Authentication required' },
         { status: 401 }
@@ -26,15 +26,11 @@ export async function POST(request) {
 
     const { courseId, userId, couponCode } = await request.json();
 
-    if (!courseId || !userId) {
+    if (!courseId) {
       return Response.json(
-        { message: 'Course ID and User ID are required' },
+        { message: 'Course ID is required' },
         { status: 400 }
       );
-    }
-
-    if (session.user.id !== userId) {
-      return Response.json({ message: 'Forbidden' }, { status: 403 });
     }
 
     const course = await Course.findById(courseId);
@@ -42,7 +38,13 @@ export async function POST(request) {
       return Response.json({ message: 'Course not found' }, { status: 404 });
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findOne({ email: session.user.email.toLowerCase() });
+    if (!user) {
+      return Response.json({ message: 'User not found' }, { status: 404 });
+    }
+    if (userId && user._id.toString() !== String(userId)) {
+      return Response.json({ message: 'Forbidden' }, { status: 403 });
+    }
     if (!user) {
       return Response.json({ message: 'User not found' }, { status: 404 });
     }
@@ -65,6 +67,7 @@ export async function POST(request) {
         code: couponCode,
         courseId,
         userId: session.user.id,
+        userEmail: session.user.email,
       });
       if (!v.ok) {
         return Response.json({ message: v.message }, { status: 400 });

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import Certificate from '@/models/Certificate';
+import { findCertificateByRollNumber } from '@/lib/certificateLookup';
 
 export async function GET(request, { params }) {
   try {
@@ -8,32 +8,25 @@ export async function GET(request, { params }) {
     
     let { rollNumber } = await params;
     
-    // Decode URL-encoded roll number (handles slashes and special characters)
     if (rollNumber) {
       rollNumber = decodeURIComponent(rollNumber);
     }
     
-    if (!rollNumber) {
+    if (!rollNumber?.trim()) {
       return NextResponse.json(
         { error: 'Roll number is required' },
         { status: 400 }
       );
     }
 
-    // Decode the roll number to handle URL-encoded values (e.g., "Dt%2F1" -> "Dt/1")
-    const decodedRollNumber = decodeURIComponent(rollNumber);
-    
-    // Try to find certificate with decoded roll number first
-    let certificate = await Certificate.findOne({ rollNumber: decodedRollNumber });
-    
-    // If not found, try with the original (in case it's stored without encoding)
-    if (!certificate) {
-      certificate = await Certificate.findOne({ rollNumber });
-    }
+    const certificate = await findCertificateByRollNumber(rollNumber);
     
     if (!certificate) {
       return NextResponse.json(
-        { error: 'Certificate not found' },
+        {
+          error: 'Certificate not found',
+          hint: 'Try the full roll number (e.g. 00781/DCC55) if you only entered part of it.',
+        },
         { status: 404 }
       );
     }

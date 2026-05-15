@@ -1,208 +1,156 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import Image from 'next/image';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { parseCertificateDownloadParams } from '@/lib/parseCertificateDownloadParams';
+import CertificatePreview, {
+  buildCertificatePrintHtml,
+} from '@/app/components/certificate/CertificatePreview';
 
 export default function CertificateDownloadPage() {
   const params = useParams();
-  // In Next.js App Router, catch-all routes return params as { params: ['segment1', 'segment2'] }
-  // Join all params with '/' to handle roll numbers like "Dt/1" or single segments like "123"
-  const rollNumber = Array.isArray(params?.params) 
-    ? params.params.join('/') 
-    : (params?.params || '');
+  const router = useRouter();
+  const segments = Array.isArray(params?.params)
+    ? params.params
+    : params?.params
+      ? [params.params]
+      : [];
+  const { documentType, rollNumber } = parseCertificateDownloadParams(segments);
   const [certificate, setCertificate] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notFoundHint, setNotFoundHint] = useState('');
 
   useEffect(() => {
+    if (documentType === 'idcard' && rollNumber) {
+      router.replace(`/idcard/download/${encodeURIComponent(rollNumber)}`);
+      return;
+    }
+    if (!rollNumber) {
+      setError('Roll number is required');
+      setIsLoading(false);
+      return;
+    }
     fetchCertificate();
-  }, [rollNumber]);
+  }, [rollNumber, documentType, router]);
 
   const fetchCertificate = async () => {
+    setIsLoading(true);
+    setError(null);
+    setNotFoundHint('');
     try {
-      // Encode the roll number to handle special characters and slashes
       const encodedRollNumber = encodeURIComponent(rollNumber);
       const response = await fetch(`/api/certificate/${encodedRollNumber}`);
       if (response.ok) {
         const data = await response.json();
-        console.log('Certificate data:', data.certificate);
-        console.log('Photo URL:', data.certificate?.photo);
         setCertificate(data.certificate);
       } else {
+        const data = await response.json().catch(() => ({}));
         setError('Certificate not found');
+        setNotFoundHint(
+          data.hint ||
+            'Use the full roll number printed on your certificate (e.g. 00781/DCC55).'
+        );
       }
-    } catch (error) {
-      console.error('Error fetching certificate:', error);
+    } catch (err) {
+      console.error('Error fetching certificate:', err);
       setError('Error loading certificate');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const formatDate = (date) => {
-    if (!date) return 'N/A';
-    try {
-      return new Date(date).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      });
-    } catch (e) {
-      return 'N/A';
-    }
-  };
-
-  const formatDateDDMMYYYY = (date) => {
-    if (!date) return 'N/A';
-    try {
-      const d = new Date(date);
-      const day = String(d.getDate()).padStart(2, '0');
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const year = d.getFullYear();
-      return `${day}-${month}-${year}`;
-    } catch (e) {
-      return 'N/A';
-    }
-  };
-
   const handleDownload = () => {
     if (!certificate) return;
-    
-    // Create a new window with the certificate
+
+    const {
+      studentName,
+      parentName,
+      courseName,
+      duration,
+      startDate,
+      endDate,
+      rollNum,
+      photoUrl,
+    } = buildCertificatePrintHtml(certificate);
+
+    const imageUrl = `${window.location.origin}/certificate1.jpg`;
     const printWindow = window.open('', '_blank');
-    const studentName = certificate.studentName || 'N/A';
-    const parentName = certificate.parentName || 'N/A';
-    const courseName = certificate.courseName || 'N/A';
-    const duration = certificate.duration || 0;
-    const startDate = formatDate(certificate.startDate);
-    const endDate = formatDateDDMMYYYY(certificate.endDate);
-    const rollNum = certificate.rollNumber || 'N/A';
-    const photoUrl = certificate.photo || '';
-    
-    // Get the full URL for the certificate image
-    const imageUrl = window.location.origin + '/certificate1.jpg';
-    
-    // Write the HTML content
+
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
         <head>
           <title>Certificate - ${studentName}</title>
           <style>
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: Arial, sans-serif;
-              margin: 0;
-              padding: 0;
               background: white;
               display: flex;
               justify-content: center;
-              align-items: center;
-              min-height: 100vh;
+              padding: 12px;
             }
-            .certificate-container {
+            .stage {
               position: relative;
-              width: 800px;
-              max-width: 100%;
-              aspect-ratio: 4/3;
-              margin: 20px auto;
-            }
-            .certificate-image {
               width: 100%;
-              height: 100%;
-              object-fit: contain;
-              display: block;
-              position: absolute;
-              top: 0;
-              left: 0;
+              max-width: 1000px;
             }
-            .certificate-overlay {
+            .stage img.bg {
+              width: 100%;
+              height: auto;
+              display: block;
+            }
+            .overlay {
               position: absolute;
               font-weight: bold;
               color: black;
               z-index: 10;
-              white-space: nowrap;
             }
-            /* Certificate Number */
-            .overlay-roll { top: 27%; left: 55.5%; font-size: 18px; }
-            /* Student Name */
-            .overlay-name { top: 45%; left: 60%; font-size: 22px; }
-            /* Parent Name */
-            .overlay-parent { top: 50%; left: 47%; font-size: 18px; }
-            /* Course Name */
-            .overlay-course { top: 53.5%; left: 50%; font-size: 18px; }
-            /* Duration */
-            .overlay-duration { top: 58%; left: 65%; font-size: 18px; }
-            /* Start Date */
-            .overlay-start-date { top: 62%; left: 45%; font-size: 16px; }
-            /* End Date */
-            .overlay-end-date { top: 62%; left: 65%; font-size: 16px; }
+            .photo {
+              top: 25%;
+              left: 80%;
+              width: 13%;
+              aspect-ratio: 1.08;
+              object-fit: cover;
+              border-radius: 8px;
+              border: 2px solid #ccc;
+            }
+            .roll { top: 27%; left: 55.5%; font-size: 14px; white-space: nowrap; }
+            .name { top: 45%; left: 60%; font-size: 18px; white-space: nowrap; }
+            .parent { top: 50%; left: 47%; font-size: 14px; white-space: nowrap; }
+            .course { top: 53.5%; left: 50%; font-size: 13px; max-width: 38%; line-height: 1.2; }
+            .duration { top: 58%; left: 65%; font-size: 14px; white-space: nowrap; }
+            .start { top: 62%; left: 45%; font-size: 12px; white-space: nowrap; }
+            .end { top: 62%; left: 65%; font-size: 12px; white-space: nowrap; }
             @media print {
-              body { 
-                background: white;
-                margin: 0;
-                padding: 0;
-              }
-              .certificate-container {
-                margin: 0;
-                width: 100%;
-                page-break-after: avoid;
-              }
+              body { padding: 0; }
+              .stage { max-width: none; width: 100%; }
             }
           </style>
         </head>
         <body>
-          <div class="certificate-container">
-            <img src="${imageUrl}" alt="Certificate" class="certificate-image" onload="window.printWhenReady = true; if (window.imageLoaded) window.printReady();" onerror="console.error('Image failed to load:', '${imageUrl}'); window.printWhenReady = true; if (window.imageLoaded) window.printReady();" />
-            ${photoUrl ? `<img src="${photoUrl.startsWith('http') || photoUrl.startsWith('data:') ? photoUrl : photoUrl.startsWith('/') ? photoUrl : '/' + photoUrl}" alt="Student photo" class="certificate-overlay" style="top: 25%; left: 80%; width: 130px; height: 120px; border-radius: 8px; object-fit: cover; border: 2px solid #ccc; z-index: 15;" onerror="this.style.display='none'; console.error('Photo failed to load:', '${photoUrl}');" />` : ''}
-            <div class="certificate-overlay overlay-roll">${rollNum}</div>
-            <div class="certificate-overlay overlay-name">${studentName}</div>
-            <div class="certificate-overlay overlay-parent">${parentName}</div>
-            <div class="certificate-overlay overlay-course">${courseName}</div>
-            <div class="certificate-overlay overlay-duration">${duration}</div>
-            <div class="certificate-overlay overlay-start-date">${startDate}</div>
-            <div class="certificate-overlay overlay-end-date">${endDate}</div>
+          <div class="stage">
+            <img src="${imageUrl}" alt="Certificate" class="bg" />
+            ${photoUrl ? `<img src="${photoUrl}" alt="" class="overlay photo" onerror="this.style.display='none'" />` : ''}
+            <div class="overlay roll">${rollNum}</div>
+            <div class="overlay name">${studentName}</div>
+            <div class="overlay parent">${parentName}</div>
+            <div class="overlay course">${courseName}</div>
+            <div class="overlay duration">${duration}</div>
+            <div class="overlay start">${startDate}</div>
+            <div class="overlay end">${endDate}</div>
           </div>
           <script>
-            (function() {
-              var img = document.querySelector('.certificate-image');
-              var printReady = false;
-              
-              function tryPrint() {
-                if (printReady) {
-                  setTimeout(function() {
-                    window.print();
-                  }, 800);
-                }
+            (function () {
+              var img = document.querySelector('.bg');
+              function doPrint() {
+                setTimeout(function () { window.print(); }, 600);
               }
-              
-              if (img) {
-                if (img.complete && img.naturalHeight !== 0) {
-                  printReady = true;
-                  tryPrint();
-                } else {
-                  img.onload = function() {
-                    printReady = true;
-                    tryPrint();
-                  };
-                  img.onerror = function() {
-                    console.error('Image failed to load:', '${imageUrl}');
-                    alert('Certificate image could not be loaded. Please check the image path.');
-                  };
-                }
-              }
-              
-              window.addEventListener('load', function() {
-                if (!printReady && img && img.complete) {
-                  printReady = true;
-                  tryPrint();
-                }
-              });
+              if (img && img.complete) doPrint();
+              else if (img) img.onload = doPrint;
+              else doPrint();
             })();
           </script>
         </body>
@@ -213,9 +161,9 @@ export default function CertificateDownloadPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4" />
           <p className="text-gray-600">Loading certificate...</p>
         </div>
       </div>
@@ -224,134 +172,83 @@ export default function CertificateDownloadPage() {
 
   if (error || !certificate) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
           <div className="text-red-500 mb-4">
-            <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            <svg
+              className="mx-auto h-12 w-12"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Certificate Not Found</h2>
-          <p className="text-gray-600 mb-4">No certificate found for roll number: {rollNumber}</p>
-          <a
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+            Certificate Not Found
+          </h2>
+          <p className="text-gray-600 mb-2">
+            No certificate found for: <strong>{rollNumber}</strong>
+          </p>
+          {notFoundHint ? (
+            <p className="text-sm text-gray-500 mb-6">{notFoundHint}</p>
+          ) : (
+            <p className="text-sm text-gray-500 mb-6">
+              Try the full roll number from your certificate (e.g.{' '}
+              <span className="font-mono">00781/DCC55</span>), not only the short
+              code.
+            </p>
+          )}
+          <Link
             href="/certificate"
-            className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors"
+            className="inline-block bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors w-full sm:w-auto"
           >
-            Back to Certificates
-          </a>
+            Try another roll number
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 sm:py-12 md:py-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        {/* Certificate Display Section */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-12 mb-8">
-          {/* Certificate Image Container with Overlays */}
-          <div className="relative max-w-5xl mx-auto">
-            <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl p-4 sm:p-6 shadow-inner relative">
-              <div className="relative w-full aspect-[4/3]">
-                <Image
-                  src="/certificate1.jpg"
-                  alt="Digital Career Center Certificate"
-                  fill
-                  className="object-contain rounded-lg shadow-lg"
-                  priority
-                />
-                
-                {/* Overlay Elements - Positioned absolutely over the certificate image */}
-                {/* Student Photo - if available */}
-                {certificate.photo && (
-                  <>
-                    <img 
-                      src={certificate.photo.startsWith('http') || certificate.photo.startsWith('data:') ? certificate.photo : certificate.photo.startsWith('/') ? certificate.photo : `/${certificate.photo}`}
-                      alt="Student photo" 
-                      className='absolute z-10 rounded object-cover border-2 border-gray-300'
-                      style={{ 
-                        top: '25%', 
-                        left: '80%', 
-                        width: 'clamp(75px, 15vw, 140px)', 
-                        height: 'clamp(80px, 15vw, 140px)',
-                        backgroundColor: '#f3f4f6'
-                      }}
-                      onError={(e) => {
-                        console.error('Photo failed to load. Original URL:', certificate.photo);
-                        const attemptedUrl = certificate.photo.startsWith('http') || certificate.photo.startsWith('data:') ? certificate.photo : certificate.photo.startsWith('/') ? certificate.photo : `/${certificate.photo}`;
-                        console.error('Attempted URL:', attemptedUrl);
-                        e.target.style.border = '2px solid red';
-                        e.target.style.opacity = '0.5';
-                      }}
-                      onLoad={() => {
-                        console.log('Photo loaded successfully:', certificate.photo);
-                      }}
-                    />
-                    {/* Debug info - remove in production */}
-                    {process.env.NODE_ENV === 'development' && (
-                      <div className="absolute top-4 left-4 z-20 bg-yellow-100 p-2 text-xs rounded">
-                        Photo: {certificate.photo ? 'Present' : 'Missing'}
-          </div>
-                    )}
-                  </>
-                )}
-                
-                {/* Certificate Number - positioned next to "Certificate No." label */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '27%', left: '55.5%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
-                  {certificate.rollNumber || 'N/A'}
-                </span>
-                
-                {/* Student Name - positioned right after "Mr./Ms." label */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '45%', left: '60%', fontSize: 'clamp(14px, 2vw, 24px)' }}>
-                  {certificate.studentName || 'N/A'}
-                </span>
-                
-                {/* Parent/Guardian Name - positioned right after "S/o, D/o, ." label */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '50%', left: '47%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
-                  {certificate.parentName || 'N/A'}
-                </span>
-                
-                {/* Course Name - positioned right after "in" */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '53.5%', left: '50%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
-                  {certificate.courseName || 'N/A'}
-                </span>
-                
-                {/* Duration - positioned right before "/ Days by" */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '58%', left: '65%', fontSize: 'clamp(12px, 1.8vw, 20px)' }}>
-                  {certificate.duration || 0}
-                </span>
-                
-                {/* Start Date - positioned in date field (Dec 12, 2005 format) */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '62%', left: '45%', fontSize: 'clamp(10px, 1.5vw, 18px)' }}>
-                  {formatDate(certificate.startDate)}
-                </span>
-                
-                {/* End Date - positioned in date field (DD-MM-YYYY format) */}
-                <span className='absolute z-10 font-bold text-black whitespace-nowrap' style={{ top: '62%', left: '65%', fontSize: 'clamp(10px, 1.5vw, 18px)' }}>
-                  {formatDateDDMMYYYY(certificate.endDate)}
-                </span>
-          </div>
-            </div>
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-10">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6">
+        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-8">
+          <p className="text-center text-sm text-gray-500 mb-4 sm:hidden">
+            Pinch to zoom if text looks small
+          </p>
+
+          <div className="bg-gray-100 rounded-xl p-2 sm:p-4">
+            <CertificatePreview certificate={certificate} />
           </div>
 
-          {/* Download Button */}
-          <div className="mt-8 text-center">
+          <p className="text-center text-xs text-gray-400 mt-3">
+            Roll no. {certificate.rollNumber}
+          </p>
+
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <button
+              type="button"
               onClick={handleDownload}
-              className="bg-red-600 text-white px-8 py-3 rounded-lg hover:bg-red-700 transition-colors mr-4"
+              className="w-full sm:w-auto bg-red-600 text-white px-8 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium"
             >
-              Download/Print Certificate
+              Download / Print
             </button>
-            <a
+            <Link
               href="/certificate"
-              className="bg-gray-600 text-white px-8 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+              className="w-full sm:w-auto text-center bg-gray-600 text-white px-8 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium"
             >
-              Back to Certificates
-            </a>
+              Try another roll number
+            </Link>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

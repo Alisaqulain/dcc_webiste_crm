@@ -37,6 +37,7 @@ const CoursesPage = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [courses, setCourses] = useState([]);
+  const [combos, setCombos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
@@ -45,7 +46,14 @@ const CoursesPage = () => {
   const [showViewMoreModal, setShowViewMoreModal] = useState(false);
   const [viewMoreCourse, setViewMoreCourse] = useState(null);
   const [showPendingBanner, setShowPendingBanner] = useState(false);
+  const [couponFromUrl, setCouponFromUrl] = useState("");
   const [ownedCourseIds, setOwnedCourseIds] = useState(() => new Set());
+
+  const purchaseUrl = (path) => {
+    if (!couponFromUrl) return path;
+    const sep = path.includes("?") ? "&" : "?";
+    return `${path}${sep}coupon=${encodeURIComponent(couponFromUrl)}`;
+  };
 
   const refreshOwnedCourses = useCallback(async () => {
     if (!session) {
@@ -80,8 +88,9 @@ const CoursesPage = () => {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const q = new URLSearchParams(window.location.search).get("pendingPurchase");
-    setShowPendingBanner(q === "1");
+    const params = new URLSearchParams(window.location.search);
+    setShowPendingBanner(params.get("pendingPurchase") === "1");
+    setCouponFromUrl(params.get("coupon") || "");
   }, []);
 
   useEffect(() => {
@@ -125,10 +134,17 @@ const CoursesPage = () => {
         ...(sortBy && { sortBy: sortBy })
       });
 
-      const response = await fetch(`/api/courses?${params}`);
+      const [response, comboRes] = await Promise.all([
+        fetch(`/api/courses?${params}`),
+        fetch('/api/combos'),
+      ]);
       if (response.ok) {
         const data = await response.json();
         setCourses(data.courses || []);
+      }
+      if (comboRes.ok) {
+        const comboData = await comboRes.json();
+        setCombos(comboData.combos || []);
       }
     } catch (error) {
       console.error("Error fetching courses:", error);
@@ -138,16 +154,31 @@ const CoursesPage = () => {
   };
 
   const handlePurchase = (course) => {
+    const dest = purchaseUrl(`/purchase/${course._id}`);
     if (!session) {
-      router.push(`/login?redirect=${encodeURIComponent(`/purchase/${course._id}`)}`);
+      router.push(`/login?redirect=${encodeURIComponent(dest)}`);
       return;
     }
-    router.push(`/purchase/${course._id}`);
+    router.push(dest);
   };
 
   const handleViewMore = (course) => {
     setViewMoreCourse(course);
     setShowViewMoreModal(true);
+  };
+
+  const isComboFullyOwned = (combo) => {
+    const ids = (combo.courseIds || []).map((c) => String(c._id));
+    return ids.length > 0 && ids.every((id) => ownedCourseIds.has(id));
+  };
+
+  const handleComboPurchase = (combo) => {
+    const dest = `/purchase/combo/${combo._id}`;
+    if (!session) {
+      router.push(`/login?redirect=${encodeURIComponent(dest)}`);
+      return;
+    }
+    router.push(dest);
   };
 
   if (isLoading) {
@@ -166,6 +197,16 @@ const CoursesPage = () => {
       {showPendingBanner && session && (
         <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-3 text-center text-sm">
           Complete your first course purchase below to unlock your dashboard, referrals, and CRM (if included with your course).
+        </div>
+      )}
+      {couponFromUrl && session && (
+        <div className="bg-green-50 border-b border-green-200 text-green-900 px-4 py-3 text-center text-sm">
+          Coupon <span className="font-mono font-semibold">{couponFromUrl.toUpperCase()}</span> will apply at checkout when you purchase a course below (logged in as you).
+        </div>
+      )}
+      {couponFromUrl && !session && status !== "loading" && (
+        <div className="bg-blue-50 border-b border-blue-200 text-blue-900 px-4 py-3 text-center text-sm">
+          Sign in to use coupon <span className="font-mono font-semibold">{couponFromUrl.toUpperCase()}</span> at checkout.
         </div>
       )}
       {/* Header */}
@@ -238,6 +279,87 @@ const CoursesPage = () => {
             </div>
           </div>
         </div>
+
+        {combos.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Combo bundles</h2>
+            <p className="text-gray-600 text-sm mb-6">One payment — lifetime access to every course in the bundle.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {combos.map((combo) => {
+                const owned = isComboFullyOwned(combo);
+                return (
+                  <div
+                    key={combo._id}
+                    className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow ring-2 ring-red-100"
+                  >
+                    <div className="relative h-48 w-full bg-gray-200">
+                      {getCourseThumbnail(combo.thumbnail) ? (
+                        <Image
+                          src={getCourseThumbnail(combo.thumbnail)}
+                          alt={combo.title}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                          Bundle
+                        </div>
+                      )}
+                      <div className="absolute top-4 right-4 bg-green-700 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                        Lifetime Access
+                      </div>
+                    </div>
+                    <div className="p-6">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">{combo.title}</h3>
+                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{combo.shortDescription}</p>
+                      <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
+                        {owned ? (
+                          <span className="text-lg font-semibold text-green-700">In your library</span>
+                        ) : (
+                          <>
+                            <span className="text-2xl font-bold text-gray-900">
+                              ₹{Number(combo.price).toLocaleString('en-IN')}
+                            </span>
+                            {combo.originalPrice > combo.price && (
+                              <span className="text-sm text-gray-500 line-through">
+                                ₹{Number(combo.originalPrice).toLocaleString('en-IN')}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        {!owned && (
+                        <button
+                          type="button"
+                          onClick={() => handleComboPurchase(combo)}
+                          className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium text-sm"
+                        >
+                          {session ? 'Purchase' : 'Login to Purchase'}
+                        </button>
+                        )}
+                        <Link
+                          href={`/combo/${combo._id}`}
+                          className="flex-1 px-4 py-2 rounded-lg font-medium text-sm bg-green-600 hover:bg-green-700 text-white text-center"
+                        >
+                          View Full Course
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleViewMore(combo)}
+                          className="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white"
+                        >
+                          View More
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Courses Grid */}
         {courses.length > 0 ? (

@@ -14,11 +14,30 @@ function SignupForm() {
   const [error, setError] = useState('');
   const [refLockedFromUrl, setRefLockedFromUrl] = useState(false);
   const [courses, setCourses] = useState([]);
-  const [coursesLoading, setCoursesLoading] = useState(true);
+  const [combos, setCombos] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  /** `course:<id>` or `combo:<id>` */
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', mobile: '', password: '',
-    state: '', referralCode: '', courseId: '', agreeToTerms: false
+    state: '', referralCode: '', purchaseSelection: '', agreeToTerms: false
   });
+
+  const parsePurchaseSelection = (value) => {
+    if (!value || typeof value !== 'string') return null;
+    const [type, id] = value.split(':');
+    if ((type === 'course' || type === 'combo') && id) return { type, id };
+    return null;
+  };
+
+  const purchaseRedirectPath = (selection) => {
+    const parsed = parsePurchaseSelection(selection);
+    if (!parsed) return null;
+    const q = '?pendingPurchase=1';
+    if (parsed.type === 'combo') return `/purchase/combo/${parsed.id}${q}`;
+    return `/purchase/${parsed.id}${q}`;
+  };
+
+  const hasCatalog = courses.length > 0 || combos.length > 0;
 
   useEffect(() => {
     const refCode = searchParams.get('ref');
@@ -26,7 +45,7 @@ function SignupForm() {
       const trimmed = String(refCode).trim();
       setFormData(prev => ({ ...prev, referralCode: trimmed.toUpperCase() }));
       setRefLockedFromUrl(true);
-      const maxAge = 600;
+      const maxAge = 60 * 60 * 24 * 7;
       document.cookie = `signup_ref=${encodeURIComponent(trimmed)}; path=/; max-age=${maxAge}; SameSite=Lax`;
     } else {
       document.cookie = 'signup_ref=; path=/; max-age=0';
@@ -34,9 +53,25 @@ function SignupForm() {
   }, [searchParams]);
 
   useEffect(() => {
-    const preselect = searchParams.get('course');
-    if (preselect && String(preselect).trim()) {
-      setFormData(prev => ({ ...prev, courseId: String(preselect).trim() }));
+    const code = String(formData.referralCode || '').trim();
+    if (!code) return;
+    const maxAge = 60 * 60 * 24 * 7;
+    document.cookie = `signup_ref=${encodeURIComponent(code)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  }, [formData.referralCode]);
+
+  useEffect(() => {
+    const preCourse = searchParams.get('course');
+    const preCombo = searchParams.get('combo');
+    if (preCombo && String(preCombo).trim()) {
+      setFormData((prev) => ({
+        ...prev,
+        purchaseSelection: `combo:${String(preCombo).trim()}`,
+      }));
+    } else if (preCourse && String(preCourse).trim()) {
+      setFormData((prev) => ({
+        ...prev,
+        purchaseSelection: `course:${String(preCourse).trim()}`,
+      }));
     }
   }, [searchParams]);
 
@@ -44,15 +79,23 @@ function SignupForm() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/courses?published=true&limit=100&sortBy=newest');
-        const data = await res.json();
-        if (!cancelled && res.ok) {
-          setCourses(data.courses || []);
+        const [courseRes, comboRes] = await Promise.all([
+          fetch('/api/courses?published=true&limit=100&sortBy=newest'),
+          fetch('/api/combos'),
+        ]);
+        const courseData = await courseRes.json();
+        const comboData = await comboRes.json();
+        if (!cancelled) {
+          if (courseRes.ok) setCourses(courseData.courses || []);
+          if (comboRes.ok) setCombos(comboData.combos || []);
         }
       } catch {
-        if (!cancelled) setCourses([]);
+        if (!cancelled) {
+          setCourses([]);
+          setCombos([]);
+        }
       } finally {
-        if (!cancelled) setCoursesLoading(false);
+        if (!cancelled) setCatalogLoading(false);
       }
     })();
     return () => { cancelled = true; };
@@ -74,8 +117,16 @@ function SignupForm() {
     setIsLoading(true);
     setError('');
 
-    if (!formData.courseId) {
-      setError('Select a course to continue. Signup completes after you purchase your course.');
+    const selection = parsePurchaseSelection(formData.purchaseSelection);
+    if (!selection) {
+      setError('Select a course or combo to continue. Signup completes after you pay.');
+      setIsLoading(false);
+      return;
+    }
+
+    const payPath = purchaseRedirectPath(formData.purchaseSelection);
+    if (!payPath) {
+      setError('Invalid selection. Please choose again.');
       setIsLoading(false);
       return;
     }
@@ -86,7 +137,17 @@ function SignupForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          mobile: formData.mobile,
+          password: formData.password,
+          state: formData.state,
+          referralCode: formData.referralCode,
+          courseId: selection.type === 'course' ? selection.id : '',
+          comboId: selection.type === 'combo' ? selection.id : '',
+        }),
       });
 
       const data = await response.json();
@@ -100,9 +161,7 @@ function SignupForm() {
         });
 
         if (result?.ok) {
-          router.push(
-            `/purchase/${formData.courseId}?pendingPurchase=1`
-          );
+          router.push(payPath);
         } else {
           router.push('/login?message=Account created successfully. Please login.');
         }
@@ -117,15 +176,20 @@ function SignupForm() {
   };
 
   const handleGoogleSignup = async () => {
-    if (!formData.courseId) {
-      setError('Select a course first, then continue with Google.');
+    const payPath = purchaseRedirectPath(formData.purchaseSelection);
+    if (!payPath) {
+      setError('Select a course or combo first, then continue with Google.');
       return;
     }
     setIsLoading(true);
     setError('');
     try {
+      const ref = String(formData.referralCode || '').trim();
+      if (ref) {
+        document.cookie = `signup_ref=${encodeURIComponent(ref)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+      }
       await signIn('google', {
-        callbackUrl: `/purchase/${formData.courseId}?pendingPurchase=1`,
+        callbackUrl: payPath,
       });
     } catch (error) {
       setError('Google signup failed. Please try again.');
@@ -151,12 +215,12 @@ function SignupForm() {
               </span>
             </h1>
             <p className="text-gray-600 text-lg">
-              Choose a course and create your account. You&apos;ll complete signup by paying for that course — the platform stays locked until purchase.
+              Choose a course or combo bundle and create your account. You&apos;ll complete signup by paying — the platform stays locked until purchase succeeds.
             </p>
           </div>
 
           <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Referral codes are set only at signup and cannot be changed. If you opened this page from a friend&apos;s link, your code is applied automatically.
+            Friend referral codes are set only at signup (use your friend&apos;s signup link with <span className="font-mono">?ref=</span>). Discount coupon codes from purchases are applied at checkout, not here.
           </div>
 
           {/* Error Message */}
@@ -171,7 +235,7 @@ function SignupForm() {
             <button
               type="button"
               onClick={handleGoogleSignup}
-              disabled={isLoading || coursesLoading || !courses.length || !formData.courseId}
+              disabled={isLoading || catalogLoading || !hasCatalog || !formData.purchaseSelection}
               className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 flex items-center justify-center space-x-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -182,8 +246,8 @@ function SignupForm() {
               </svg>
               <span>Continue with Google</span>
             </button>
-            {(!formData.courseId && courses.length > 0) && (
-              <p className="mt-2 text-xs text-amber-800">Select a course below before using Google.</p>
+            {(!formData.purchaseSelection && hasCatalog) && (
+              <p className="mt-2 text-xs text-amber-800">Select a course or combo below before using Google.</p>
             )}
             <div className="mt-4 text-sm text-gray-600">
               <span className="bg-white px-2">or</span>
@@ -299,42 +363,98 @@ function SignupForm() {
             </div>
 
             <div className="bg-gray-50 p-6 rounded-xl border-2 border-red-100">
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Choose your course <span className="text-red-600">*</span></h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">Choose your course or combo <span className="text-red-600">*</span></h3>
               <p className="text-sm text-gray-600 mb-4">
-                Required — after account creation you&apos;ll pay for this course. Until payment succeeds, dashboard and CRM stay locked.
+                Required — after account creation you&apos;ll pay for your selection. Until payment succeeds, dashboard and CRM stay locked.
               </p>
-              {coursesLoading ? (
-                <p className="text-sm text-gray-500">Loading courses…</p>
-              ) : courses.length === 0 ? (
-                <p className="text-sm text-red-600">No courses are available right now. Please try again later or contact support.</p>
+              {catalogLoading ? (
+                <p className="text-sm text-gray-500">Loading courses and combos…</p>
+              ) : !hasCatalog ? (
+                <p className="text-sm text-red-600">No courses or combos are available right now. Please try again later or contact support.</p>
               ) : (
-                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                  {courses.map((c) => (
-                    <label
-                      key={c._id}
-                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
-                        formData.courseId === c._id
-                          ? 'border-red-600 bg-red-50'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="courseId"
-                        value={c._id}
-                        checked={formData.courseId === c._id}
-                        onChange={handleInputChange}
-                        className="mt-1 h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
-                      />
-                      <span className="flex-1 min-w-0">
-                        <span className="block font-medium text-gray-900">{c.title}</span>
-                        <span className="block text-sm text-gray-600 mt-0.5">
-                          ₹{typeof c.price === 'number' ? c.price.toLocaleString() : c.price}
-                          {c.category ? ` · ${c.category}` : ''}
-                        </span>
-                      </span>
-                    </label>
-                  ))}
+                <div className="space-y-5 max-h-80 overflow-y-auto pr-1">
+                  {combos.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Combo bundles</p>
+                      <div className="space-y-3">
+                        {combos.map((combo) => {
+                          const value = `combo:${combo._id}`;
+                          const courseCount = combo.courseIds?.length || 0;
+                          return (
+                            <label
+                              key={combo._id}
+                              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
+                                formData.purchaseSelection === value
+                                  ? 'border-red-600 bg-red-50'
+                                  : 'border-gray-200 bg-white hover:border-gray-300'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="purchaseSelection"
+                                value={value}
+                                checked={formData.purchaseSelection === value}
+                                onChange={handleInputChange}
+                                className="mt-1 h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
+                              />
+                              <span className="flex-1 min-w-0">
+                                <span className="block font-medium text-gray-900">
+                                  {combo.title}
+                                  <span className="ml-2 text-xs font-normal text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
+                                    Combo · {courseCount} courses
+                                  </span>
+                                </span>
+                                <span className="block text-sm text-gray-600 mt-0.5">
+                                  ₹{typeof combo.price === 'number' ? combo.price.toLocaleString('en-IN') : combo.price}
+                                  {combo.originalPrice > combo.price && (
+                                    <span className="ml-2 line-through text-gray-400">
+                                      ₹{combo.originalPrice.toLocaleString('en-IN')}
+                                    </span>
+                                  )}
+                                </span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {courses.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Single courses</p>
+                      <div className="space-y-3">
+                        {courses.map((c) => {
+                          const value = `course:${c._id}`;
+                          return (
+                            <label
+                              key={c._id}
+                              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
+                                formData.purchaseSelection === value
+                                  ? 'border-red-600 bg-red-50'
+                                  : 'border-gray-200 bg-white hover:border-gray-300'
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name="purchaseSelection"
+                                value={value}
+                                checked={formData.purchaseSelection === value}
+                                onChange={handleInputChange}
+                                className="mt-1 h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
+                              />
+                              <span className="flex-1 min-w-0">
+                                <span className="block font-medium text-gray-900">{c.title}</span>
+                                <span className="block text-sm text-gray-600 mt-0.5">
+                                  ₹{typeof c.price === 'number' ? c.price.toLocaleString('en-IN') : c.price}
+                                  {c.category ? ` · ${c.category}` : ''}
+                                </span>
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -390,7 +510,7 @@ function SignupForm() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading || coursesLoading || !courses.length || !formData.courseId}
+              disabled={isLoading || catalogLoading || !hasCatalog || !formData.purchaseSelection}
               className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (

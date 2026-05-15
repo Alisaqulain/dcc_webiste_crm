@@ -23,9 +23,21 @@ export async function GET() {
 
     await connectDB();
 
-    const user = await User.findOne({ email: session.user.email }).select('_id');
+    const emailNorm = String(session.user.email).toLowerCase().trim();
+    const user = await User.findOne({ email: emailNorm })
+      .select('_id courses')
+      .lean();
     if (!user) {
       return Response.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    let defaultCheckoutCourseId = null;
+    if (user.courses?.length) {
+      const sorted = [...user.courses].sort(
+        (a, b) => new Date(b.purchasedAt || 0) - new Date(a.purchasedAt || 0)
+      );
+      const cid = sorted[0]?.courseId;
+      defaultCheckoutCourseId = cid ? String(cid) : null;
     }
 
     const coupons = await Coupon.find({ ownerId: user._id })
@@ -35,8 +47,9 @@ export async function GET() {
 
     const list = coupons.map((c) => {
       const cid = c.courseId?._id || c.courseId || null;
-      const sharePath = cid
-        ? `/course/${cid}?coupon=${encodeURIComponent(c.code)}`
+      const checkoutCourseId = cid || defaultCheckoutCourseId;
+      const sharePath = checkoutCourseId
+        ? `/purchase/${checkoutCourseId}?coupon=${encodeURIComponent(c.code)}`
         : `/courses?coupon=${encodeURIComponent(c.code)}`;
       return {
         _id: c._id,
@@ -53,6 +66,7 @@ export async function GET() {
         usedCount: c.usedCount,
         isActive: c.isActive,
         isLocked: c.isLocked,
+        isShareable: c.isShareable,
         createdBy: c.createdBy,
         status: couponStatus(c),
         sharePath,

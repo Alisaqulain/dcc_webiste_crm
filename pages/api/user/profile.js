@@ -1,7 +1,9 @@
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
+import Referral from '@/models/Referral';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { generateUniqueReferralCode } from '@/lib/referralCode';
 
 async function getReferralChainUp(userLean) {
   const chain = [];
@@ -33,15 +35,35 @@ export default async function handler(req, res) {
     await connectDB();
 
     if (req.method === 'GET') {
-      const user = await User.findOne({ email: session.user.email })
-        .populate('courses.courseId', 'name title price')
-        .lean();
+      const emailNorm = String(session.user.email).toLowerCase().trim();
+      const userDoc = await User.findOne({ email: emailNorm }).populate(
+        'courses.courseId',
+        'name title price'
+      );
 
-      if (!user) {
+      if (!userDoc) {
         return res.status(404).json({ message: 'User not found' });
       }
 
+      if (!userDoc.referralCode) {
+        userDoc.referralCode = await generateUniqueReferralCode(
+          User,
+          userDoc.profile?.firstName
+        );
+        await userDoc.save();
+      }
+
+      const user = userDoc.toObject();
       const referralChain = await getReferralChainUp(user);
+
+      const referralRows = await Referral.find({ referrer: userDoc._id }).lean();
+      const pendingEarnings = referralRows
+        .filter((r) => r.status === 'pending')
+        .reduce((s, r) => s + (r.amount || 0), 0);
+      const approvedEarnings = referralRows
+        .filter((r) => r.status === 'approved' || r.status === 'paid')
+        .reduce((s, r) => s + (r.amount || 0), 0);
+      const directSignups = await User.countDocuments({ referredBy: userDoc._id });
 
       const userData = {
         id: user._id,
@@ -53,11 +75,13 @@ export default async function handler(req, res) {
         isActive: user.isActive !== false,
         referralEarnings: user.referralEarnings || 0,
         referralCount: user.referralCount || 0,
+        directSignups,
         referralChain,
         referral: {
           code: user.referralCode,
-          totalEarnings: user.referralEarnings || 0,
-          pendingEarnings: 0,
+          totalEarnings: approvedEarnings,
+          pendingEarnings,
+          lifetimeCredited: user.referralEarnings || 0,
         },
         courses: user.courses.map((course) => ({
           courseId: course.courseId,

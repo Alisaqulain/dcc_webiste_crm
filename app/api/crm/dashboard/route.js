@@ -4,6 +4,10 @@ import Referral from '@/models/Referral';
 import Lead from '@/models/Lead';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import {
+  sumEarningsInRange,
+  buildDailySalesSeries,
+} from '@/lib/crmEarnings';
 
 export async function GET(request) {
   try {
@@ -181,6 +185,30 @@ export async function GET(request) {
       .filter(lead => lead.status === 'approved')
       .reduce((sum, lead) => sum + (lead.amount || 100), 0);
 
+    const nowEnd = new Date();
+    nowEnd.setHours(23, 59, 59, 999);
+    const d7 = new Date(today);
+    d7.setDate(d7.getDate() - 7);
+    const d30 = new Date(today);
+    d30.setDate(d30.getDate() - 30);
+
+    const referralTotal = referrals
+      .filter((r) => r.status === 'approved' || r.status === 'paid')
+      .reduce((s, r) => s + (Number(r.amount) || 0), 0);
+
+    const last7DaysEarning = sumEarningsInRange(leads, referrals, d7, tomorrow);
+    const last30DaysEarning = sumEarningsInRange(leads, referrals, d30, tomorrow);
+    const allTimeEarning =
+      grandTotalEarning + referralTotal;
+    const todayTotalEarning = sumEarningsInRange(
+      leads,
+      referrals,
+      today,
+      tomorrow
+    );
+
+    const salesSeries = buildDailySalesSeries(leads, referrals, 365);
+
     return Response.json({
       totalLeads,
       leadsChange: parseFloat(leadsChange),
@@ -191,8 +219,12 @@ export async function GET(request) {
       previousMonthLeadCount,
       earningsByMonth,
       earningsChange: parseFloat(earningsChange),
-      todayEarning: todayEarnings,
+      todayEarning: todayTotalEarning,
       todayEarningsChange,
+      last7DaysEarning,
+      last30DaysEarning,
+      allTimeEarning,
+      salesSeries,
       conversionRate: parseFloat(conversionRate),
       conversionRateChange: 0,
       grandTotalEarning,

@@ -63,6 +63,11 @@ const couponSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    /** Post-purchase rewards: anyone logged in can redeem once (share with friends). */
+    isShareable: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

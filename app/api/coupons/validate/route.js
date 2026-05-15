@@ -1,30 +1,30 @@
 import connectDB from '@/lib/mongodb';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getAuthDbUser } from '@/lib/getAuthDbUser';
 import { validateCouponForCheckout } from '@/lib/couponService';
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const { session, userId, email } = await getAuthDbUser();
+    if (!session?.user?.email || !userId) {
       return Response.json({ ok: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { courseId, code } = await request.json();
-    if (!courseId || !code) {
+    const { courseId, comboId, code } = await request.json();
+    if ((!courseId && !comboId) || !code) {
       return Response.json(
-        { ok: false, message: 'Course and coupon code are required' },
+        { ok: false, message: 'Course or combo and coupon code are required' },
         { status: 400 }
       );
     }
 
     await connectDB();
 
-    const userId = session.user.id;
     const result = await validateCouponForCheckout({
       code,
-      courseId,
+      courseId: courseId || undefined,
+      comboId: comboId || undefined,
       userId,
+      userEmail: email,
     });
 
     if (!result.ok) {

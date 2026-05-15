@@ -1,405 +1,150 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import CrmEarningCards from '../components/crm/CrmEarningCards';
+import CrmSalesChart from '../components/crm/CrmSalesChart';
+import './crm-theme.css';
 
 export default function CrmDashboard() {
-	const { data: session } = useSession();
-	const [dashboardData, setDashboardData] = useState(null);
-	const [isLoading, setIsLoading] = useState(true);
-	const [fileInfo, setFileInfo] = useState(null);
-	const [downloading, setDownloading] = useState(false);
+  const { data: session } = useSession();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('affiliate');
 
-	useEffect(() => {
-		const fetchDashboardData = async () => {
-			try {
-				const response = await fetch('/api/crm/dashboard');
-				if (response.ok) {
-					const data = await response.json();
-					setDashboardData(data);
-				}
-			} catch (error) {
-				console.error('Error fetching dashboard data:', error);
-			} finally {
-				setIsLoading(false);
-			}
-		};
+  useEffect(() => {
+    if (!session) return;
+    fetch('/api/crm/dashboard')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setDashboardData(data))
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, [session]);
 
-		const fetchFileInfo = async () => {
-			try {
-				const response = await fetch('/api/crm/file/info', { cache: 'no-store' });
-				if (response.ok) {
-					const data = await response.json();
-					if (data.hasFile && data.file) {
-						setFileInfo(data.file);
-					} else {
-						setFileInfo(null);
-					}
-				} else {
-					const errorData = await response.json();
-					console.error('File info error:', errorData);
-					setFileInfo(null);
-				}
-			} catch (error) {
-				console.error('Error fetching file info:', error);
-				setFileInfo(null);
-			}
-		};
+  if (isLoading) {
+    return (
+      <div className="crm-main-bg min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-14 h-14 border-4 border-violet-200 border-t-violet-700 rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-violet-800 font-medium">Loading dashboard…</p>
+        </div>
+      </div>
+    );
+  }
 
-		if (session) {
-			fetchDashboardData();
-			fetchFileInfo();
-		}
-	}, [session]);
+  const data = dashboardData || {
+    todayEarning: 0,
+    last7DaysEarning: 0,
+    last30DaysEarning: 0,
+    allTimeEarning: 0,
+    salesSeries: [],
+    recentLeads: [],
+    pendingWithdrawal: 0,
+    grandTotalEarning: 0,
+  };
 
-	const handleDownload = async () => {
-		setDownloading(true);
-		try {
-			const response = await fetch('/api/admin/crm-file/download');
-			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.message || 'Download failed');
-			}
+  return (
+    <div className="crm-main-bg space-y-6 -m-4 sm:-m-6 p-4 sm:p-6 min-h-full">
+      <div className="flex flex-wrap gap-6 border-b border-violet-200/80 pb-1">
+        {[
+          { id: 'affiliate', label: 'Affiliate' },
+          { id: 'membership', label: 'Membership' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`pb-3 text-sm font-semibold transition-colors ${
+              activeTab === tab.id ? 'crm-tab-active' : 'text-gray-500 hover:text-violet-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-			// Get filename from Content-Disposition header or use default
-			const contentDisposition = response.headers.get('Content-Disposition');
-			let filename = 'crm-file.xlsx';
-			if (contentDisposition) {
-				const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-				if (filenameMatch) {
-					filename = filenameMatch[1];
-				}
-			}
+      <CrmEarningCards data={data} />
 
-			// Create blob and download
-			const blob = await response.blob();
-			const url = window.URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = filename;
-			document.body.appendChild(a);
-			a.click();
-			window.URL.revokeObjectURL(url);
-			document.body.removeChild(a);
+      <CrmSalesChart salesSeries={data.salesSeries || []} />
 
-			// Refresh file info to update download status
-			setTimeout(() => {
-				fetch('/api/crm/file/info', { cache: 'no-store' })
-					.then((res) => res.json())
-					.then((data) => {
-						if (data.hasFile && data.file) {
-							setFileInfo(data.file);
-						} else {
-							setFileInfo(null);
-						}
-					})
-					.catch(console.error);
-			}, 1000);
-		} catch (error) {
-			alert('Failed to download file: ' + error.message);
-		} finally {
-			setDownloading(false);
-		}
-	};
+      {data.pendingWithdrawal > 0 && (
+        <div className="rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-400 p-5 text-gray-900 shadow-md flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold">Pending withdrawal</p>
+            <p className="text-2xl font-bold">₹{Number(data.pendingWithdrawal).toFixed(2)}</p>
+          </div>
+          <a
+            href={`https://wa.me/917599863007?text=${encodeURIComponent(
+              `Hi, I want to withdraw my lead earnings ₹${data.pendingWithdrawal.toFixed(2)}. My email: ${session?.user?.email || ''}`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-white px-5 py-2.5 rounded-lg font-semibold text-amber-900 hover:bg-amber-50 shadow"
+          >
+            Withdraw via WhatsApp
+          </a>
+        </div>
+      )}
 
-	if (isLoading) {
-		return (
-			<div className="flex items-center justify-center min-h-screen">
-				<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-			</div>
-		);
-	}
-
-	const data = dashboardData || {
-		totalLeads: 0,
-		leadsChange: 0,
-		totalEarning: 0,
-		currentMonthLabel: '',
-		earningsByMonth: [],
-		earningsChange: 0,
-		todayEarning: 0,
-		todayEarningsChange: 0,
-		conversionRate: 0,
-		conversionRateChange: 0,
-		grandTotalEarning: 0,
-		pendingWithdrawal: 0,
-		recentLeads: []
-	};
-
-	return (
-		<div className="space-y-6">
-			{/* Page Header */}
-			<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-				<h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
-				<p className="text-gray-600">Welcome back! Here&apos;s what&apos;s happening with your business today.</p>
-			</div>
-
-			{/* Top KPI cards */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-				<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-					<div className="flex items-center justify-between">
-						<div>
-							<div className="text-sm font-medium text-gray-600 mb-1">Total Leads</div>
-							<div className="text-3xl font-bold text-gray-900">{data.totalLeads || 0}</div>
-							<div className={`text-xs mt-1 ${data.leadsChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-								{data.leadsChange >= 0 ? '+' : ''}{data.leadsChange.toFixed(1)}% from last month
-							</div>
-						</div>
-						<div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-							<span className="text-2xl">👥</span>
-						</div>
-					</div>
-				</div>
-				<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-					<div className="flex items-center justify-between">
-						<div>
-							<div className="text-sm font-medium text-gray-600 mb-1">This month</div>
-							{data.currentMonthLabel ? (
-								<div className="text-xs font-medium text-gray-500 mb-1">{data.currentMonthLabel}</div>
-							) : null}
-							<div className="text-3xl font-bold text-gray-900">₹{(Number(data.totalEarning) || 0).toFixed(2)}</div>
-							<div className={`text-xs mt-1 ${data.earningsChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-								{data.earningsChange >= 0 ? '+' : ''}{(Number(data.earningsChange) || 0).toFixed(1)}% vs previous month
-							</div>
-						</div>
-						<div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-							<span className="text-2xl">💰</span>
-						</div>
-					</div>
-				</div>
-				<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-					<div className="flex items-center justify-between">
-						<div>
-							<div className="text-sm font-medium text-gray-600 mb-1">Today Earning</div>
-							<div className="text-3xl font-bold text-green-600">₹{data.todayEarning.toFixed(2) || '0.00'}</div>
-							<div className={`text-xs mt-1 ${data.todayEarningsChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-								{data.todayEarningsChange >= 0 ? '+' : ''}{data.todayEarningsChange.toFixed(1)}% from yesterday
-							</div>
-						</div>
-						<div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-							<span className="text-2xl">📈</span>
-						</div>
-					</div>
-				</div>
-				<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-					<div className="flex items-center justify-between">
-						<div>
-							<div className="text-sm font-medium text-gray-600 mb-1">Conversion Rate</div>
-							<div className="text-3xl font-bold text-gray-900">{data.conversionRate.toFixed(1) || 0}%</div>
-							<div className={`text-xs mt-1 ${data.conversionRateChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-								{data.conversionRateChange >= 0 ? '+' : ''}{data.conversionRateChange.toFixed(1)}% from last month
-							</div>
-						</div>
-						<div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-							<span className="text-2xl">🎯</span>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-				<div className="p-6 border-b border-gray-200">
-					<h3 className="text-lg font-semibold text-gray-900">Total earnings by month</h3>
-					<p className="text-sm text-gray-600">All months from your approved lead commissions. Totals use the grand total at the bottom.</p>
-				</div>
-				<div className="overflow-x-auto">
-					<table className="w-full text-sm">
-						<thead className="bg-gray-50">
-							<tr>
-								<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
-								<th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-							</tr>
-						</thead>
-						<tbody className="bg-white divide-y divide-gray-200">
-							{data.earningsByMonth && data.earningsByMonth.length > 0 ? (
-								data.earningsByMonth.map((row) => (
-									<tr key={row.monthKey} className="hover:bg-gray-50">
-										<td className="px-6 py-4 whitespace-nowrap text-gray-900">{row.label}</td>
-										<td className="px-6 py-4 whitespace-nowrap text-right font-medium text-gray-900">
-											₹{Number(row.amount).toFixed(2)}
-										</td>
-									</tr>
-								))
-							) : (
-								<tr>
-									<td colSpan={2} className="px-6 py-8 text-center text-gray-500">
-										No monthly earnings yet. Approved leads will appear here by month.
-									</td>
-								</tr>
-							)}
-						</tbody>
-						{data.earningsByMonth && data.earningsByMonth.length > 0 ? (
-							<tfoot className="bg-gray-50 border-t-2 border-gray-200">
-								<tr>
-									<td className="px-6 py-4 font-semibold text-gray-900">Total (all time)</td>
-									<td className="px-6 py-4 text-right font-bold text-gray-900">
-										₹{(Number(data.grandTotalEarning) || 0).toFixed(2)}
-									</td>
-								</tr>
-							</tfoot>
-						) : null}
-					</table>
-				</div>
-			</div>
-
-			<div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-				{/* Table */}
-				<div className="lg:col-span-3 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-					<div className="p-6 border-b border-gray-200">
-						<h3 className="text-lg font-semibold text-gray-900">Recent Leads</h3>
-						<p className="text-sm text-gray-600">Latest lead submissions and their status</p>
-					</div>
-					<div className="overflow-x-auto">
-						<table className="w-full text-sm">
-							<thead className="bg-gray-50">
-								<tr>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">S.R</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client Email</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
-									<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-								</tr>
-							</thead>
-							<tbody className="bg-white divide-y divide-gray-200">
-								{data.recentLeads && data.recentLeads.length > 0 ? (
-									data.recentLeads.map((lead, i) => (
-										<tr key={i} className="hover:bg-gray-50">
-											<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{lead.sr}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lead.date}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lead.clientEmail}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lead.service}</td>
-											<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lead.country}</td>
-											<td className="px-6 py-4 whitespace-nowrap">
-												<span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-													lead.status === 'approved' || lead.status === 'paid' 
-														? 'bg-green-100 text-green-800'
-														: lead.status === 'rejected'
-														? 'bg-red-100 text-red-800'
-														: 'bg-yellow-100 text-yellow-800'
-												}`}>
-													{lead.status.charAt(0).toUpperCase() + lead.status.slice(1)}
-												</span>
-											</td>
-										</tr>
-									))
-								) : (
-									<tr>
-										<td colSpan="6" className="px-6 py-8 text-center text-sm text-gray-500">
-											No leads yet. Start referring to see your leads here!
-										</td>
-									</tr>
-								)}
-							</tbody>
-						</table>
-					</div>
-				</div>
-
-				{/* Right panel cards */}
-				<div className="space-y-6">
-					{/* File Download Card */}
-					{fileInfo && (
-						<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-							<div className="flex items-center justify-between mb-4">
-								<h4 className="text-sm font-medium text-gray-600">Download Resources</h4>
-								<span className="text-2xl">📥</span>
-							</div>
-							<div className="space-y-3">
-								<div className="text-sm text-gray-700">
-									<p className="font-medium mb-1">{fileInfo.originalName || fileInfo.filename}</p>
-									<p className="text-xs text-gray-500">
-										Uploaded: {fileInfo.uploadedAt ? new Date(fileInfo.uploadedAt).toLocaleDateString() : 'N/A'}
-									</p>
-								</div>
-								<button
-									onClick={handleDownload}
-									disabled={downloading}
-									className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-								>
-									{downloading ? 'Downloading...' : 'Download File'}
-								</button>
-								<Link
-									href="/crm/download-files"
-									className="block text-center text-xs text-blue-600 hover:text-blue-800 mt-2"
-								>
-									View all files →
-								</Link>
-							</div>
-						</div>
-					)}
-
-					{/* Referral Earning - Commented out as requested */}
-					{/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-						<div className="flex items-center justify-between mb-4">
-							<h4 className="text-sm font-medium text-gray-600">Referral Earning</h4>
-							<span className="text-2xl">👥</span>
-						</div>
-						<div className="text-3xl font-bold text-gray-900">₹{data.referralEarning?.toFixed(2) || '0.00'}</div>
-						<div className={`text-xs mt-1 ${data.referralEarningsChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-							{data.referralEarningsChange >= 0 ? '+' : ''}{data.referralEarningsChange?.toFixed(1) || 0}% from last month
-						</div>
-					</div> */}
-					
-					{/* Course Sale Earning - Commented out as requested */}
-					{/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-						<div className="flex items-center justify-between mb-4">
-							<h4 className="text-sm font-medium text-gray-600">Course Sale Earning</h4>
-							<span className="text-2xl">📚</span>
-						</div>
-						<div className="text-3xl font-bold text-gray-900">₹{data.courseSaleEarning?.toFixed(2) || '0.00'}</div>
-						<div className={`text-xs mt-1 ${data.courseSaleEarningsChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-							{data.courseSaleEarningsChange >= 0 ? '+' : ''}{data.courseSaleEarningsChange?.toFixed(1) || 0}% from last month
-						</div>
-					</div> */}
-					
-					<div className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl shadow-sm p-6 text-white">
-						<div className="flex items-center justify-between mb-4">
-							<h4 className="text-sm font-medium">Grand Total Earning</h4>
-							<span className="text-2xl">💰</span>
-						</div>
-						<div className="text-4xl font-extrabold">₹{data.grandTotalEarning.toFixed(2) || '0.00'}</div>
-						<div className="text-xs opacity-90 mt-1">Total approved earnings</div>
-						{data.pendingWithdrawal > 0 && (
-							<div className="mt-3 pt-3 border-t border-yellow-300">
-								<div className="text-xs opacity-90 mb-2">Pending Withdrawal: ₹{data.pendingWithdrawal.toFixed(2)}</div>
-								<a
-									href={`https://wa.me/917599863007?text=${encodeURIComponent(`Hi, I want to withdraw my lead earnings ₹${data.pendingWithdrawal.toFixed(2)}. My email: ${session?.user?.email || ''}`)}`}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="inline-block w-full bg-white text-yellow-600 hover:bg-yellow-50 font-semibold py-2 px-4 rounded-lg transition-colors text-center text-sm"
-								>
-									Withdraw via WhatsApp
-								</a>
-							</div>
-						)}
-					</div>
-				</div>
-			</div>
-
-			{/* Bottom course widgets */}
-			<div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-				<h3 className="text-lg font-semibold text-gray-900 mb-4">Featured Courses</h3>
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-					{[
-						{ title: 'Tally prime Full Course', img: '/E1.png' },
-						{ title: 'Web Designing Full Course', img: '/seo.png' },
-						{ title: 'DSP Special Earning Course', img: '/dsp.png' },
-						{ title: 'Tally prime Full Course', img: '/F1.png' },
-						{ title: 'Web Designing Full Course', img: '/G1.png' },
-					].map((course, idx) => (
-						<div key={idx} className="bg-gray-50 rounded-lg p-4 text-center hover:shadow-md transition-shadow cursor-pointer">
-							<div className="h-24 w-full bg-white rounded-lg mb-3 flex items-center justify-center overflow-hidden shadow-sm">
-								<img src={course.img} alt={course.title} className="h-full object-contain" />
-							</div>
-							<div className="text-sm font-semibold text-gray-900">{course.title}</div>
-						</div>
-					))}
-				</div>
-			</div>
-		</div>
-	);
+      <div className="rounded-2xl border border-violet-200/50 bg-white shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-lg font-bold text-violet-950">Recent leads</h3>
+            <p className="text-sm text-gray-500">Latest submissions</p>
+          </div>
+          <Link
+            href="/crm/lead-add"
+            className="text-sm font-semibold text-violet-700 hover:text-violet-900"
+          >
+            + Add lead
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-violet-50/80">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-violet-800 uppercase">#</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-violet-800 uppercase">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-violet-800 uppercase">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-violet-800 uppercase">Service</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-violet-800 uppercase">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {(data.recentLeads || []).length > 0 ? (
+                data.recentLeads.map((lead, i) => (
+                  <tr key={i} className="hover:bg-violet-50/40 transition-colors">
+                    <td className="px-4 py-3 font-medium">{lead.sr}</td>
+                    <td className="px-4 py-3 text-gray-600">{lead.date}</td>
+                    <td className="px-4 py-3 text-gray-600">{lead.clientEmail}</td>
+                    <td className="px-4 py-3 text-gray-600">{lead.service}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          lead.status === 'approved' || lead.status === 'paid'
+                            ? 'bg-green-100 text-green-800'
+                            : lead.status === 'rejected'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {lead.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-4 py-10 text-center text-gray-500">
+                    No leads yet. Share your referral link or add a lead.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 }
-
-

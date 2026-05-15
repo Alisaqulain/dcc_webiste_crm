@@ -6,11 +6,14 @@ import toast from 'react-hot-toast';
 
 export default function CoursePayCard({
   course,
+  combo,
   initialCouponCode = '',
   couponLockedFromUrl = false,
   onSuccess,
   className = '',
 }) {
+  const item = combo || course;
+  const isCombo = Boolean(combo);
   const { data: session, update } = useSession();
   const [couponInput, setCouponInput] = useState(
     initialCouponCode ? String(initialCouponCode).toUpperCase() : ''
@@ -20,7 +23,7 @@ export default function CoursePayCard({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const basePrice = Number(course?.price) || 0;
+  const basePrice = Number(item?.price) || 0;
 
   useEffect(() => {
     if (initialCouponCode) {
@@ -42,7 +45,11 @@ export default function CoursePayCard({
         const res = await fetch('/api/coupons/validate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ courseId: course._id, code: trimmed }),
+          body: JSON.stringify({
+            courseId: isCombo ? undefined : (course?._id || course?.id),
+            comboId: isCombo ? (combo?._id || combo?.id) : undefined,
+            code: trimmed,
+          }),
         });
         const data = await res.json();
         if (!res.ok || !data.ok) {
@@ -63,7 +70,7 @@ export default function CoursePayCard({
         setCouponError('Could not validate coupon');
       }
     },
-    [course._id]
+    [course?._id, combo?._id, isCombo]
   );
 
   useEffect(() => {
@@ -99,7 +106,11 @@ export default function CoursePayCard({
       const res = await fetch('/api/coupons/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId: course._id, code: couponInput.trim() }),
+        body: JSON.stringify({
+          courseId: isCombo ? undefined : (course?._id || course?.id),
+          comboId: isCombo ? (combo?._id || combo?.id) : undefined,
+          code: couponInput.trim(),
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
@@ -126,7 +137,7 @@ export default function CoursePayCard({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          courseId: course._id,
+          ...(isCombo ? { comboId: combo._id } : { courseId: course._id }),
           couponCode: couponForOrder,
         }),
       });
@@ -140,7 +151,7 @@ export default function CoursePayCard({
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         name: 'Digital Career Center',
-        description: `Course: ${course.title}`,
+        description: isCombo ? `Combo: ${combo.title}` : `Course: ${course.title}`,
         order_id: orderData.order.id,
         handler: async function (response) {
           try {
@@ -151,7 +162,7 @@ export default function CoursePayCard({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                courseId: course._id,
+                ...(isCombo ? { comboId: combo._id } : { courseId: course._id }),
               }),
             });
             const verifyData = await verifyResponse.json();
@@ -160,7 +171,7 @@ export default function CoursePayCard({
                 await update({ isActive: true });
               }
               toast.success('Payment successful!');
-              onSuccess?.(verifyData.course);
+              onSuccess?.(verifyData.course || verifyData.combo);
             } else {
               setError(verifyData.message || 'Verification failed');
               toast.error(verifyData.message || 'Verification failed');
@@ -234,6 +245,9 @@ export default function CoursePayCard({
         {couponError && (
           <p className="text-sm text-red-600 mt-1">{couponError}</p>
         )}
+        <p className="text-xs text-gray-500 mt-1">
+          Gift codes from purchases are for friends only — the buyer cannot use their own codes here.
+        </p>
       </div>
 
       <div className="mb-4 p-4 bg-gray-50 rounded-lg space-y-1">

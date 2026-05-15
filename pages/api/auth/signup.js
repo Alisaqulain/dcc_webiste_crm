@@ -2,9 +2,11 @@ import mongoose from 'mongoose';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Course from '@/models/Course';
+import ComboCourse from '@/models/ComboCourse';
 import bcrypt from 'bcryptjs';
 import { sendWelcomeEmail } from '@/lib/email';
 import { generateUniqueReferralCode } from '@/lib/referralCode';
+import Coupon from '@/models/Coupon';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -23,6 +25,7 @@ export default async function handler(req, res) {
       state,
       referralCode: referralCodeInput,
       courseId: courseIdRaw,
+      comboId: comboIdRaw,
     } = req.body;
 
     const emailNorm = String(email || '').toLowerCase().trim();
@@ -31,19 +34,45 @@ export default async function handler(req, res) {
     }
 
     const courseId = String(courseIdRaw || '').trim();
-    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+    const comboId = String(comboIdRaw || '').trim();
+    const hasCourse = courseId && mongoose.Types.ObjectId.isValid(courseId);
+    const hasCombo = comboId && mongoose.Types.ObjectId.isValid(comboId);
+
+    if (hasCourse && hasCombo) {
       return res.status(400).json({
-        message: 'Select a course to complete signup. Registration requires a course purchase.',
+        message: 'Select either one course or one combo, not both.',
       });
     }
-    const selectedCourse = await Course.findOne({
-      _id: courseId,
-      isPublished: true,
-    }).select('_id title').lean();
-    if (!selectedCourse) {
+    if (!hasCourse && !hasCombo) {
       return res.status(400).json({
-        message: 'That course is not available. Choose another course.',
+        message: 'Select a course or combo to complete signup. Registration requires a purchase.',
       });
+    }
+
+    if (hasCombo) {
+      const selectedCombo = await ComboCourse.findOne({
+        _id: comboId,
+        isPublished: true,
+      })
+        .select('_id title')
+        .lean();
+      if (!selectedCombo) {
+        return res.status(400).json({
+          message: 'That combo is not available. Choose another option.',
+        });
+      }
+    } else {
+      const selectedCourse = await Course.findOne({
+        _id: courseId,
+        isPublished: true,
+      })
+        .select('_id title')
+        .lean();
+      if (!selectedCourse) {
+        return res.status(400).json({
+          message: 'That course is not available. Choose another course.',
+        });
+      }
     }
 
     const existingUser = await User.findOne({ email: emailNorm });
@@ -63,8 +92,18 @@ export default async function handler(req, res) {
       }
       const referrer = await User.findOne({ referralCode: upper });
       if (!referrer) {
+        const looksLikeCoupon = await Coupon.findOne({
+          code: upper,
+        }).select('_id');
+        if (looksLikeCoupon) {
+          return res.status(400).json({
+            message:
+              'That code is a discount coupon for course checkout, not a friend referral code. Use your friend’s signup link (Refer & earn on profile), or leave referral blank and apply the coupon when you pay.',
+          });
+        }
         return res.status(400).json({
-          message: 'Invalid referral code',
+          message:
+            'Invalid referral code. Use your friend’s full signup link from their profile (Refer & earn), not a discount coupon code.',
         });
       }
       if (referrer.email === emailNorm) {

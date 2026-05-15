@@ -1,5 +1,6 @@
 import connectDB from '@/lib/mongodb';
 import Course from '@/models/Course';
+import ComboCourse from '@/models/ComboCourse';
 import User from '@/models/User';
 import Coupon from '@/models/Coupon';
 import razorpay from '@/lib/razorpay';
@@ -8,6 +9,7 @@ import { authOptions } from '@/lib/auth';
 import crypto from 'crypto';
 import { sendEmail } from '@/lib/email';
 import { distributePurchaseReferrals } from '@/lib/referralCommission';
+import { enrollUserInCombo } from '@/lib/enrollComboPurchase';
 import {
   computeFinalPrice,
   getCouponValidationError,
@@ -35,16 +37,19 @@ export async function POST(request) {
       razorpay_payment_id,
       razorpay_signature,
       courseId,
+      comboId: comboIdFromBody,
     } = await request.json();
 
-    if (
-      !razorpay_order_id ||
-      !razorpay_payment_id ||
-      !razorpay_signature ||
-      !courseId
-    ) {
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return Response.json(
         { message: 'Missing required payment details' },
+        { status: 400 }
+      );
+    }
+
+    if (!courseId && !comboIdFromBody) {
+      return Response.json(
+        { message: 'Course ID or combo ID is required' },
         { status: 400 }
       );
     }
@@ -67,13 +72,111 @@ export async function POST(request) {
     }
 
     const notes = order.notes || {};
+
+    const sessionEmailNorm = String(session.user.email).toLowerCase().trim();
+    if (notes.userEmail && String(notes.userEmail).toLowerCase().trim() !== sessionEmailNorm) {
+      return Response.json({ message: 'Order user mismatch' }, { status: 403 });
+    }
+
+    const comboId = comboIdFromBody || notes.comboId;
+    if (notes.purchaseType === 'combo' || comboId) {
+      if (!comboId) {
+        return Response.json({ message: 'Combo ID missing' }, { status: 400 });
+      }
+      if (notes.comboId && String(notes.comboId) !== String(comboId)) {
+        return Response.json({ message: 'Order combo mismatch' }, { status: 400 });
+      }
+
+      const combo = await ComboCourse.findById(comboId);
+      if (!combo) {
+        return Response.json({ message: 'Combo not found' }, { status: 404 });
+      }
+
+      const emailNorm = String(session.user.email).toLowerCase().trim();
+      const user = await User.findOne({ email: emailNorm });
+      if (!user) {
+        return Response.json({ message: 'User not found' }, { status: 404 });
+      }
+
+      const userIdStr = user._id.toString();
+      const comboPrice = Number(combo.price) || 0;
+      const origFromNote = Number(notes.originalPriceRupees);
+      if (Number.isFinite(origFromNote) && Math.abs(origFromNote - comboPrice) > 0.01) {
+        return Response.json({ message: 'Price changed — create a new order' }, { status: 400 });
+      }
+
+      let expectedPaise;
+      const couponIdFromNote = notes.couponId ? String(notes.couponId) : '';
+
+      if (couponIdFromNote) {
+        const coupon = await Coupon.findById(couponIdFromNote).lean();
+        const err = getCouponValidationError(coupon, comboId, userIdStr);
+        if (err) {
+          return Response.json({ message: err }, { status: 400 });
+        }
+        const { finalPrice } = computeFinalPrice(
+          comboPrice,
+          coupon.discountType,
+          coupon.discountValue
+        );
+        expectedPaise = rupeesToPaiseSafe(finalPrice);
+      } else {
+        expectedPaise = rupeesToPaiseSafe(comboPrice);
+      }
+
+      const orderAmount = Number(order.amount);
+      const payAmount = Number(payment.amount);
+      if (orderAmount !== expectedPaise || payAmount !== expectedPaise) {
+        return Response.json(
+          { message: 'Paid amount does not match order' },
+          { status: 400 }
+        );
+      }
+
+      const paidRupees = Math.round(expectedPaise) / 100;
+      if (couponIdFromNote) {
+        const consumed = await consumeCouponById(couponIdFromNote);
+        if (!consumed.ok) {
+          return Response.json({ message: consumed.message }, { status: 400 });
+        }
+      }
+
+      await enrollUserInCombo({
+        user,
+        combo,
+        paidRupees,
+        couponId: couponIdFromNote,
+        User,
+      });
+
+      await sendEmail({
+        to: user.email,
+        subject: 'Combo purchase successful! 🎉',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #dc2626;">Your combo is unlocked!</h2>
+            <p><strong>${combo.title}</strong> — all included courses are now in My Courses.</p>
+            <p><strong>Amount paid:</strong> ₹${paidRupees}</p>
+            <p><strong>Payment ID:</strong> ${razorpay_payment_id}</p>
+          </div>
+        `,
+      });
+
+      return Response.json({
+        success: true,
+        message: 'Combo payment verified successfully',
+        isActive: true,
+        combo: {
+          id: combo._id,
+          title: combo.title,
+          price: combo.price,
+        },
+      });
+    }
+
     const noteCourseId = notes.courseId ? String(notes.courseId) : null;
     if (noteCourseId && noteCourseId !== String(courseId)) {
       return Response.json({ message: 'Order course mismatch' }, { status: 400 });
-    }
-
-    if (notes.userEmail && notes.userEmail !== session.user.email) {
-      return Response.json({ message: 'Order user mismatch' }, { status: 403 });
     }
 
     const course = await Course.findById(courseId);
@@ -81,7 +184,8 @@ export async function POST(request) {
       return Response.json({ message: 'Course not found' }, { status: 404 });
     }
 
-    const user = await User.findOne({ email: session.user.email });
+    const emailNorm = String(session.user.email).toLowerCase().trim();
+    const user = await User.findOne({ email: emailNorm });
     if (!user) {
       return Response.json({ message: 'User not found' }, { status: 404 });
     }
@@ -98,7 +202,7 @@ export async function POST(request) {
     const couponIdFromNote = notes.couponId ? String(notes.couponId) : '';
 
     if (couponIdFromNote) {
-      const coupon = await Coupon.findById(couponIdFromNote);
+      const coupon = await Coupon.findById(couponIdFromNote).lean();
       const err = getCouponValidationError(coupon, courseId, userIdStr);
       if (err) {
         return Response.json({ message: err }, { status: 400 });

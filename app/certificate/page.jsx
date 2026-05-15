@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { certificateDownloadPath } from '@/lib/certificateDownloadPath';
 
 // Certificate Download Form Component
 function CertificateDownloadForm() {
@@ -13,7 +14,7 @@ function CertificateDownloadForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (rollNumber.trim()) {
-      router.push(`/certificate/download/${rollNumber.trim()}`);
+      router.push(certificateDownloadPath(rollNumber.trim()));
     }
   };
 
@@ -24,7 +25,7 @@ function CertificateDownloadForm() {
           type="text"
           value={rollNumber}
           onChange={(e) => setRollNumber(e.target.value)}
-          placeholder="Enter your roll number"
+          placeholder="e.g. 00781/DCC55 or DCC55"
           className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
           required
         />

@@ -173,9 +173,12 @@ function ProfileContent() {
 
             {couponData?.grouped && couponData.grouped.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">My coupons</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">My discount coupons</h2>
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                  Not for signup referral — codes like <span className="font-mono">…P20…</span> are checkout discounts only. For inviting friends use <strong>Refer & earn</strong> below with your referral link.
+                </p>
                 <p className="text-sm text-gray-600 mb-4">
-                  Reward coupons from your purchases (20% off, 30 days). Share the link to apply automatically at checkout.
+                  20% off gift coupons (30 days). <strong>Share codes or checkout links with friends only</strong> — you cannot use your own codes at checkout. Each code works once for whoever redeems it first.
                 </p>
                 <div className="space-y-6">
                   {couponData.grouped.map((g) => (
@@ -236,11 +239,11 @@ function ProfileContent() {
                                     type="button"
                                     onClick={() => {
                                       navigator.clipboard.writeText(fullLink);
-                                      toast.success('Coupon link copied');
+                                      toast.success('Link copied — send to a friend (you cannot use your own codes)');
                                     }}
-                                    className="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                                    className="text-xs bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-800"
                                   >
-                                    Copy link
+                                    Copy checkout link
                                   </button>
                                 )}
                               </div>
@@ -288,7 +291,7 @@ function ProfileContent() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Refer & earn</h2>
                 <p className="text-sm text-gray-600 mb-4">
-                  Commissions: 35% direct, 10% level 2, 5% level 3 on each referred purchase. Request payout from the table below (admin marks paid).
+                  Share the <strong>signup link</strong> below so friends join under you (not discount coupon codes). Commissions: 35% direct, 10% level 2, 5% level 3 when they purchase.
                 </p>
                 <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>

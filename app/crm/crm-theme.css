@@ -1,0 +1,59 @@
+/* LeadsGuru-inspired CRM theme */
+.crm-shell {
+  --crm-purple: #5b2d8a;
+  --crm-purple-dark: #4a2370;
+  --crm-purple-light: #f3e8ff;
+  --crm-yellow: #facc15;
+  --crm-cream: #faf8f5;
+}
+
+@keyframes crmCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.crm-earn-card {
+  background: linear-gradient(145deg, #ede4f7 0%, #e8dff5 50%, #f5f0fa 100%);
+  animation: crmCardIn 0.55s ease-out both;
+}
+
+.crm-sidebar {
+  background: linear-gradient(180deg, var(--crm-purple) 0%, var(--crm-purple-dark) 100%);
+}
+
+.crm-nav-active {
+  background: var(--crm-yellow);
+  color: #1f2937;
+  border-left: 4px solid #ca8a04;
+  font-weight: 600;
+}
+
+.crm-nav-item {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.crm-nav-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.crm-profile-card {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.crm-main-bg {
+  background: var(--crm-cream);
+}
+
+.crm-tab-active {
+  color: var(--crm-purple);
+  border-bottom: 3px solid var(--crm-purple);
+  font-weight: 700;
+}

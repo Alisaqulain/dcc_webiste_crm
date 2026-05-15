@@ -1,6 +1,7 @@
 import connectDB from '@/lib/mongodb';
 import razorpay from '@/lib/razorpay';
 import Course from '@/models/Course';
+import ComboCourse from '@/models/ComboCourse';
 import User from '@/models/User';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
@@ -21,36 +22,101 @@ export async function POST(request) {
       return Response.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { courseId, couponCode } = await request.json();
+    const { courseId, comboId, couponCode } = await request.json();
 
-    if (!courseId) {
-      return Response.json({ message: 'Course ID is required' }, { status: 400 });
+    if (!courseId && !comboId) {
+      return Response.json(
+        { message: 'Course ID or combo ID is required' },
+        { status: 400 }
+      );
     }
 
-    const course = await Course.findById(courseId);
-    if (!course) {
-      return Response.json({ message: 'Course not found' }, { status: 404 });
-    }
-
-    const user = await User.findOne({ email: session.user.email }).select('_id');
+    const emailNorm = String(session.user.email).toLowerCase().trim();
+    const user = await User.findOne({ email: emailNorm }).select('_id courses');
     const userId = user?._id?.toString();
 
-    let finalPrice = Number(course.price) || 0;
+    let finalPrice = 0;
+    let listPrice = 0;
     let discountAmount = 0;
     let couponId = '';
+    let notes = {
+      userEmail: emailNorm,
+      userId: userId || '',
+      couponId: '',
+      originalPriceRupees: '0',
+      finalPriceRupees: '0',
+    };
 
-    if (couponCode && String(couponCode).trim()) {
+    if (comboId) {
+      const combo = await ComboCourse.findById(comboId);
+      if (!combo || !combo.isPublished) {
+        return Response.json({ message: 'Combo not found' }, { status: 404 });
+      }
+
+      const owned = (user?.courses || []).map((c) => c.courseId?.toString());
+      const missing = combo.courseIds.filter((id) => !owned.includes(id.toString()));
+      if (missing.length === 0) {
+        return Response.json({ message: 'You already own all courses in this combo' }, { status: 400 });
+      }
+
+      listPrice = Number(combo.price) || 0;
+      finalPrice = listPrice;
+
+      if (couponCode && String(couponCode).trim()) {
+        const v = await validateCouponForCheckout({
+          code: couponCode,
+          comboId,
+          userId,
+          userEmail: emailNorm,
+        });
+        if (!v.ok) {
+          return Response.json({ message: v.message, success: false }, { status: 400 });
+        }
+        finalPrice = v.finalPrice;
+        discountAmount = v.discountAmount;
+        couponId = v.coupon._id.toString();
+      }
+
+      notes = {
+        ...notes,
+        comboId: String(comboId),
+        purchaseType: 'combo',
+        couponId: couponId || '',
+        originalPriceRupees: String(listPrice),
+        finalPriceRupees: String(finalPrice),
+      };
+    } else {
+      const course = await Course.findById(courseId);
+      if (!course) {
+        return Response.json({ message: 'Course not found' }, { status: 404 });
+      }
+
+      listPrice = Number(course.price) || 0;
+      finalPrice = listPrice;
+
+      if (couponCode && String(couponCode).trim()) {
       const v = await validateCouponForCheckout({
         code: couponCode,
         courseId,
         userId,
+        userEmail: emailNorm,
       });
-      if (!v.ok) {
-        return Response.json({ message: v.message, success: false }, { status: 400 });
+        if (!v.ok) {
+          return Response.json({ message: v.message, success: false }, { status: 400 });
+        }
+        finalPrice = v.finalPrice;
+        discountAmount = v.discountAmount;
+        couponId = v.coupon._id.toString();
       }
-      finalPrice = v.finalPrice;
-      discountAmount = v.discountAmount;
-      couponId = v.coupon._id.toString();
+
+      notes = {
+        ...notes,
+        courseId: String(courseId),
+        purchaseType: 'course',
+        couponId: couponId || '',
+        originalPriceRupees: String(listPrice),
+        finalPriceRupees: String(finalPrice),
+      };
     }
 
     const amount = rupeesToPaiseSafe(finalPrice);
@@ -59,14 +125,7 @@ export async function POST(request) {
       amount,
       currency: 'INR',
       receipt: `crs_${Date.now().toString().slice(-8)}`,
-      notes: {
-        courseId: String(courseId),
-        userEmail: session.user.email,
-        userId: userId || '',
-        couponId: couponId || '',
-        originalPriceRupees: String(Number(course.price) || 0),
-        finalPriceRupees: String(finalPrice),
-      },
+      notes,
     });
 
     return Response.json({
@@ -78,7 +137,7 @@ export async function POST(request) {
         key: process.env.RAZORPAY_KEY_ID,
       },
       pricing: {
-        originalPrice: course.price,
+        originalPrice: listPrice,
         finalPrice,
         discountAmount,
         couponApplied: Boolean(couponId),
