@@ -12,9 +12,10 @@ export async function PUT(request, { params }) {
   try {
     verifyAdminToken(request);
     await connectDB();
+    const { id } = await params;
     const body = await request.json();
     const combo = await ComboCourse.findByIdAndUpdate(
-      params.id,
+      id,
       {
         title: body.title,
         description: body.description,
@@ -42,7 +43,8 @@ export async function DELETE(request, { params }) {
   try {
     verifyAdminToken(request);
     await connectDB();
-    await ComboCourse.findByIdAndDelete(params.id);
+    const { id } = await params;
+    await ComboCourse.findByIdAndDelete(id);
     return Response.json({ ok: true });
   } catch (e) {
     return Response.json({ message: e.message }, { status: 400 });

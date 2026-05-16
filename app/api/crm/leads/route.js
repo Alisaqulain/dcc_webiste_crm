@@ -2,6 +2,7 @@ import connectDB from '@/lib/mongodb';
 import Lead from '@/models/Lead';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { computeLeadStats } from '@/lib/leadStats';
 
 export async function GET(request) {
   try {
@@ -25,12 +26,14 @@ export async function GET(request) {
       return Response.json({ message: 'User not found' }, { status: 404 });
     }
 
-    // Get all leads for this user
     const leads = await Lead.find({ user: user._id })
       .sort({ createdAt: -1 })
       .lean();
 
-    return Response.json({ leads });
+    return Response.json({
+      leads,
+      stats: computeLeadStats(leads),
+    });
   } catch (error) {
     console.error('Error fetching leads:', error);
     return Response.json({ 
@@ -82,10 +85,18 @@ export async function POST(request) {
       amount: 100
     });
 
-    return Response.json({ 
-      message: 'Lead added successfully',
-      lead 
-    }, { status: 201 });
+    const allLeads = await Lead.find({ user: user._id })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return Response.json(
+      {
+        message: 'Lead added successfully',
+        lead,
+        stats: computeLeadStats(allLeads),
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error adding lead:', error);
     return Response.json({ 

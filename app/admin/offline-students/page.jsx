@@ -183,6 +183,70 @@ export default function OfflineStudentsPage() {
     loadCenters();
   };
 
+  const deleteCenter = async (center, options = { cascade: false }) => {
+    const count = center.studentCount ?? 0;
+
+    if (options.cascade && count > 0) {
+      if (
+        !confirm(
+          `Delete center "${center.name}" AND all ${count} student(s) at this center?\n\nAll fee history will be removed. This cannot be undone.`
+        )
+      ) {
+        return;
+      }
+    } else if (count > 0) {
+      alert(
+        `This center has ${count} student(s).\n\nUse "Delete center completely" to remove the center and all its students, or delete students one by one on the All students tab first.`
+      );
+      return;
+    } else if (!confirm(`Delete center "${center.name}"?`)) {
+      return;
+    }
+
+    const url = `/api/admin/offline-centers/${center._id}${
+      options.cascade ? '?cascade=true' : ''
+    }`;
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: headers(),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.message || 'Could not delete center');
+      return;
+    }
+    if (filterCenter === center._id) setFilterCenter('');
+    if (studentForm.centerId === center._id) {
+      setStudentForm((f) => ({ ...f, centerId: '' }));
+    }
+    if (selected?.centerId?._id === center._id || selected?.centerId === center._id) {
+      setSelected(null);
+    }
+    await loadCenters();
+    await loadStudents();
+  };
+
+  const deleteStudent = async (student) => {
+    if (
+      !confirm(
+        `Delete student "${student.fullName}" and all their fee records? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    const res = await fetch(`/api/admin/offline-students/${student._id}`, {
+      method: 'DELETE',
+      headers: headers(),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.message || 'Could not delete student');
+      return;
+    }
+    if (selected?._id === student._id) setSelected(null);
+    await loadStudents();
+  };
+
   const addStudent = async (e) => {
     e.preventDefault();
     const res = await fetch('/api/admin/offline-students', {
@@ -288,6 +352,10 @@ export default function OfflineStudentsPage() {
 
         {tab === 'centers' && (
           <section className="bg-white border rounded-xl p-5 max-w-3xl">
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+              To remove a center from the dropdown (e.g. duplicate &quot;digital carrer cemter&quot;), use{' '}
+              <strong>Delete center completely</strong> below — not the Delete button on each student row.
+            </p>
             <h2 className="font-semibold mb-4">Add center</h2>
             <form onSubmit={addCenter} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
               <input
@@ -319,15 +387,45 @@ export default function OfflineStudentsPage() {
                 Save center
               </button>
             </form>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Your centers</h3>
-            <div className="flex flex-wrap gap-2">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Your centers — manage &amp; delete</h3>
+            <ul className="space-y-3">
               {centers.map((c) => (
-                <span key={c._id} className="text-sm bg-gray-100 px-3 py-1.5 rounded-full">
-                  {c.name}
-                  {c.city ? ` · ${c.city}` : ''}
-                </span>
+                <li
+                  key={c._id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm bg-gray-50 border rounded-lg px-3 py-3"
+                >
+                  <div>
+                    <span className="font-medium text-gray-900">{c.name}</span>
+                    {c.city ? <span className="text-gray-500"> · {c.city}</span> : null}
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {c.studentCount ?? 0} student{(c.studentCount ?? 0) === 1 ? '' : 's'} linked
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    {(c.studentCount ?? 0) === 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => deleteCenter(c)}
+                        className="text-red-600 text-xs font-medium px-2 py-1 border border-red-200 rounded hover:bg-red-50"
+                      >
+                        Delete center
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => deleteCenter(c, { cascade: true })}
+                        className="text-red-700 text-xs font-semibold px-2 py-1 border border-red-300 rounded bg-red-50 hover:bg-red-100"
+                      >
+                        Delete center completely
+                      </button>
+                    )}
+                  </div>
+                </li>
               ))}
-            </div>
+              {centers.length === 0 && (
+                <li className="text-sm text-gray-500">No centers yet.</li>
+              )}
+            </ul>
           </section>
         )}
 
@@ -411,7 +509,7 @@ export default function OfflineStudentsPage() {
             <section className="xl:col-span-2 bg-white border rounded-xl overflow-hidden">
               <div className="p-4 border-b flex flex-wrap gap-3 items-center justify-between">
                 <h2 className="font-semibold">Students</h2>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
                   <input
                     type="search"
                     placeholder="Search name, phone, course…"
@@ -431,6 +529,13 @@ export default function OfflineStudentsPage() {
                       </option>
                     ))}
                   </select>
+                  <button
+                    type="button"
+                    onClick={() => setTab('centers')}
+                    className="text-xs text-red-600 font-medium hover:underline whitespace-nowrap"
+                  >
+                    Delete a center →
+                  </button>
                 </div>
               </div>
               {loading ? (
@@ -484,6 +589,13 @@ export default function OfflineStudentsPage() {
                             >
                               Record fee
                             </button>
+                            <button
+                              type="button"
+                              className="text-gray-500 text-xs hover:underline"
+                              onClick={() => deleteStudent(s)}
+                            >
+                              Delete
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -511,6 +623,13 @@ export default function OfflineStudentsPage() {
                     <h2 className="text-lg font-bold text-gray-900">{selected.fullName}</h2>
                     <p className="text-sm text-gray-600">{selected.centerId?.name}</p>
                     <p className="text-sm text-gray-600">{selected.courseLabel}</p>
+                    <button
+                      type="button"
+                      onClick={() => deleteStudent(selected)}
+                      className="mt-2 text-xs text-red-600 hover:underline"
+                    >
+                      Delete this student
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-sm">

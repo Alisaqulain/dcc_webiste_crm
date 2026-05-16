@@ -6,8 +6,9 @@ import { enrichCombo } from '@/lib/enrichCombo';
 export async function GET(request, { params }) {
   try {
     await connectDB();
+    const { id } = await params;
     const raw = await ComboCourse.findOne({
-      _id: params.id,
+      _id: id,
       isPublished: true,
     })
       .populate(

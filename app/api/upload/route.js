@@ -1,82 +1,80 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { storageService } from '@/lib/storage';
+import { getUploadDir } from '@/lib/uploadPaths';
 
-// Set max duration for uploads
-export const maxDuration = 60; // 1 minute
+export const maxDuration = 60;
+
+const IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+
+function allowDataUrlFallback() {
+  return process.env.UPLOAD_FALLBACK_DATA_URL !== '0';
+}
+
+async function uploadAsDataUrl(file) {
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+  const base64 = buffer.toString('base64');
+  const dataUrl = `data:${file.type};base64,${base64}`;
+  return {
+    success: true,
+    url: dataUrl,
+    filename: file.name,
+    isDataUrl: true,
+    size: buffer.length,
+    storageMode: 'data-url-fallback',
+  };
+}
 
 export async function POST(request) {
   try {
-    console.log('Upload API: Request received');
-    
     const data = await request.formData();
     const file = data.get('file');
 
     if (!file) {
-      console.error('Upload API: No file in request');
       return NextResponse.json({ success: false, message: 'No file uploaded' });
     }
 
-    console.log('Upload API: File received', {
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      sizeMB: (file.size / (1024 * 1024)).toFixed(2)
-    });
-
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      console.error('Upload API: Invalid file type', file.type);
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Invalid file type. Only images are allowed.' 
+    if (!IMAGE_TYPES.includes(file.type)) {
+      return NextResponse.json({
+        success: false,
+        message: 'Invalid file type. Only JPG, PNG, GIF, and WebP images are allowed.',
       });
     }
 
-    // Validate file size (configurable, default 20MB for KVM)
     const maxMb = Number(process.env.UPLOAD_MAX_MB || 20);
     const maxSize = maxMb * 1024 * 1024;
     if (file.size > maxSize) {
-      console.error('Upload API: File too large', file.size);
-      return NextResponse.json({ 
-        success: false, 
-        message: `File size too large. Maximum size is ${maxMb}MB.` 
+      return NextResponse.json({
+        success: false,
+        message: `File size too large. Maximum size is ${maxMb}MB.`,
       });
     }
 
-    // Upload file using storage service
-    console.log('Upload API: Starting storage service upload...');
-    
-    // Force filesystem mode on KVM (ensure images are saved to disk, not data URLs)
     const originalIsServerless = storageService.isServerless;
-    storageService.isServerless = false; // Force filesystem for images
-    
+    storageService.isServerless = false;
+
     try {
       const result = await storageService.uploadFile(file, 'uploads');
-      
-      // Restore original setting
       storageService.isServerless = originalIsServerless;
-      
-      console.log('Upload API: Upload successful', {
-        url: result.url,
-        filename: result.filename,
-        isDataUrl: result.isDataUrl,
-        size: result.size,
-        filepath: result.filepath || 'N/A'
-      });
 
-      // Verify file was actually saved (if filesystem mode)
       if (!result.isDataUrl) {
         const { existsSync } = await import('fs');
         const { join } = await import('path');
-        const filepath = join(process.cwd(), 'public', 'uploads', result.filename);
-        
+        const filepath = join(getUploadDir('uploads'), result.filename);
+
         if (!existsSync(filepath)) {
-          console.error('Upload API: File was not saved to filesystem!', filepath);
-          throw new Error('File upload succeeded but file was not found on server. Please check server logs and permissions.');
+          if (allowDataUrlFallback() && file.size <= 3 * 1024 * 1024) {
+            const fallback = await uploadAsDataUrl(file);
+            return NextResponse.json({
+              ...fallback,
+              warning:
+                'Saved as embedded image (disk write failed). Set public/uploads permissions on the server for normal file uploads.',
+            });
+          }
+          throw new Error(
+            'File upload succeeded but file was not found on disk. Check public/uploads permissions on WHM (chmod 755).'
+          );
         }
-        
-        console.log('Upload API: File verified on filesystem:', filepath);
       }
 
       return NextResponse.json({
@@ -84,22 +82,38 @@ export async function POST(request) {
         url: result.url,
         filename: result.filename,
         isDataUrl: result.isDataUrl,
-        size: result.size
+        size: result.size,
       });
     } catch (uploadError) {
-      // Restore original setting on error
       storageService.isServerless = originalIsServerless;
+
+      const fsCodes = ['EACCES', 'EROFS', 'ENOENT', 'EPERM'];
+      const canFallback =
+        allowDataUrlFallback() &&
+        file.size <= 3 * 1024 * 1024 &&
+        (fsCodes.includes(uploadError.code) ||
+          /filesystem|permission|write/i.test(uploadError.message));
+
+      if (canFallback) {
+        const fallback = await uploadAsDataUrl(file);
+        return NextResponse.json({
+          ...fallback,
+          warning:
+            'Image stored in database (server uploads folder not writable). Fix: chmod 755 public/uploads on WHM or set UPLOAD_DIR in .env.',
+        });
+      }
+
       throw uploadError;
     }
-
   } catch (error) {
-    console.error('Upload API: Error occurred', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
+    console.error('Upload API error:', error);
     return NextResponse.json(
-      { success: false, message: 'Upload failed: ' + error.message },
+      {
+        success: false,
+        message: error.message || 'Upload failed',
+        hint:
+          'On WHM/cPanel: ensure public/uploads exists and is writable (755). Or set UPLOAD_FALLBACK_DATA_URL=1 in .env.',
+      },
       { status: 500 }
     );
   }

@@ -1,5 +1,6 @@
 import connectDB from '@/lib/mongodb';
 import OfflineCenter from '@/models/OfflineCenter';
+import OfflineStudent from '@/models/OfflineStudent';
 
 const verifyAdminToken = (request) => {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -13,7 +14,17 @@ export async function GET(request) {
     verifyAdminToken(request);
     await connectDB();
     const centers = await OfflineCenter.find().sort({ name: 1 }).lean();
-    return Response.json({ centers });
+    const counts = await OfflineStudent.aggregate([
+      { $group: { _id: '$centerId', count: { $sum: 1 } } },
+    ]);
+    const countByCenter = Object.fromEntries(
+      counts.map((row) => [String(row._id), row.count])
+    );
+    const withCounts = centers.map((c) => ({
+      ...c,
+      studentCount: countByCenter[String(c._id)] || 0,
+    }));
+    return Response.json({ centers: withCounts });
   } catch (e) {
     return Response.json({ message: e.message }, { status: 401 });
   }

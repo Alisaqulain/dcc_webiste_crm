@@ -4,6 +4,23 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Image from 'next/image';
 
+function getPackageImageUrl(image) {
+  if (!image) return null;
+  if (
+    image.startsWith('http://') ||
+    image.startsWith('https://') ||
+    image.startsWith('data:') ||
+    image.startsWith('/')
+  ) {
+    return image;
+  }
+  return `/${image}`;
+}
+
+function isDataUrl(src) {
+  return typeof src === 'string' && src.startsWith('data:');
+}
+
 export default function HomePage() {
   const [current, setCurrent] = useState(0);
   const [currentInstructor, setCurrentInstructor] = useState(0);
@@ -388,26 +405,39 @@ export default function HomePage() {
                     key={index}
                     className="min-w-full sm:min-w-[50%] flex-shrink-0 px-1 sm:px-0 md:px-1"
                   >
-                    <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border h-full max-w-sm mx-auto flex flex-col transform " style={{boxShadow: '0 20px 40px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.1)'}}>
-                      {/* Image */}
-                      <div className="bg-gradient-to-r from-purple-100 to-pink-100 flex items-center justify-center h-32 sm:h-36 md:h-40 flex-shrink-0 relative overflow-hidden" style={{boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'}}>
-                        <img
-                          src={pkg.image}
-                          alt={pkg.title}
-                          width={200}
-                          height={160}
-                          className="w-56 h-30 sm:w-32 sm:h-28 md:w-50 md:h-42 object-contain transform hover:scale-110 transition-transform duration-300" 
-                          style={{filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))'}}
-                          onError={(e) => {
-                            console.error('Package image failed to load:', pkg.image);
-                            // Show placeholder instead of hiding
-                            e.target.onerror = null; // Prevent infinite loop
-                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="160"%3E%3Crect fill="%23e5e7eb" width="200" height="160"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-family="Arial" font-size="14"%3EImage not found%3C/text%3E%3C/svg%3E';
-                            console.warn('⚠️ Image not accessible. If this is a newly uploaded image, it may take a moment to be available. If the issue persists, check Nginx configuration for /uploads location block.');
-                          }}
-                          onLoad={() => console.log('Package image loaded successfully:', pkg.image)}
-                          loading="lazy"
-                        />
+                    <div className="bg-white rounded-lg shadow-lg overflow-hidden border h-full w-full max-w-md mx-auto flex flex-col hover:shadow-xl transition-shadow">
+                      <div className="relative h-48 sm:h-52 w-full bg-gray-200 flex-shrink-0 overflow-hidden">
+                        {(() => {
+                          const thumb = getPackageImageUrl(pkg.image);
+                          if (!thumb) {
+                            return (
+                              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            );
+                          }
+                          if (isDataUrl(thumb)) {
+                            return (
+                              <img
+                                src={thumb}
+                                alt={pkg.title || 'Package'}
+                                className="w-full h-full object-cover"
+                              />
+                            );
+                          }
+                          return (
+                            <Image
+                              src={thumb}
+                              alt={pkg.title || 'Package'}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 640px) 100vw, 50vw"
+                              unoptimized
+                            />
+                          );
+                        })()}
                       </div>
 
                       {/* Content */}

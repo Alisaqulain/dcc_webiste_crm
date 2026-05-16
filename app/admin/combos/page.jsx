@@ -57,7 +57,7 @@ export default function AdminCombosPage() {
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      alert('Please select an image file (JPG, PNG, GIF, WebP)');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -70,17 +70,41 @@ export default function AdminCombosPage() {
       fd.append('file', file);
       const res = await fetch('/api/upload', { method: 'POST', body: fd });
       const data = await res.json();
-      if (data.success) {
-        setUploadedImage(data.url);
-        setForm((f) => ({ ...f, thumbnail: data.url }));
-      } else {
-        alert(data.message || 'Upload failed');
+      if (!res.ok || !data.success) {
+        alert(
+          (data.message || 'Upload failed') +
+            (data.hint ? `\n\n${data.hint}` : '')
+        );
+        return;
       }
-    } catch {
-      alert('Upload failed');
+      setUploadedImage(data.url);
+      setForm((f) => ({ ...f, thumbnail: data.url }));
+      if (data.warning) {
+        console.warn('Upload warning:', data.warning);
+      }
+    } catch (err) {
+      alert('Upload failed: ' + (err.message || 'network error'));
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const togglePublished = async (combo) => {
+    const res = await fetch(`/api/admin/combos/${combo._id}`, {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        ...combo,
+        courseIds: (combo.courseIds || []).map((c) => c._id || c),
+        isPublished: !combo.isPublished,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.message || 'Failed to update');
+      return;
+    }
+    load();
   };
 
   const toggleCourse = (id) => {
@@ -221,6 +245,14 @@ export default function AdminCombosPage() {
           />
           Includes CRM access
         </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.isPublished}
+            onChange={(e) => setForm({ ...form, isPublished: e.target.checked })}
+          />
+          Published on website (Courses page &amp; signup)
+        </label>
         <div>
           <p className="text-sm font-medium mb-2">Courses in bundle (min 2)</p>
           <div className="max-h-40 overflow-y-auto border rounded p-2 space-y-1">
@@ -251,6 +283,15 @@ export default function AdminCombosPage() {
                 <div>
                   <h3 className="font-semibold">{combo.title}</h3>
                   <p className="text-sm text-gray-600">₹{combo.price}</p>
+                  <span
+                    className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
+                      combo.isPublished !== false
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {combo.isPublished !== false ? 'Live on website' : 'Hidden (draft)'}
+                  </span>
                   <ul className="text-xs text-gray-500 mt-2">
                     {(combo.courseIds || []).map((c) => (
                       <li key={c._id}>• {c.title}</li>
@@ -266,6 +307,13 @@ export default function AdminCombosPage() {
                   >
                     Preview checkout
                   </a>
+                  <button
+                    type="button"
+                    onClick={() => togglePublished(combo)}
+                    className="text-sm text-gray-700 hover:underline text-left"
+                  >
+                    {combo.isPublished !== false ? 'Unpublish' : 'Publish on website'}
+                  </button>
                   <button
                     type="button"
                     onClick={() => removeCombo(combo._id)}
