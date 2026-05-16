@@ -1,5 +1,9 @@
 import connectDB from '@/lib/mongodb';
 import ComboCourse from '@/models/ComboCourse';
+import { COMBO_CACHE_HEADERS } from '@/lib/comboApi';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const verifyAdminToken = (request) => {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -44,9 +48,18 @@ export async function DELETE(request, { params }) {
     verifyAdminToken(request);
     await connectDB();
     const { id } = await params;
-    await ComboCourse.findByIdAndDelete(id);
-    return Response.json({ ok: true });
+    const deleted = await ComboCourse.findByIdAndDelete(id);
+    if (!deleted) {
+      return Response.json(
+        { message: 'Combo not found' },
+        { status: 404, headers: COMBO_CACHE_HEADERS }
+      );
+    }
+    return Response.json({ ok: true, deletedId: id }, { headers: COMBO_CACHE_HEADERS });
   } catch (e) {
-    return Response.json({ message: e.message }, { status: 400 });
+    return Response.json(
+      { message: e.message },
+      { status: e.message?.includes('token') ? 401 : 400, headers: COMBO_CACHE_HEADERS }
+    );
   }
 }

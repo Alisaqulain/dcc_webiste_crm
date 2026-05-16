@@ -98,6 +98,42 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: '/api/combos',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, max-age=0',
+          },
+        ],
+      },
+      {
+        source: '/api/combos/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, max-age=0',
+          },
+        ],
+      },
+      {
+        source: '/api/admin/combos',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, max-age=0',
+          },
+        ],
+      },
+      {
+        source: '/api/admin/combos/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, max-age=0',
+          },
+        ],
+      },
     ];
   },
   

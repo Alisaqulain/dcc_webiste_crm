@@ -81,7 +81,7 @@ function SignupForm() {
       try {
         const [courseRes, comboRes] = await Promise.all([
           fetch('/api/courses?published=true&limit=100&sortBy=newest'),
-          fetch('/api/combos'),
+          fetch(`/api/combos?t=${Date.now()}`, { cache: 'no-store' }),
         ]);
         const courseData = await courseRes.json();
         const comboData = await comboRes.json();

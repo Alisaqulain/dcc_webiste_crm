@@ -1,7 +1,10 @@
 import connectDB from '@/lib/mongodb';
 import ComboCourse from '@/models/ComboCourse';
 import '@/models/Course';
-import { enrichCombo } from '@/lib/enrichCombo';
+import { mapPublicCombos, COMBO_CACHE_HEADERS } from '@/lib/comboApi';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(request, { params }) {
   try {
@@ -11,16 +14,34 @@ export async function GET(request, { params }) {
       _id: id,
       isPublished: true,
     })
-      .populate(
-        'courseIds',
-        'title price originalPrice thumbnail shortDescription description category level duration perks features instructor banner viewMore'
-      )
+      .populate({
+        path: 'courseIds',
+        select:
+          'title price originalPrice thumbnail shortDescription description category level duration perks features instructor banner viewMore',
+        options: { strictPopulate: false },
+      })
       .lean();
+
     if (!raw) {
-      return Response.json({ message: 'Combo not found' }, { status: 404 });
+      return Response.json(
+        { message: 'Combo not found' },
+        { status: 404, headers: COMBO_CACHE_HEADERS }
+      );
     }
-    return Response.json({ combo: enrichCombo(raw) });
+
+    const [combo] = mapPublicCombos([raw], request);
+    if (!combo) {
+      return Response.json(
+        { message: 'Combo not available' },
+        { status: 404, headers: COMBO_CACHE_HEADERS }
+      );
+    }
+
+    return Response.json({ combo }, { headers: COMBO_CACHE_HEADERS });
   } catch (e) {
-    return Response.json({ message: e.message }, { status: 500 });
+    return Response.json(
+      { message: e.message },
+      { status: 500, headers: COMBO_CACHE_HEADERS }
+    );
   }
 }

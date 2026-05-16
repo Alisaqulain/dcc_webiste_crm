@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { storageService } from '@/lib/storage';
 import { getUploadDir } from '@/lib/uploadPaths';
+import { resolvePublicUrl } from '@/lib/resolvePublicUrl';
 
 export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
 const IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
 
@@ -67,6 +69,7 @@ export async function POST(request) {
             const fallback = await uploadAsDataUrl(file);
             return NextResponse.json({
               ...fallback,
+              url: fallback.url,
               warning:
                 'Saved as embedded image (disk write failed). Set public/uploads permissions on the server for normal file uploads.',
             });
@@ -77,9 +80,13 @@ export async function POST(request) {
         }
       }
 
+      const publicUrl = result.isDataUrl
+        ? result.url
+        : resolvePublicUrl(result.url, request);
+
       return NextResponse.json({
         success: true,
-        url: result.url,
+        url: publicUrl,
         filename: result.filename,
         isDataUrl: result.isDataUrl,
         size: result.size,

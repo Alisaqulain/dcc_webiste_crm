@@ -1,6 +1,10 @@
 import connectDB from '@/lib/mongodb';
 import ComboCourse from '@/models/ComboCourse';
 import '@/models/Course';
+import { COMBO_CACHE_HEADERS } from '@/lib/comboApi';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 const verifyAdminToken = (request) => {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -17,9 +21,12 @@ export async function GET(request) {
       .populate('courseIds', 'title price thumbnail')
       .sort({ createdAt: -1 })
       .lean();
-    return Response.json({ combos });
+    return Response.json({ combos }, { headers: COMBO_CACHE_HEADERS });
   } catch (e) {
-    return Response.json({ message: e.message }, { status: e.message.includes('token') ? 401 : 500 });
+    return Response.json(
+      { message: e.message },
+      { status: e.message.includes('token') ? 401 : 500, headers: COMBO_CACHE_HEADERS }
+    );
   }
 }
 
@@ -41,7 +48,10 @@ export async function POST(request) {
       hasCrmAccess: Boolean(body.hasCrmAccess),
       isPublished: body.isPublished !== false,
     });
-    return Response.json({ combo }, { status: 201 });
+    return Response.json(
+      { combo, ok: true },
+      { status: 201, headers: COMBO_CACHE_HEADERS }
+    );
   } catch (e) {
     return Response.json({ message: e.message }, { status: 400 });
   }

@@ -96,7 +96,7 @@ export default function AdminCombosPage() {
       body: JSON.stringify({
         ...combo,
         courseIds: (combo.courseIds || []).map((c) => c._id || c),
-        isPublished: !combo.isPublished,
+        isPublished: combo.isPublished === false,
       }),
     });
     const data = await res.json();
@@ -141,6 +141,11 @@ export default function AdminCombosPage() {
       alert(data.message || 'Failed');
       return;
     }
+    alert(
+      form.isPublished
+        ? 'Combo created and published. Open /courses on the website (Ctrl+F5) to see it.'
+        : 'Combo saved as draft. Check "Published on website" and create again, or use Publish on the list below.'
+    );
     setForm({
       title: '',
       description: '',
@@ -159,8 +164,17 @@ export default function AdminCombosPage() {
   };
 
   const removeCombo = async (id) => {
-    if (!confirm('Delete this combo?')) return;
-    await fetch(`/api/admin/combos/${id}`, { method: 'DELETE', headers: authHeaders() });
+    if (!confirm('Delete this combo? It will be removed from the Courses page immediately.')) return;
+    const res = await fetch(`/api/admin/combos/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(data.message || 'Delete failed. Check you are logged in as admin.');
+      return;
+    }
+    alert('Combo deleted. Refresh the Courses page on the website (hard refresh: Ctrl+F5).');
     load();
   };
 
