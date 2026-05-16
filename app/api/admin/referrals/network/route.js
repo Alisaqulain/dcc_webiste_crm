@@ -25,6 +25,11 @@ export async function GET(request) {
 
     await connectDB();
 
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)));
+    const skip = (page - 1) * limit;
+
     const groups = await User.aggregate([
       { $match: { referredBy: { $ne: null } } },
       {
@@ -60,9 +65,20 @@ export async function GET(request) {
         },
       },
       { $sort: { underCount: -1, referrerEmail: 1 } },
+      {
+        $facet: {
+          meta: [{ $count: 'total' }],
+          items: [{ $skip: skip }, { $limit: limit }],
+        },
+      },
     ]);
 
-    const underByReferrer = groups.map((g) => {
+    const facet = groups[0] || { meta: [], items: [] };
+    const total = facet.meta[0]?.total ?? 0;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const pageGroups = facet.items || [];
+
+    const underByReferrer = pageGroups.map((g) => {
       const refs = (g.referrals || []).sort(
         (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
       );
@@ -88,7 +104,17 @@ export async function GET(request) {
       };
     });
 
-    return Response.json({ underByReferrer });
+    return Response.json({
+      underByReferrer,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    });
   } catch (e) {
     console.error('Admin referrals network GET', e);
     return Response.json({ message: 'Failed to load referral network' }, { status: 500 });
