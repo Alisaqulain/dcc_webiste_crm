@@ -183,12 +183,20 @@ export default function CourseVideosPage() {
                 <p className="text-sm text-gray-600">{course?.title}</p>
               </div>
             </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              Add Video
-            </button>
+            <div className="flex gap-2">
+              <Link
+                href={`/admin/courses/${courseId}/materials`}
+                className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Manage PDFs
+              </Link>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Add Video
+              </button>
+            </div>
           </div>
         </div>
       </header>

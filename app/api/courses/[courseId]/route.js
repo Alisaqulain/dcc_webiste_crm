@@ -38,6 +38,12 @@ export async function GET(request, { params }) {
           course.videos = course.videos.filter(v => v.isFreePreview === true || v.isPreview === true);
         }
       }
+      if (course.materials) {
+        course.materials.sort((a, b) => (a.order || 0) - (b.order || 0));
+        if (!hasAccess) {
+          course.materials = course.materials.filter((m) => m.isFreePreview === true);
+        }
+      }
     } else {
       course = await Course.findById(courseId)
         .select('-videos') // Exclude videos for performance

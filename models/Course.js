@@ -236,6 +236,45 @@ const courseSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+  materials: [{
+    title: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    description: {
+      type: String,
+      trim: true
+    },
+    fileUrl: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    fileName: {
+      type: String,
+      trim: true
+    },
+    fileSize: {
+      type: Number
+    },
+    mimeType: {
+      type: String,
+      default: 'application/pdf'
+    },
+    order: {
+      type: Number,
+      default: 0
+    },
+    isFreePreview: {
+      type: Boolean,
+      default: false
+    },
+    uploadedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   features: [{
     type: String,
     trim: true

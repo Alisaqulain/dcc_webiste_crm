@@ -72,11 +72,11 @@ export default function ContactPage() {
         <meta property="og:description" content="Contact Digital Career Center for digital skills training inquiries. Located in Muzaffarnagar, Uttar Pradesh. Call +91-7599863007 or email info@digitalcareercenter.com" />
         <meta property="og:url" content="https://domainisdigitalcareercenter.com/contact" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <meta property="og:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Contact Us - Digital Career Center | Get in Touch for Digital Skills Training" />
         <meta name="twitter:description" content="Contact Digital Career Center for digital skills training inquiries. Located in Muzaffarnagar, Uttar Pradesh. Call +91-7599863007 or email info@digitalcareercenter.com" />
-        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
         <link rel="canonical" href="https://domainisdigitalcareercenter.com/contact" />
         
         <script

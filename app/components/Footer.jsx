@@ -28,20 +28,12 @@ const Footer = () => {
 
           <div className="sm:col-span-2 lg:col-span-1">
 
-            <Link href="/" className="flex items-center gap-3 mb-5 group">
-
+            <Link href="/" className="inline-flex items-center mb-5 group">
               <img
-
-                src="/logo.jpg"
-
-                alt=""
-
-                className="w-12 h-12 rounded-full ring-2 ring-red-500/40 group-hover:ring-red-500/70 transition-all duration-300 shadow-lg"
-
+                src="/newlogo.jpeg"
+                alt="Digital Career Center"
+                className="h-10 sm:h-11 w-auto max-w-[220px] object-contain rounded-md group-hover:opacity-90 transition-opacity duration-300"
               />
-
-              <span className="text-lg font-bold text-white tracking-tight">Digital Career Center</span>
-
             </Link>
 
             <p className="text-sm leading-relaxed text-slate-400 mb-6 max-w-sm">

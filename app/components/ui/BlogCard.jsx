@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 
 export default function BlogCard({ post, index = 0 }) {
-  const thumb = post.featuredImage || post.image || '/logo.jpg';
+  const thumb = post.featuredImage || post.image || '/newlogo.jpeg';
 
   return (
     <motion.article

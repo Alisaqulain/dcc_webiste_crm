@@ -7,6 +7,15 @@ import ConfirmDialog from '@/app/components/admin/ConfirmDialog';
 
 const PAGE_SIZE = 50;
 
+function formatLeadDate(value) {
+  if (!value) return { date: '—', time: '' };
+  const d = new Date(value);
+  return {
+    date: d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }),
+    time: d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+  };
+}
+
 export default function AdminLeadsPage() {
   const router = useRouter();
   const [items, setItems] = useState([]);
@@ -112,7 +121,7 @@ export default function AdminLeadsPage() {
   };
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto">
+    <div className="p-4 md:p-6 w-full min-w-0">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Manage Leads</h1>
@@ -191,64 +200,72 @@ export default function AdminLeadsPage() {
         <div className="text-center py-16 text-gray-500">Loading leads…</div>
       ) : (
         <>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Client
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Service
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Country
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      ₹
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {items.map((lead) => (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <table className="w-full table-fixed divide-y divide-gray-200">
+              <colgroup>
+                <col className="w-[9%]" />
+                <col className="w-[18%]" />
+                <col className="w-[18%]" />
+                <col className="w-[22%]" />
+                <col className="w-[6%]" />
+                <col className="w-[10%]" />
+                <col className="w-[17%]" />
+              </colgroup>
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                    Created
+                  </th>
+                  <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                    Submitted by
+                  </th>
+                  <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                    Client email
+                  </th>
+                  <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                    Service · Country
+                  </th>
+                  <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                    ₹
+                  </th>
+                  <th className="px-2 py-2.5 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                    Status
+                  </th>
+                  <th className="px-2 py-2.5 text-right text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {items.map((lead) => {
+                  const created = formatLeadDate(lead.createdAt || lead.date);
+                  return (
                     <tr
                       key={lead._id}
-                      className="hover:bg-red-50/40 transition-colors duration-150"
+                      className="hover:bg-red-50/40 transition-colors duration-150 align-top"
                     >
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        {lead.createdAt
-                          ? new Date(lead.createdAt).toLocaleString()
-                          : new Date(lead.date).toLocaleDateString()}
+                      <td className="px-2 py-2.5 text-xs text-gray-700 leading-snug">
+                        <span className="block font-medium">{created.date}</span>
+                        {created.time && <span className="block text-gray-500">{created.time}</span>}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                      <td className="px-2 py-2.5 text-xs text-gray-700 break-all leading-snug">
                         {lead.user?.email || '—'}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                      <td className="px-2 py-2.5 text-xs text-gray-700 break-all leading-snug">
                         {lead.clientEmail}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 max-w-[140px] truncate" title={lead.service}>
-                        {lead.service}
+                      <td className="px-2 py-2.5 text-xs text-gray-700 leading-snug">
+                        <span className="block break-words" title={lead.service}>
+                          {lead.service}
+                        </span>
+                        <span className="block text-gray-500 mt-0.5">{lead.country}</span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{lead.country}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
+                      <td className="px-2 py-2.5 text-xs font-semibold text-gray-900">
                         ₹{lead.amount ?? 100}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-2 py-2.5">
                         <span
-                          className={`inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                          className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded-full ${
                             lead.status === 'approved'
                               ? 'bg-green-100 text-green-800'
                               : lead.status === 'paid'
@@ -261,13 +278,13 @@ export default function AdminLeadsPage() {
                           {lead.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
-                        <div className="flex flex-wrap justify-end gap-2">
+                      <td className="px-2 py-2.5 text-right">
+                        <div className="flex flex-wrap justify-end gap-x-2 gap-y-1 text-[11px] leading-tight">
                           {lead.status === 'pending' && (
                             <button
                               type="button"
                               onClick={() => updateStatus(lead._id, 'approved')}
-                              className="text-green-700 hover:text-green-900 font-medium"
+                              className="text-green-700 hover:text-green-900 font-medium whitespace-nowrap"
                             >
                               Approve
                             </button>
@@ -276,7 +293,7 @@ export default function AdminLeadsPage() {
                             <button
                               type="button"
                               onClick={() => updateStatus(lead._id, 'paid')}
-                              className="text-blue-700 hover:text-blue-900 font-medium"
+                              className="text-blue-700 hover:text-blue-900 font-medium whitespace-nowrap"
                             >
                               Paid
                             </button>
@@ -285,7 +302,7 @@ export default function AdminLeadsPage() {
                             <button
                               type="button"
                               onClick={() => updateStatus(lead._id, 'rejected')}
-                              className="text-amber-700 hover:text-amber-900 font-medium"
+                              className="text-amber-700 hover:text-amber-900 font-medium whitespace-nowrap"
                             >
                               Reject
                             </button>
@@ -293,17 +310,17 @@ export default function AdminLeadsPage() {
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(lead)}
-                            className="text-red-600 hover:text-red-800 font-medium"
+                            className="text-red-600 hover:text-red-800 font-medium whitespace-nowrap"
                           >
                             Delete
                           </button>
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
+              </tbody>
+            </table>
             {items.length === 0 && (
               <div className="text-center py-12 text-gray-500">
                 {debouncedSearch

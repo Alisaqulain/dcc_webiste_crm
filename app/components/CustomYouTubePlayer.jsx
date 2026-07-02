@@ -14,6 +14,10 @@ import { useMobileLandscapeImmersive } from '@/lib/useMobileLandscapeImmersive';
  * - Custom controls overlay
  * - Zoom, Quality, Fullscreen
  */
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 2.5;
+const PREVIEW_DEFAULT_ZOOM = 0.88;
+
 const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   const { data: session } = useSession();
   const router = useRouter();
@@ -29,7 +33,8 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   // Custom controls state
   const [showControls, setShowControls] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const isPreviewVideo = Boolean(video?.isFreePreview || video?.isPreview);
+  const [zoomLevel, setZoomLevel] = useState(isPreviewVideo ? PREVIEW_DEFAULT_ZOOM : 1);
   const [currentQuality, setCurrentQuality] = useState('auto');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -93,6 +98,11 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     checkAccess();
   }, [session?.user?.id, courseId, video?.isFreePreview, video?.isPreview]);
 
+  // Reset zoom when switching videos — preview defaults slightly zoomed out so full frame is visible
+  useEffect(() => {
+    setZoomLevel(isPreviewVideo ? PREVIEW_DEFAULT_ZOOM : 1);
+  }, [video?._id, isPreviewVideo]);
+
   // Load YouTube iframe API
   useEffect(() => {
     if (window.YT && window.YT.Player) {
@@ -134,6 +144,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
     let cancelled = false;
     let timeInterval = null;
     let pollTimer = null;
+    let onResize = null;
 
     const initPlayer = () => {
       if (cancelled) return;
@@ -185,6 +196,23 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
               console.log('YouTube player ready');
               setIsLoading(false);
               setPlayerReady(true);
+
+              const resizePlayer = () => {
+                const shell = shellRef.current;
+                if (!shell || !event.target?.setSize) return;
+                const w = shell.clientWidth;
+                const h = shell.clientHeight;
+                if (w > 0 && h > 0) {
+                  try {
+                    event.target.setSize(w, h);
+                  } catch (e) {
+                    /* ignore */
+                  }
+                }
+              };
+              onResize = resizePlayer;
+              resizePlayer();
+              window.addEventListener('resize', resizePlayer);
               
               // Get available quality levels
               try {
@@ -241,6 +269,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
       cancelled = true;
       if (pollTimer) clearTimeout(pollTimer);
       if (timeInterval) clearInterval(timeInterval);
+      if (onResize) window.removeEventListener('resize', onResize);
       if (playerRef.current) {
         try {
           playerRef.current.destroy();
@@ -397,11 +426,11 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
   };
 
   const handleZoomIn = () => {
-    setZoomLevel((prev) => Math.min(prev + 0.25, 2.5));
+    setZoomLevel((prev) => Math.min(prev + 0.1, MAX_ZOOM));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.25, 1));
+    setZoomLevel((prev) => Math.max(prev - 0.1, MIN_ZOOM));
   };
 
   const handleQualityChange = (quality) => {
@@ -612,9 +641,9 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
           aria-hidden="true"
         />
 
-        {/* Bottom - blocks YouTube logo and "Watch on YouTube" */}
+        {/* Bottom - blocks YouTube logo (smaller strip so less video is covered) */}
         <div 
-          className="absolute bottom-0 left-0 right-0 h-20 z-15 pointer-events-auto"
+          className="absolute bottom-0 left-0 right-0 h-12 z-15 pointer-events-auto"
           onClick={(e) => {
             if (!e.target.closest('.custom-video-controls')) {
               e.preventDefault();
@@ -744,7 +773,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
                   }}
                   className={`custom-control-button ${isMobile ? 'p-3' : 'p-2'} hover:bg-white/20 rounded transition-colors text-red-600 touch-manipulation disabled:opacity-40`}
                   aria-label="Zoom out"
-                  disabled={zoomLevel <= 1}
+                  disabled={zoomLevel <= MIN_ZOOM}
                 >
                   <svg className={isMobile ? 'w-7 h-7' : 'w-5 h-5'} fill="currentColor" viewBox="0 0 24 24">
                     <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z" />
@@ -764,7 +793,7 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
                   }}
                   className={`custom-control-button ${isMobile ? 'p-3' : 'p-2'} hover:bg-white/20 rounded transition-colors text-red-600 touch-manipulation disabled:opacity-40`}
                   aria-label="Zoom in"
-                  disabled={zoomLevel >= 2.5}
+                  disabled={zoomLevel >= MAX_ZOOM}
                 >
                   <svg className={isMobile ? 'w-7 h-7' : 'w-5 h-5'} fill="currentColor" viewBox="0 0 24 24">
                     <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM12 7v5H7v1h5v5h1v-5h5v-1h-5V7h-1z" />
@@ -856,7 +885,20 @@ const CustomYouTubePlayer = ({ courseId, video, onVideoEnd, onVideoStart }) => {
       <style dangerouslySetInnerHTML={{__html: `
         /* YouTube iframe is visible but all UI is hidden */
         .custom-video-player iframe {
-          pointer-events: none !important; /* Block all clicks on iframe */
+          pointer-events: none !important;
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+
+        .custom-video-player [id^="youtube-player-"] {
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
         }
 
         /* Allow iframe interactions in fullscreen mode */

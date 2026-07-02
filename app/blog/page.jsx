@@ -85,7 +85,7 @@ const BlogPage = () => {
         />
         <meta property="og:url" content="https://domainisdigitalcareercenter.com/blog" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <meta property="og:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta
           name="twitter:title"
@@ -95,7 +95,7 @@ const BlogPage = () => {
           name="twitter:description"
           content="Stay updated with the latest digital career trends, tips, and insights. Read expert articles on digital marketing, SEO, web development, and career development from Digital Career Center."
         />
-        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
         <link rel="canonical" href="https://domainisdigitalcareercenter.com/blog" />
 
         <script

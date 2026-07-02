@@ -92,11 +92,11 @@ export default function BronzeBundlePage() {
         <meta property="og:description" content="Master essential office skills with our Digital Starter Package (DSP) Bronze Bundle. Learn Microsoft Office, professional communication, resume building, and interview preparation. 21 hours of content for just ₹1,899." />
         <meta property="og:url" content="https://domainisdigitalcareercenter.com/BronzeBundle" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <meta property="og:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Digital Starter Package (DSP) - Bronze Bundle Course | Digital Career Center" />
         <meta name="twitter:description" content="Master essential office skills with our Digital Starter Package (DSP) Bronze Bundle. Learn Microsoft Office, professional communication, resume building, and interview preparation. 21 hours of content for just ₹1,899." />
-        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/logo.png" />
+        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
         <link rel="canonical" href="https://domainisdigitalcareercenter.com/BronzeBundle" />
         
         <script

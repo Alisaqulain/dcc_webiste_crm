@@ -77,7 +77,7 @@ const Header = () => {
       <header className="sticky top-0 z-50 bg-white border-b border-red-100 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
           <div className="flex items-center gap-3 min-w-0">
-            <img src="/logo.jpg" alt="" className="w-11 h-11 rounded-full shrink-0 object-cover ring-2 ring-red-100" />
+            <img src="/newlogo.jpeg" alt="Digital Career Center" className="h-9 sm:h-10 w-auto max-w-[200px] object-contain shrink-0" />
             <div className="min-w-0">
               <div className="text-sm sm:text-base font-bold text-slate-900 truncate">Digital Career Center</div>
               <p className="text-xs text-amber-800 truncate">Complete secure payment below to unlock courses & profile</p>
@@ -109,15 +109,12 @@ const Header = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 py-3 md:py-4">
-        <Link href="/" className="flex items-center gap-2.5 sm:gap-3 shrink-0 group">
+        <Link href="/" className="flex items-center shrink-0 group">
           <img
-            src="/logo.jpg"
+            src="/newlogo.jpeg"
             alt="Digital Career Center"
-            className="w-11 h-11 sm:w-12 sm:h-12 rounded-full ring-2 ring-red-100 group-hover:ring-red-300 group-hover:scale-105 transition-all duration-300 shadow-sm"
+            className="h-9 sm:h-10 md:h-11 w-auto max-w-[180px] sm:max-w-[220px] object-contain group-hover:opacity-90 transition-opacity duration-300"
           />
-          <span className="text-sm sm:text-base md:text-lg font-bold text-slate-900 leading-tight hidden xs:block">
-            Digital Career Center
-          </span>
         </Link>
 
         <nav className="hidden lg:flex items-center gap-1 xl:gap-2">

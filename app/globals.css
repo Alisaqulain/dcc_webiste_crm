@@ -257,33 +257,52 @@ code, pre {
   background: rgba(220, 38, 38, 0.45);
 }
 
-[class*="share"],
-[class*="Share"],
-[id*="share"],
-[id*="Share"],
-[aria-label*="Share"],
-[aria-label*="share"],
-[aria-label*="Copy link"],
-[aria-label*="copy link"],
-[title*="Share"],
-[title*="share"],
-[title*="Copy link"],
-[title*="copy link"],
-.ytp-share-button,
-.ytp-share-panel,
-[class*="ytp-share"],
-[class*="ytp-copy"],
-.ytp-watermark,
-.ytp-watermark-logo,
-[class*="ytp-watermark"],
-[class*="ytp-branding"],
-[id*="ytp-watermark"],
-[id*="ytp-branding"],
-a[href*="youtube.com"][class*="ytp"],
-a[href*="youtube.com"][id*="ytp"],
-[class*="watch-on-youtube"],
-[aria-label*="Watch on YouTube"],
-[title*="Watch on YouTube"] {
+/* Scope YouTube share/branding hides to video players only — global rules broke CRM UI & playback */
+.custom-video-player [class*="share"],
+.custom-video-player [class*="Share"],
+.custom-video-player [id*="share"],
+.custom-video-player [id*="Share"],
+.custom-video-player [aria-label*="Share"],
+.custom-video-player [aria-label*="share"],
+.custom-video-player [aria-label*="Copy link"],
+.custom-video-player [aria-label*="copy link"],
+.custom-video-player [title*="Share"],
+.custom-video-player [title*="share"],
+.custom-video-player [title*="Copy link"],
+.custom-video-player [title*="copy link"],
+.custom-video-player .ytp-share-button,
+.custom-video-player .ytp-share-panel,
+.custom-video-player [class*="ytp-share"],
+.custom-video-player [class*="ytp-copy"],
+.custom-video-player .ytp-watermark,
+.custom-video-player .ytp-watermark-logo,
+.custom-video-player [class*="ytp-watermark"],
+.custom-video-player [class*="ytp-branding"],
+.custom-video-player [id*="ytp-watermark"],
+.custom-video-player [id*="ytp-branding"],
+.custom-video-player a[href*="youtube.com"][class*="ytp"],
+.custom-video-player a[href*="youtube.com"][id*="ytp"],
+.custom-video-player [class*="watch-on-youtube"],
+.custom-video-player [aria-label*="Watch on YouTube"],
+.custom-video-player [title*="Watch on YouTube"],
+.youtube-player-container [class*="share"],
+.youtube-player-container [class*="Share"],
+.youtube-player-container .ytp-share-button,
+.youtube-player-container .ytp-share-panel,
+.youtube-player-container [class*="ytp-share"],
+.youtube-player-container [class*="ytp-copy"],
+.youtube-player-container .ytp-watermark,
+.youtube-player-container [class*="ytp-watermark"],
+.youtube-player-container [class*="ytp-branding"],
+.secure-youtube-container [class*="share"],
+.secure-youtube-container [class*="Share"],
+.secure-youtube-container .ytp-share-button,
+.secure-youtube-container .ytp-share-panel,
+.secure-youtube-container [class*="ytp-share"],
+.secure-youtube-container [class*="ytp-copy"],
+.secure-youtube-container .ytp-watermark,
+.secure-youtube-container [class*="ytp-watermark"],
+.secure-youtube-container [class*="ytp-branding"] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
@@ -291,4 +310,29 @@ a[href*="youtube.com"][id*="ytp"],
   width: 0 !important;
   height: 0 !important;
   overflow: hidden !important;
+}
+
+/* CRM sidebar — ensure purple theme is not overridden by global styles */
+.crm-shell .crm-sidebar {
+  background: linear-gradient(180deg, #5b2d8a 0%, #4a2370 100%) !important;
+  color: #fff !important;
+}
+
+.crm-shell .crm-sidebar .crm-nav-item {
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+.crm-shell .crm-sidebar .crm-nav-item:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
+}
+
+.crm-shell .crm-sidebar .crm-nav-active {
+  background: #facc15 !important;
+  color: #1f2937 !important;
+}
+
+.crm-shell .crm-sidebar .crm-profile-card {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
 }

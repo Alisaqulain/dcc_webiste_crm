@@ -8,6 +8,8 @@ import Image from 'next/image';
 import CourseDescriptionBlocks from '@/app/components/ui/CourseDescriptionBlocks';
 import AnimatedSection from '@/app/components/ui/AnimatedSection';
 import SectionTitle from '@/app/components/ui/SectionTitle';
+import CustomYouTubePlayer from '@/app/components/CustomYouTubePlayer';
+import VimeoPlayer from '@/app/components/VimeoPlayer';
 
 // Helper function to normalize course thumbnail URL
 const getCourseThumbnail = (thumbnail) => {
@@ -132,7 +134,7 @@ function CourseDetailPageInner() {
     "educationalLevel": course.level || "Beginner",
     "courseCategory": course.category || "Digital Skills",
     "timeRequired": course.duration || "PT1H",
-    "image": course.thumbnail ? (course.thumbnail.startsWith('http') ? course.thumbnail : `https://domainisdigitalcareercenter.com${course.thumbnail}`) : "https://domainisdigitalcareercenter.com/logo.png",
+    "image": course.thumbnail ? (course.thumbnail.startsWith('http') ? course.thumbnail : `https://domainisdigitalcareercenter.com${course.thumbnail}`) : "https://domainisdigitalcareercenter.com/newlogo.jpeg",
     "offers": {
       "@type": "Offer",
       "price": course.price || 0,
@@ -143,6 +145,7 @@ function CourseDetailPageInner() {
 
   // Sort videos by order
   const sortedVideos = course.videos ? [...course.videos].sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
+  const sortedMaterials = course.materials ? [...course.materials].sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
 
   const couponQ = searchParams.get('coupon');
   const purchaseSuffix = couponQ
@@ -158,6 +161,10 @@ function CourseDetailPageInner() {
       : null;
 
   const firstPlayableVideoId = sortedVideos[0]?._id;
+  const previewVideo = sortedVideos.find(
+    (v) => v.isPreview === true || v.isFreePreview === true
+  );
+  const inlinePreviewVideo = previewVideo || (hasAccess ? sortedVideos[0] : null);
 
   const renderVideoList = (compact = false) => {
     if (sortedVideos.length === 0) {
@@ -169,7 +176,7 @@ function CourseDetailPageInner() {
     }
 
     return sortedVideos.map((video, index) => {
-      const isPreview = video.isPreview === true;
+      const isPreview = video.isPreview === true || video.isFreePreview === true;
       const canAccess = session || isPreview;
       const videoUrl = `/course/${courseId}/video/${video._id}`;
       const loginUrl = `/login?redirect=${encodeURIComponent(videoUrl)}`;
@@ -240,7 +247,7 @@ function CourseDetailPageInner() {
                   <h3 className="text-lg font-medium text-gray-900">
                     {index + 1}. {video.title}
                   </h3>
-                  {video.isPreview && (
+                  {isPreview && (
                     <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
                       Free Preview
                     </span>
@@ -353,11 +360,10 @@ function CourseDetailPageInner() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          {/* Left sidebar — course info + scrollable video list */}
-          <div className="lg:col-span-1 lg:sticky lg:top-36 lg:self-start w-full">
-            <div className="dcc-card flex flex-col lg:max-h-[calc(100vh-9rem)] overflow-hidden border-slate-100">
-              <div className="shrink-0 overflow-hidden">
-              <div className="relative h-40 w-full bg-gray-200">
+          {/* Left sidebar — course info + video list (scrollable) */}
+          <div className="lg:col-span-1 lg:sticky lg:top-36 lg:self-start w-full min-h-0 order-2 lg:order-1">
+            <div className="dcc-card border-slate-100 lg:max-h-[calc(100vh-9.5rem)] lg:overflow-y-auto lg:overscroll-contain dcc-scroll">
+              <div className="relative h-40 w-full bg-gray-200 shrink-0">
                 {getCourseThumbnail(course.thumbnail) ? (
                   <Image
                     src={getCourseThumbnail(course.thumbnail)}
@@ -376,7 +382,7 @@ function CourseDetailPageInner() {
               </div>
               <div className="p-5">
                 <h2 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2">{course.title}</h2>
-                
+
                 <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
                   <div>
                     <span className="text-xs font-medium text-gray-500">Category</span>
@@ -422,28 +428,117 @@ function CourseDetailPageInner() {
                   )}
                 </div>
               </div>
-              </div>
 
-              {/* Scrollable video list (desktop sidebar) */}
-              <div className="hidden lg:flex flex-col min-h-0 flex-1 border-t border-slate-100">
-                <div className="shrink-0 px-4 py-3 bg-slate-50 border-b border-slate-100">
+              {/* Video list in sidebar (desktop) */}
+              <div className="hidden lg:block border-t border-slate-100">
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
                   <h3 className="text-sm font-semibold text-gray-900">
                     Course Videos ({sortedVideos.length})
                   </h3>
                 </div>
-                <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-3 py-3 space-y-2 dcc-scroll">
+                <div className="px-3 py-3 space-y-2">
                   {renderVideoList(true)}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Main content — course description */}
-          <div className="lg:col-span-2 space-y-8">
+          {/* Main content — preview video + description */}
+          <div className="lg:col-span-2 space-y-8 min-w-0 order-1 lg:order-2">
+            {inlinePreviewVideo && (
+              <AnimatedSection className="dcc-card overflow-hidden border-slate-100">
+                <div className="px-5 sm:px-6 py-4 border-b border-slate-100 bg-slate-50/80">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-red-600 mb-1">
+                        {previewVideo ? 'Free preview' : 'Course video'}
+                      </p>
+                      <h2 className="text-lg font-semibold text-gray-900">{inlinePreviewVideo.title}</h2>
+                    </div>
+                    {previewVideo && (
+                      <span className="text-xs font-medium text-green-800 bg-green-100 px-2.5 py-1 rounded-full">
+                        Watch free
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="p-4 sm:p-6 bg-black">
+                  {inlinePreviewVideo.youtubeUrl ? (
+                    <CustomYouTubePlayer
+                      courseId={courseId}
+                      video={inlinePreviewVideo}
+                    />
+                  ) : inlinePreviewVideo.vimeoUrl || inlinePreviewVideo.vimeoVideoId ? (
+                    <VimeoPlayer
+                      courseId={courseId}
+                      video={inlinePreviewVideo}
+                    />
+                  ) : (
+                    <div className="aspect-video flex items-center justify-center text-white/80 text-sm">
+                      Video source not available
+                    </div>
+                  )}
+                </div>
+              </AnimatedSection>
+            )}
             {course.description && (
               <AnimatedSection className="dcc-card p-6 sm:p-8">
                 <SectionTitle title="About This Course" align="left" className="!mb-6" />
                 <CourseDescriptionBlocks description={course.description} />
+              </AnimatedSection>
+            )}
+
+            {sortedMaterials.length > 0 && (
+              <AnimatedSection className="dcc-card p-6 sm:p-8">
+                <SectionTitle title="Course PDFs & Notes" align="left" className="!mb-2" />
+                <p className="text-sm text-slate-500 mb-6">
+                  {hasAccess
+                    ? 'Download study materials and practice sheets for this course.'
+                    : 'Sample PDFs available below. Purchase the course to unlock all materials.'}
+                </p>
+                <ul className="space-y-3">
+                  {sortedMaterials.map((material) => (
+                    <li
+                      key={material._id}
+                      className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:border-red-200 hover:bg-red-50/30 transition-colors"
+                    >
+                      <div className="flex items-start gap-3 min-w-0">
+                        <span className="shrink-0 w-10 h-10 rounded-lg bg-red-100 text-red-700 flex items-center justify-center text-xs font-bold">
+                          PDF
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-900">{material.title}</p>
+                          {material.description && (
+                            <p className="text-sm text-slate-500 mt-0.5">{material.description}</p>
+                          )}
+                          {material.isFreePreview && (
+                            <span className="inline-block mt-1 text-xs font-medium text-green-700">Free sample</span>
+                          )}
+                        </div>
+                      </div>
+                      {(hasAccess || material.isFreePreview) ? (
+                        <a
+                          href={`/api/courses/${courseId}/materials/${material._id}/download`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 shrink-0 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Download
+                        </a>
+                      ) : (
+                        <Link
+                          href={purchaseHref}
+                          className="inline-flex shrink-0 text-sm font-semibold text-red-600 hover:text-red-700"
+                        >
+                          Purchase to unlock
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               </AnimatedSection>
             )}
 

@@ -44,9 +44,9 @@ export const metadata = {
   },
   metadataBase: new URL(siteUrl),
   icons: {
-    icon: [{ url: '/logo.jpg', type: 'image/jpeg' }],
-    apple: '/logo.jpg',
-    shortcut: '/logo.jpg',
+    icon: [{ url: '/newlogo.jpeg', type: 'image/jpeg' }],
+    apple: '/newlogo.jpeg',
+    shortcut: '/newlogo.jpeg',
   },
   alternates: {
     canonical: '/',
@@ -58,7 +58,7 @@ export const metadata = {
     siteName: 'Digital Career Center',
     images: [
       {
-        url: '/logo.jpg',
+        url: '/newlogo.jpeg',
         width: 512,
         height: 512,
         alt: 'Digital Career Center Logo',
@@ -71,7 +71,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: "Digital Career Center - Transform Your Career with Expert-Led Courses",
     description: "Master essential digital skills and advance your professional journey with our comprehensive course bundles. Learn from industry professionals and get certified.",
-    images: ['/logo.jpg'],
+    images: ['/newlogo.jpeg'],
     creator: '@digitalcareercenter',
     site: '@digitalcareercenter',
   },
@@ -97,9 +97,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/logo.jpg" sizes="any" />
-        <link rel="icon" href="/logo.jpg" type="image/jpeg" />
-        <link rel="apple-touch-icon" href="/logo.jpg" />
+        <link rel="icon" href="/newlogo.jpeg" sizes="any" />
+        <link rel="icon" href="/newlogo.jpeg" type="image/jpeg" />
+        <link rel="apple-touch-icon" href="/newlogo.jpeg" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#dc2626" />
         <meta name="msapplication-TileColor" content="#dc2626" />
@@ -115,7 +115,7 @@ export default function RootLayout({ children }) {
               "name": "Digital Career Center",
               "alternateName": "DCC",
               "url": siteUrl,
-              "logo": `${siteUrl}/logo.jpg`,
+              "logo": `${siteUrl}/newlogo.jpeg`,
               "description": "Digital Career Center is a leading institute in Muzaffarnagar, dedicated to empowering students and professionals with practical digital skills. Since 2018, we have helped transform careers with hands-on training in digital marketing, computer courses, and web development.",
               "address": {
                 "@type": "PostalAddress",

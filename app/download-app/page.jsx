@@ -46,11 +46,11 @@ const DownloadApp = () => {
               <div className="w-full h-full bg-white rounded-[1.5rem] flex items-center justify-center">
                 <div className="text-center p-6">
                   <Image
-                    src="/logo.jpg"
-                    alt="DCC Logo"
-                    width={72}
-                    height={72}
-                    className="rounded-full mx-auto mb-4"
+                    src="/newlogo.jpeg"
+                    alt="Digital Career Center"
+                    width={140}
+                    height={48}
+                    className="mx-auto mb-4 h-10 w-auto object-contain"
                   />
                   <h3 className="text-base font-bold text-slate-900 mb-1">DCC Mobile</h3>
                   <p className="text-sm text-slate-500">Coming Soon</p>
@@ -67,11 +67,11 @@ const DownloadApp = () => {
               <div className="w-full h-full bg-white rounded-xl flex items-center justify-center">
                 <div className="text-center p-8">
                   <Image
-                    src="/logo.jpg"
-                    alt="DCC Logo"
-                    width={88}
-                    height={88}
-                    className="rounded-full mx-auto mb-4"
+                    src="/newlogo.jpeg"
+                    alt="Digital Career Center"
+                    width={160}
+                    height={56}
+                    className="mx-auto mb-4 h-12 w-auto object-contain"
                   />
                   <h3 className="text-lg font-bold text-slate-900 mb-1">DCC Tablet</h3>
                   <p className="text-slate-500 text-sm">Coming Soon</p>

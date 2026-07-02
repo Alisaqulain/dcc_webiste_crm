@@ -24,23 +24,24 @@
 }
 
 .crm-sidebar {
-  background: linear-gradient(180deg, var(--crm-purple) 0%, var(--crm-purple-dark) 100%);
+  background: linear-gradient(180deg, var(--crm-purple) 0%, var(--crm-purple-dark) 100%) !important;
+  color: #fff !important;
 }
 
 .crm-nav-active {
-  background: var(--crm-yellow);
-  color: #1f2937;
+  background: var(--crm-yellow) !important;
+  color: #1f2937 !important;
   border-left: 4px solid #ca8a04;
   font-weight: 600;
 }
 
 .crm-nav-item {
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.92) !important;
 }
 
 .crm-nav-item:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
 }
 
 .crm-profile-card {
