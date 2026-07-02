@@ -13,6 +13,7 @@ import {
   HomeFAQ,
   HomeCTA,
 } from '@/app/components/home/HomePremiumSections';
+import HomeHeroSlider from '@/app/components/home/HomeHeroSlider';
 
 function getPackageImageUrl(image) {
   if (!image) return null;
@@ -32,13 +33,11 @@ function isDataUrl(src) {
 }
 
 export default function HomePage() {
-  const [current, setCurrent] = useState(0);
   const [currentInstructor, setCurrentInstructor] = useState(0);
   const [currentPackage, setCurrentPackage] = useState(0);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
-  const sliderRef = useRef(null);
   const autoPlayRef = useRef(null);
   const packageAutoPlayRef = useRef(null);
   const [slides, setSlides] = useState([]);
@@ -121,16 +120,6 @@ export default function HomePage() {
     };
     load();
   }, []);
-
-  const prevSlide = () => {
-    if (slides.length === 0) return;
-    setCurrent(current === 0 ? slides.length - 1 : current - 1);
-  };
-
-  const nextSlide = () => {
-    if (slides.length === 0) return;
-    setCurrent(current === slides.length - 1 ? 0 : current + 1);
-  };
 
   const nextInstructor = useCallback(() => {
     setCurrentInstructor(prev => {
@@ -241,76 +230,9 @@ export default function HomePage() {
     };
   }, [nextTestimonial]);
 
-  // Auto-play for main slider
-  useEffect(() => {
-    if (slides.length === 0) return;
-    const autoSlide = setInterval(() => {
-      setCurrent(prev => (prev + 1) % slides.length);
-    }, 4000);
-
-    return () => {
-      clearInterval(autoSlide);
-    };
-  }, [slides.length]);
-
   return (
     <div className="w-full bg-slate-50">
-      {/* Slider Section */}
-      {slides.length > 0 && (
-      <AnimatedSection className="relative w-full">
-      <div className="relative w-full h-[220px] sm:h-[420px] md:h-[520px] overflow-hidden bg-slate-900">
-        {slides.map((slide, index) => (
-          <div
-            key={slide.id}
-            className={`absolute inset-0 transition-opacity duration-500 ${index === current ? 'opacity-100' : 'opacity-0'}`}
-          >
-            <div className="w-full h-[85%] md:w-full md:h-full flex items-center justify-center relative">
-              <Image
-                src={slide.image}
-                alt={`Slide ${slide.id}`}
-                fill
-                unoptimized
-                // className="object-cover"
-                priority={index === 0}
-                onError={(e) => {
-                  console.error('Slide image failed to load:', slide.image);
-                }}
-                onLoad={() => console.log('Slide image loaded successfully:', slide.image)}
-              />
-            </div>
-          </div>
-        ))}
-
-        {/* Arrows */}
-        <button
-          onClick={prevSlide}
-          className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 sm:p-3 rounded-full hover:bg-opacity-75 transition-all"
-        >
-          <FaChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-        </button>
-        <button
-          onClick={nextSlide}
-          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 sm:p-3 rounded-full hover:bg-opacity-75 transition-all"
-        >
-          <FaChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-        </button>
-
-        {/* Dots */}
-        <div className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-          {slides.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrent(index)}
-              className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full ${index === current ? 'bg-red-500' : 'bg-white bg-opacity-50'
-                }`}
-            />
-          ))}
-        </div>
-      </div>
-      </AnimatedSection>
-      )}
-
-      <HomeStats />
+      <HomeHeroSlider slides={slides} />
       <HomeCategories />
 
       {/* Stats Section */}
