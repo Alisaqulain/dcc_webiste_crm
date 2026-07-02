@@ -17,7 +17,7 @@ export default function AuthCard({ title, subtitle, children, footer }) {
               <img
                 src="/newlogo.jpeg"
                 alt="Digital Career Center"
-                className="h-12 w-auto max-w-[200px] object-contain rounded-md bg-white/95 px-2 py-1 shadow-lg group-hover:scale-[1.02] transition-transform duration-300"
+                className="h-16 sm:h-20 w-auto max-w-[280px] sm:max-w-[340px] object-contain rounded-md bg-white/95 px-2 py-1 shadow-lg group-hover:scale-[1.02] transition-transform duration-300"
               />
             </Link>
             <h1 className="relative text-2xl font-bold tracking-tight">{title}</h1>

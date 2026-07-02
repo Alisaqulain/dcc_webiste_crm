@@ -77,7 +77,7 @@ const Header = () => {
       <header className="sticky top-0 z-50 bg-white border-b border-red-100 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
           <div className="flex items-center gap-3 min-w-0">
-            <img src="/newlogo.jpeg" alt="Digital Career Center" className="h-9 sm:h-10 w-auto max-w-[200px] object-contain shrink-0" />
+            <img src="/newlogo.jpeg" alt="Digital Career Center" className="h-14 sm:h-16 w-auto max-w-[320px] sm:max-w-[380px] object-contain shrink-0" />
             <div className="min-w-0">
               <div className="text-sm sm:text-base font-bold text-slate-900 truncate">Digital Career Center</div>
               <p className="text-xs text-amber-800 truncate">Complete secure payment below to unlock courses & profile</p>
@@ -113,7 +113,7 @@ const Header = () => {
           <img
             src="/newlogo.jpeg"
             alt="Digital Career Center"
-            className="h-9 sm:h-10 md:h-11 w-auto max-w-[180px] sm:max-w-[220px] object-contain group-hover:opacity-90 transition-opacity duration-300"
+            className="h-14 sm:h-16 md:h-[4.75rem] w-auto max-w-[300px] sm:max-w-[360px] md:max-w-[420px] object-contain group-hover:opacity-90 transition-opacity duration-300"
           />
         </Link>
 

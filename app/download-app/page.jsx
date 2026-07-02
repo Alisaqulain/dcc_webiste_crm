@@ -48,9 +48,9 @@ const DownloadApp = () => {
                   <Image
                     src="/newlogo.jpeg"
                     alt="Digital Career Center"
-                    width={140}
-                    height={48}
-                    className="mx-auto mb-4 h-10 w-auto object-contain"
+                    width={220}
+                    height={80}
+                    className="mx-auto mb-4 h-14 sm:h-16 w-auto object-contain"
                   />
                   <h3 className="text-base font-bold text-slate-900 mb-1">DCC Mobile</h3>
                   <p className="text-sm text-slate-500">Coming Soon</p>
@@ -69,9 +69,9 @@ const DownloadApp = () => {
                   <Image
                     src="/newlogo.jpeg"
                     alt="Digital Career Center"
-                    width={160}
-                    height={56}
-                    className="mx-auto mb-4 h-12 w-auto object-contain"
+                    width={260}
+                    height={92}
+                    className="mx-auto mb-4 h-16 sm:h-20 w-auto object-contain"
                   />
                   <h3 className="text-lg font-bold text-slate-900 mb-1">DCC Tablet</h3>
                   <p className="text-slate-500 text-sm">Coming Soon</p>
