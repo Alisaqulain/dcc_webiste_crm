@@ -3,8 +3,12 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FaIdCard } from 'react-icons/fa';
+import PageHeader from '@/app/components/ui/PageHeader';
+import AnimatedSection from '@/app/components/ui/AnimatedSection';
+import SectionTitle from '@/app/components/ui/SectionTitle';
+import PrimaryButton from '@/app/components/ui/PrimaryButton';
 
-// ID Card Download Form Component
 function IDCardDownloadForm() {
   const [rollNumber, setRollNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -13,152 +17,133 @@ function IDCardDownloadForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (rollNumber.trim()) {
+      setIsLoading(true);
       router.push(`/idcard/download/${rollNumber.trim()}`);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-      <div className="flex gap-2">
+    <form onSubmit={handleSubmit} className="max-w-lg mx-auto">
+      <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="text"
           value={rollNumber}
           onChange={(e) => setRollNumber(e.target.value)}
           placeholder="Enter your roll number"
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className="flex-1 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
           required
         />
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-        >
-          {isLoading ? 'Loading...' : 'Download'}
-        </button>
+        <PrimaryButton type="submit" disabled={isLoading} size="lg">
+          {isLoading ? 'Loading…' : 'Download'}
+        </PrimaryButton>
       </div>
     </form>
   );
 }
 
+const cardFeatures = [
+  { color: 'bg-red-500', text: 'Official DCC branding and logo' },
+  { color: 'bg-blue-500', text: 'QR code for quick verification' },
+  { color: 'bg-emerald-500', text: 'Student photo placeholder' },
+  { color: 'bg-violet-500', text: 'Unique student identification' },
+];
+
+const usageInstructions = [
+  'Present this card at DCC events and workshops',
+  'Use for course access and verification',
+  'Keep the QR code accessible for quick scanning',
+  'Contact support if you need a replacement',
+];
+
 export default function IDCardPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Page Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-800 mb-4">
-            Digital Career Center
-          </h1>
-          <h2 className="text-2xl text-gray-600 mb-2">
-            Student ID Card
-          </h2>
-          <p className="text-gray-500 max-w-2xl mx-auto">
-            Your official DCC student identification card. Keep this card with you during all DCC activities and courses.
-          </p>
+    <div className="min-h-screen bg-slate-50">
+      <PageHeader
+        eyebrow="Student Resources"
+        title="Student ID Card"
+        description="Your official DCC student identification card. Keep this card with you during all DCC activities and courses."
+      />
+
+      <AnimatedSection className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+        <div className="flex justify-center mb-10">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 sm:p-8 hover:shadow-xl transition-shadow duration-300">
+            <Image
+              src="/id.jpg"
+              alt="DCC Student ID Card"
+              width={360}
+              height={540}
+              className="rounded-xl shadow-md mx-auto"
+              priority
+            />
+          </div>
         </div>
 
-        {/* ID Card Display */}
-        <div className="flex justify-center mb-8">
-          <div className="relative">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 transform hover:scale-105 transition-transform duration-300">
-              <Image
-                src="/id.jpg"
-                alt="DCC Student ID Card"
-                width={400}
-                height={600}
-                className="rounded-xl shadow-lg"
-                priority
-              />
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 mb-8">
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center border border-red-100">
+              <FaIdCard className="text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900">ID Card Information</h3>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <div>
+              <h4 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">Card Features</h4>
+              <ul className="space-y-3">
+                {cardFeatures.map((item) => (
+                  <li key={item.text} className="flex items-center gap-3 text-slate-600 text-sm">
+                    <span className={`w-2 h-2 ${item.color} rounded-full flex-shrink-0`} />
+                    {item.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-slate-900 mb-4 text-sm uppercase tracking-wide">Usage Instructions</h4>
+              <ul className="space-y-3">
+                {usageInstructions.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-slate-600 text-sm">
+                    <span className="text-red-500 mt-0.5">•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
 
-        {/* ID Card Information */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-            ID Card Information
-          </h3>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold text-gray-700 mb-2">Card Features:</h4>
-                <ul className="space-y-2 text-gray-600">
-                  <li className="flex items-center">
-                    <span className="w-2 h-2 bg-red-500 rounded-full mr-3"></span>
-                    Official DCC branding and logo
-                  </li>
-                  <li className="flex items-center">
-                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-3"></span>
-                    QR code for quick verification
-                  </li>
-                  <li className="flex items-center">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
-                    Student photo placeholder
-                  </li>
-                  <li className="flex items-center">
-                    <span className="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
-                    Unique student identification
-                  </li>
-                </ul>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold text-gray-700 mb-2">Usage Instructions:</h4>
-                <ul className="space-y-2 text-gray-600">
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">•</span>
-                    Present this card at DCC events and workshops
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">•</span>
-                    Use for course access and verification
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">•</span>
-                    Keep the QR code accessible for quick scanning
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-blue-500 mr-2">•</span>
-                    Contact support if you need a replacement
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Download ID Card Section */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Download Your ID Card
-          </h3>
-          <p className="text-gray-600 text-center mb-6">
-            Enter your roll number to download your ID card
-          </p>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-10 mb-8">
+          <SectionTitle
+            title="Download Your ID Card"
+            subtitle="Enter your roll number to download your ID card"
+            className="mb-6"
+          />
           <IDCardDownloadForm />
         </div>
+      </AnimatedSection>
 
-        {/* Download/Print Section */}
-        <div className="text-center">
-          <div className="bg-gradient-to-r from-red-500 to-blue-600 rounded-xl p-8 text-white">
-            <h3 className="text-2xl font-bold mb-4">
-              Need a Physical Copy?
-            </h3>
-            <p className="mb-6 text-lg">
-              Download and print your ID card for offline use
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-red-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Download PDF
-              </button>
-              <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Print Card
-              </button>
-            </div>
+      <AnimatedSection
+        className="bg-gradient-to-br from-slate-900 via-slate-800 to-red-950 py-16 md:py-20"
+        delay={0.1}
+      >
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <SectionTitle
+            title="Need a Physical Copy?"
+            subtitle="Download and print your ID card for offline use"
+            className="[&_h2]:text-white [&_p]:text-slate-300 [&_div]:bg-red-500"
+          />
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-2">
+            <PrimaryButton size="lg">Download PDF</PrimaryButton>
+            <PrimaryButton
+              variant="secondary"
+              size="lg"
+              className="!bg-white/10 !text-white !border-white/30 hover:!bg-white/20"
+            >
+              Print Card
+            </PrimaryButton>
           </div>
         </div>
-      </div>
+      </AnimatedSection>
     </div>
   );
 }

@@ -213,10 +213,10 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={`${poppins.variable} font-poppins antialiased`}>
+      <body className={`${poppins.variable} font-poppins antialiased flex flex-col min-h-screen bg-slate-50`}>
         <SessionProvider>
           <Header />
-          <main>{children}</main>
+          <main className="flex-1">{children}</main>
           <Footer />
         </SessionProvider>
       </body>

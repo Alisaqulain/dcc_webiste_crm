@@ -1,107 +1,232 @@
-import React from "react";
-import { FaFacebookF, FaInstagram, FaLinkedinIn, FaTelegramPlane, FaYoutube } from "react-icons/fa";
-import { FaXTwitter } from "react-icons/fa6"; // for Twitter (X) icon
-import { FaWhatsapp } from "react-icons/fa";
-import Image from "next/image";
+import React from 'react';
+
+import Link from 'next/link';
+
+import { FaFacebookF, FaInstagram, FaLinkedinIn, FaTelegramPlane, FaYoutube, FaWhatsapp } from 'react-icons/fa';
+
+
 
 const Footer = () => {
-  return (
-    <footer className="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-6 sm:py-8 md:py-10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-4 gap-6 sm:gap-8">
-        
-        {/* Logo & About */}
-        <div>
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold flex items-center gap-2">
-                   <img src="/logo.jpg" alt=""  className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full" />
 
-            Digital Career Center
-          </h2>
-          <p className="mt-3 sm:mt-4 text-xs sm:text-sm leading-relaxed">
-            Get ahead in your career with Digital Career Center, the one-stop solution for your educational needs. 
-            Connect with top industry professionals and fuel your passion for success. 
-            Join now and prepare for the real-world opportunities you've always desired.
+  return (
+
+    <footer className="relative bg-gradient-to-b from-slate-900 to-slate-950 text-slate-300 mt-auto overflow-hidden">
+
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+
+      <div className="absolute inset-0 pointer-events-none">
+
+        <div className="absolute -top-32 right-0 w-96 h-96 bg-red-600/5 rounded-full blur-3xl" />
+
+      </div>
+
+
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 md:py-16">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">
+
+          <div className="sm:col-span-2 lg:col-span-1">
+
+            <Link href="/" className="flex items-center gap-3 mb-5 group">
+
+              <img
+
+                src="/logo.jpg"
+
+                alt=""
+
+                className="w-12 h-12 rounded-full ring-2 ring-red-500/40 group-hover:ring-red-500/70 transition-all duration-300 shadow-lg"
+
+              />
+
+              <span className="text-lg font-bold text-white tracking-tight">Digital Career Center</span>
+
+            </Link>
+
+            <p className="text-sm leading-relaxed text-slate-400 mb-6 max-w-sm">
+
+              Transform your career with expert-led digital skills training. Learn from industry professionals and get certified.
+
+            </p>
+
+            <div className="flex gap-2.5">
+
+              {[
+
+                { Icon: FaFacebookF, href: 'https://www.facebook.com/people/Digital-Career-Center/61565596980338/' },
+
+                { Icon: FaInstagram, href: 'https://www.instagram.com/digitalcareercenterofficial' },
+
+                { Icon: FaYoutube, href: 'https://www.youtube.com/@DigitalCareercenter' },
+
+                { Icon: FaTelegramPlane, href: 'https://t.me/digitalcareercentermzn' },
+
+                { Icon: FaLinkedinIn, href: 'https://www.linkedin.com/company/digital-career-center' },
+
+              ].map(({ Icon, href }) => (
+
+                <a
+
+                  key={href}
+
+                  href={href}
+
+                  target="_blank"
+
+                  rel="noopener noreferrer"
+
+                  className="w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700/50 flex items-center justify-center hover:bg-red-600 hover:border-red-500 hover:text-white hover:-translate-y-0.5 transition-all duration-200"
+
+                >
+
+                  <Icon className="text-base" />
+
+                </a>
+
+              ))}
+
+            </div>
+
+          </div>
+
+
+
+          <div>
+
+            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Quick Links</h3>
+
+            <ul className="space-y-2.5 text-sm">
+
+              <li><Link href="/courses" className="dcc-footer-link">All Courses</Link></li>
+
+              <li><Link href="/my-courses" className="dcc-footer-link">My Courses</Link></li>
+
+              <li><Link href="/login" className="dcc-footer-link">Login</Link></li>
+
+              <li><Link href="/signup" className="dcc-footer-link">Sign Up</Link></li>
+
+            </ul>
+
+          </div>
+
+
+
+          <div>
+
+            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Company</h3>
+
+            <ul className="space-y-2.5 text-sm">
+
+              <li><Link href="/about" className="dcc-footer-link">About Us</Link></li>
+
+              <li><Link href="/blog" className="dcc-footer-link">Blog</Link></li>
+
+              <li><Link href="/contact" className="dcc-footer-link">Contact</Link></li>
+
+              <li><Link href="/faq" className="dcc-footer-link">FAQ</Link></li>
+
+              <li><Link href="/download-app" className="dcc-footer-link">Download App</Link></li>
+
+            </ul>
+
+          </div>
+
+
+
+          <div>
+
+            <h3 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Legal & Support</h3>
+
+            <ul className="space-y-2.5 text-sm">
+
+              <li><Link href="/privacy-policy" className="dcc-footer-link">Privacy Policy</Link></li>
+
+              <li><Link href="/terms-and-conditions" className="dcc-footer-link">Terms & Conditions</Link></li>
+
+              <li><Link href="/refund-policy" className="dcc-footer-link">Refund Policy</Link></li>
+
+              <li><Link href="/cookie-policy" className="dcc-footer-link">Cookie Policy</Link></li>
+
+              <li><Link href="/contact" className="dcc-footer-link">Support</Link></li>
+
+            </ul>
+
+          </div>
+
+        </div>
+
+
+
+        <div className="border-t border-slate-800/80 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+
+          <p>© {new Date().getFullYear()} Digital Career Center. All rights reserved.</p>
+
+          <p>
+
+            Developed by{' '}
+
+            <a href="https://www.devspheresolutions.in/" className="text-red-400 hover:text-red-300 transition-colors" target="_blank" rel="noopener noreferrer">
+
+              DevSphere Solutions
+
+            </a>
+
           </p>
 
-          {/* Social Icons */}
-          <div className="flex gap-3 sm:gap-4 mt-4 sm:mt-5 text-lg sm:text-xl">
-            <a href="https://www.facebook.com/people/Digital-Career-Center/61565596980338/" target="_blank" rel="noopener noreferrer" className="hover:text-red-400 transition-colors"><FaFacebookF /></a>
-            <a href="https://www.instagram.com/digitalcareercenterofficial" target="_blank" rel="noopener noreferrer" className="hover:text-red-400 transition-colors"><FaInstagram /></a>
-            <a href="https://www.youtube.com/@DigitalCareercenter" target="_blank" rel="noopener noreferrer" className="hover:text-red-400 transition-colors"><FaYoutube /></a>
-            <a href="https://t.me/digitalcareercentermzn" target="_blank" rel="noopener noreferrer" className="hover:text-red-400 transition-colors"><FaTelegramPlane /></a>
-          </div>
         </div>
 
-        {/* Quick Links */}
-        <div>
-          <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4 border-b border-red-500 inline-block">Quick Links</h3>
-          <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
-            {/* <li><a href="/" className="hover:text-red-300 transition-colors">Home</a></li>
-            <li><a href="/about" className="hover:text-red-300 transition-colors">About Us</a></li>
-            <li><a href="/blog" className="hover:text-red-300 transition-colors">Blog</a></li>
-            <li><a href="/contact" className="hover:text-red-300 transition-colors">Contact Us</a></li> */}
-            <li><a href="/login" className="hover:text-red-300 transition-colors">Login</a></li>
-            <li><a href="/signup" className="hover:text-red-300 transition-colors">Sign Up</a></li>
-          </ul>
-        </div>
-
-        {/* Company */}
-        <div>
-          <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4 border-b border-red-500 inline-block">Company</h3>
-          <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
-            <li><a href="/about" className="hover:text-red-300 transition-colors">About Us</a></li>
-            <li><a href="/blog" className="hover:text-red-300 transition-colors">Blog</a></li>
-            <li><a href="/download-app" className="hover:text-red-300 transition-colors">Download App</a></li>
-            <li><a href="/contact" className="hover:text-red-300 transition-colors">Contact Us</a></li>
-            <li><a href="/faq" className="hover:text-red-300 transition-colors">FAQ</a></li>
-            <li><a href="/privacy-policy" className="hover:text-red-300 transition-colors">Privacy Policy</a></li>
-            <li><a href="/terms-and-conditions" className="hover:text-red-300 transition-colors">Terms & Conditions</a></li>
-          </ul>
-        </div>
-
-        {/* Legal & Support */}
-        <div>
-          <h3 className="font-semibold text-base sm:text-lg mb-3 sm:mb-4 border-b border-red-500 inline-block">Legal & Support</h3>
-          <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm">
-            <li><a href="/privacy-policy" className="hover:text-red-300 transition-colors">Privacy Policy</a></li>
-            <li><a href="/cookie-policy" className="hover:text-red-300 transition-colors">Cookie Policy</a></li>
-            <li><a href="/terms-and-conditions" className="hover:text-red-300 transition-colors">Terms & Conditions</a></li>
-            <li><a href="/refund-policy" className="hover:text-red-300 transition-colors">Refund Policy</a></li>
-            <li><a href="/faq" className="hover:text-red-300 transition-colors">FAQ</a></li>
-            <li><a href="/contact" className="hover:text-red-300 transition-colors">Support</a></li>
-            <li><a href="/blog" className="hover:text-red-300 transition-colors">Blog</a></li>
-          </ul>
-        </div>
       </div>
 
-      {/* Bottom Section */}
-      <div className="border-t border-red-500 mt-6 sm:mt-8 md:mt-10 pt-4 sm:pt-6 text-center text-xs sm:text-sm px-4">
-        © 2025 Design and Developed by <a href="https://www.devspheresolutions.in/" className="text-yellow-500"> DevSphere Solutions </a> . All Rights Reserved.
-      </div>
 
-      {/* Floating Buttons */}
-      <div className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 flex flex-col gap-2 sm:gap-3">
-        {/* Instagram Button */}
-        <a 
-          href="https://www.instagram.com/digitalcareercenterofficial" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 sm:p-3 rounded-full shadow-lg hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105"
+
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 flex flex-col gap-3 z-40">
+
+        <a
+
+          href="https://www.instagram.com/digitalcareercenterofficial"
+
+          target="_blank"
+
+          rel="noopener noreferrer"
+
+          className="dcc-fab bg-gradient-to-br from-purple-500 to-pink-500"
+
+          aria-label="Instagram"
+
         >
-          <FaInstagram className="text-white text-lg sm:text-2xl" />
+
+          <FaInstagram className="text-white text-xl" />
+
         </a>
-        
-        {/* WhatsApp Button */}
-        <a 
-          href="https://wa.me/917599863007" 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="bg-green-500 p-2 sm:p-3 rounded-full shadow-lg hover:bg-green-600 transition-all transform hover:scale-105"
+
+        <a
+
+          href="https://wa.me/917599863007"
+
+          target="_blank"
+
+          rel="noopener noreferrer"
+
+          className="dcc-fab bg-gradient-to-br from-green-500 to-emerald-600"
+
+          aria-label="WhatsApp"
+
         >
-          <FaWhatsapp className="text-white text-lg sm:text-2xl" />
+
+          <FaWhatsapp className="text-white text-xl" />
+
         </a>
+
       </div>
+
     </footer>
+
   );
+
 };
 
+
+
 export default Footer;
+

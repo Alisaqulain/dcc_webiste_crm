@@ -5,6 +5,10 @@ import { useRouter, useSearchParams, useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import CoursePayCard from "../../components/CoursePayCard";
+import PageHeader from "@/app/components/ui/PageHeader";
+import AnimatedSection from "@/app/components/ui/AnimatedSection";
+import SectionTitle from "@/app/components/ui/SectionTitle";
+import EmptyState from "@/app/components/ui/EmptyState";
 
 const getCourseThumbnail = (thumbnail) => {
   if (!thumbnail) return null;
@@ -64,10 +68,10 @@ function PurchaseContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading course...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto" />
+          <p className="mt-4 text-slate-600">Loading course…</p>
         </div>
       </div>
     );
@@ -75,20 +79,20 @@ function PurchaseContent() {
 
   if (error || !course) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-600 text-6xl mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Course Not Found</h1>
-          <p className="text-gray-600 mb-4">
-            {error || "The course you're looking for doesn't exist."}
-          </p>
-          <button
-            onClick={() => router.push("/courses")}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg"
-          >
-            Browse Courses
-          </button>
-        </div>
+      <div className="min-h-screen bg-slate-50">
+        <PageHeader
+          eyebrow="Checkout"
+          title="Course Not Found"
+          description={error || "The course you're looking for doesn't exist."}
+        />
+        <AnimatedSection className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <EmptyState
+            title="Unable to load checkout"
+            description="This course may have been removed or the link is incorrect."
+            actionLabel="Browse Courses"
+            onAction={() => router.push("/courses")}
+          />
+        </AnimatedSection>
       </div>
     );
   }
@@ -98,7 +102,7 @@ function PurchaseContent() {
     (session?.user && session.user.isActive === false) || pendingPurchase;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {mustCompletePurchase && (
         <div className="bg-amber-50 border-b border-amber-200 text-amber-950 px-4 py-3 text-center text-sm">
           <span className="font-semibold">Payment required.</span> Finish checkout on this page to
@@ -106,10 +110,17 @@ function PurchaseContent() {
           you can close without paying.
         </div>
       )}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <div className="relative h-64 w-full rounded-lg overflow-hidden">
+
+      <PageHeader
+        eyebrow="Secure Checkout"
+        title={course.title}
+        description={course.category ? `${course.category} · Complete payment to unlock lifetime access` : "Complete payment to unlock lifetime access"}
+      />
+
+      <AnimatedSection className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+          <div className="space-y-8">
+            <div className="relative h-64 sm:h-72 w-full rounded-2xl overflow-hidden border border-slate-200 shadow-sm bg-white">
               {getCourseThumbnail(course.thumbnail) ? (
                 <Image
                   src={getCourseThumbnail(course.thumbnail)}
@@ -119,25 +130,30 @@ function PurchaseContent() {
                   unoptimized
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-100">
+                <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">
                   <span>No image</span>
                 </div>
               )}
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <span className="text-sm text-gray-500">{course.category}</span>
-              <h1 className="text-3xl font-bold text-gray-900 mt-2 mb-4">{course.title}</h1>
-              <p className="text-gray-600">{course.description}</p>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+              <SectionTitle
+                title="Course details"
+                subtitle={course.description}
+                align="left"
+                className="mb-0"
+              />
             </div>
           </div>
 
-          <div className="lg:sticky lg:top-8">
-            <div className="bg-white rounded-lg shadow-lg border-2 border-red-100 p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Secure checkout</h2>
-              <p className="text-sm text-gray-600 mb-6">
-                Pay with Razorpay. No cancel button — complete payment to continue using your account.
-              </p>
+          <div className="lg:sticky lg:top-8 lg:self-start">
+            <div className="bg-white rounded-2xl border-2 border-red-100 shadow-lg p-6 sm:p-8">
+              <SectionTitle
+                title="Complete your purchase"
+                subtitle="Pay securely with Razorpay. Complete payment to continue using your account."
+                align="left"
+                className="mb-6 md:mb-8"
+              />
               <CoursePayCard
                 course={c}
                 initialCouponCode={couponFromUrl}
@@ -147,18 +163,18 @@ function PurchaseContent() {
                 }
               />
               {session?.user?.isActive === false && (
-                <p className="mt-6 text-center text-sm text-gray-500">
-                  Wrong course?{' '}
+                <p className="mt-6 text-center text-sm text-slate-500">
+                  Wrong course?{" "}
                   <Link href="/courses" className="text-red-600 font-medium hover:underline">
                     Browse all courses
-                  </Link>{' '}
+                  </Link>{" "}
                   (you still need to purchase one to unlock your account).
                 </p>
               )}
             </div>
           </div>
         </div>
-      </div>
+      </AnimatedSection>
     </div>
   );
 }
@@ -167,7 +183,7 @@ export default function PurchasePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600" />
         </div>
       }

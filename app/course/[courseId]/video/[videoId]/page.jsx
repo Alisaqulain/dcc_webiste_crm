@@ -238,7 +238,7 @@ export default function VideoPlayerPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           {/* Video Player */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -301,11 +301,13 @@ export default function VideoPlayerPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Course Content</h3>
+          <div className="lg:col-span-1 lg:sticky lg:top-24 lg:self-start w-full">
+            <div className="bg-white rounded-lg shadow-lg flex flex-col lg:max-h-[calc(100vh-7rem)] overflow-hidden">
+              <div className="p-6 shrink-0 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">Course Content</h3>
+              </div>
               
-              <div className="space-y-2">
+              <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-4 py-3 space-y-2">
                 {course.videos.map((courseVideo, index) => (
                   <Link
                     key={courseVideo._id}

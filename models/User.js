@@ -36,6 +36,8 @@ const userSchema = new mongoose.Schema({
   referralLocked: { type: Boolean, default: false },
   referralEarnings: { type: Number, default: 0 },
   referralCount: { type: Number, default: 0 },
+  /** Lifetime approved/paid lead commissions (persists after lead TTL cleanup). */
+  lifetimeLeadEarnings: { type: Number, default: 0, min: 0 },
   courses: [{
     courseId: { 
       type: mongoose.Schema.Types.ObjectId, 

@@ -3,38 +3,221 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --background-subtle: #f1f5f9;
+  --foreground: #0f172a;
+  --foreground-muted: #475569;
+  --brand-red: #dc2626;
+  --brand-red-dark: #b91c1c;
+  --brand-red-light: #fef2f2;
+  --surface: #ffffff;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --border-soft: #f1f5f9;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.06);
+  --shadow-card-hover: 0 8px 30px rgba(15, 23, 42, 0.1), 0 2px 8px rgba(220, 38, 38, 0.06);
+  --shadow-glow-red: 0 8px 24px rgba(220, 38, 38, 0.28);
+  --shadow-nav: 0 4px 24px rgba(15, 23, 42, 0.06);
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Custom CSS variables */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-poppins), 'Poppins', sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-poppins), 'Poppins', sans-serif;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    color: var(--foreground);
+  }
+
+  p {
+    line-height: 1.7;
+  }
+
+  ::selection {
+    background: rgba(220, 38, 38, 0.15);
+    color: var(--foreground);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  line-height: 1.6;
-}
+@layer components {
+  .dcc-page {
+    @apply min-h-screen bg-slate-50;
+  }
 
-/* Typography improvements */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-poppins), 'Poppins', sans-serif;
-  font-weight: 600;
-  line-height: 1.2;
+  .dcc-card {
+    @apply bg-white rounded-2xl border border-slate-200/90;
+    box-shadow: var(--shadow-card);
+  }
+
+  .dcc-card-hover {
+    @apply dcc-card transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-red-100/80;
+    box-shadow: var(--shadow-card);
+  }
+
+  .dcc-card-hover:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .dcc-card-premium {
+    @apply dcc-card-hover overflow-hidden;
+  }
+
+  .dcc-input {
+    @apply w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400;
+    @apply focus:outline-none focus:ring-2 focus:ring-red-500/25 focus:border-red-400;
+    @apply transition-all duration-200 hover:border-slate-300;
+  }
+
+  .dcc-select {
+    @apply dcc-input appearance-none bg-white cursor-pointer;
+  }
+
+  .dcc-label {
+    @apply block text-sm font-medium text-slate-700 mb-1.5;
+  }
+
+  .dcc-btn {
+    @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:ring-offset-2;
+    @apply disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none;
+  }
+
+  .dcc-btn-primary {
+    @apply dcc-btn bg-gradient-to-b from-red-600 to-red-700 text-white;
+    @apply shadow-md shadow-red-600/20 hover:shadow-lg hover:shadow-red-600/30;
+    @apply hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98];
+  }
+
+  .dcc-btn-secondary {
+    @apply dcc-btn bg-white text-slate-800 border border-slate-200;
+    @apply hover:border-red-200 hover:bg-red-50/60 hover:-translate-y-0.5;
+    @apply active:translate-y-0 active:scale-[0.98];
+  }
+
+  .dcc-btn-success {
+    @apply dcc-btn bg-gradient-to-b from-emerald-600 to-emerald-700 text-white;
+    @apply shadow-md shadow-emerald-600/20 hover:shadow-lg hover:-translate-y-0.5;
+    @apply active:translate-y-0 active:scale-[0.98];
+  }
+
+  .dcc-btn-outline {
+    @apply dcc-btn border border-slate-200 text-slate-700 bg-white/80;
+    @apply hover:border-slate-300 hover:bg-slate-50 hover:-translate-y-0.5;
+    @apply active:translate-y-0 active:scale-[0.98];
+  }
+
+  .dcc-btn-sm {
+    @apply px-4 py-2 text-sm;
+  }
+
+  .dcc-btn-md {
+    @apply px-5 py-2.5 text-sm;
+  }
+
+  .dcc-btn-lg {
+    @apply px-8 py-3.5 text-base;
+  }
+
+  .dcc-btn-block {
+    @apply w-full;
+  }
+
+  .dcc-image-zoom {
+    @apply overflow-hidden;
+  }
+
+  .dcc-image-zoom img,
+  .dcc-image-zoom .dcc-zoom-target {
+    @apply transition-transform duration-500 ease-out;
+  }
+
+  .dcc-image-zoom:hover img,
+  .dcc-image-zoom:hover .dcc-zoom-target {
+    @apply scale-105;
+  }
+
+  .nav-link {
+    @apply relative text-sm font-medium text-slate-600 hover:text-red-600 transition-colors duration-200 px-2.5 py-2 rounded-lg hover:bg-red-50/50;
+  }
+
+  .nav-link-active {
+    @apply text-red-600 bg-red-50/70;
+  }
+
+  .nav-link-active::after {
+    content: '';
+    @apply absolute bottom-0.5 left-2.5 right-2.5 h-0.5 bg-gradient-to-r from-red-500 to-red-600 rounded-full;
+  }
+
+  .dcc-badge {
+    @apply inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+
+  .dcc-badge-red {
+    @apply dcc-badge bg-red-600 text-white shadow-sm;
+  }
+
+  .dcc-filter-panel {
+    @apply dcc-card p-5 sm:p-6 mb-8;
+  }
+
+  .dcc-prose-description {
+    @apply max-w-none text-slate-600 leading-[1.75];
+  }
+
+  .dcc-prose-description p {
+    @apply mb-3 last:mb-0;
+  }
+
+  .dcc-section-alt {
+    @apply bg-gradient-to-b from-slate-50 to-white;
+  }
+
+  .dcc-glass-nav {
+    @apply bg-white/90 backdrop-blur-xl border-b border-slate-200/60;
+    box-shadow: var(--shadow-nav);
+  }
+
+  .dcc-dropdown {
+    @apply bg-white/95 backdrop-blur-md rounded-xl border border-slate-100 py-1.5 overflow-hidden;
+    box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12);
+  }
+
+  .dcc-dropdown-item {
+    @apply block px-4 py-2.5 text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 transition-colors duration-150;
+  }
+
+  .dcc-footer-link {
+    @apply text-slate-400 hover:text-red-400 transition-colors duration-200;
+  }
+
+  .dcc-fab {
+    @apply p-3.5 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl active:scale-95;
+  }
 }
 
 code, pre {
   font-family: var(--font-mono);
 }
 
-/* Floats from rich-text images (TipTap align) */
 .blog-article-body::after {
   content: '';
   display: table;
@@ -51,7 +234,29 @@ code, pre {
   height: auto;
 }
 
-/* Hide all YouTube share, copy link buttons, and YouTube logo/branding globally */
+/* Premium thin scrollbar for sidebars & panels */
+.dcc-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(220, 38, 38, 0.35) transparent;
+}
+
+.dcc-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dcc-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dcc-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 999px;
+}
+
+.dcc-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(220, 38, 38, 0.45);
+}
+
 [class*="share"],
 [class*="Share"],
 [id*="share"],
@@ -68,7 +273,6 @@ code, pre {
 .ytp-share-panel,
 [class*="ytp-share"],
 [class*="ytp-copy"],
-/* Hide YouTube logo and branding */
 .ytp-watermark,
 .ytp-watermark-logo,
 [class*="ytp-watermark"],
@@ -77,7 +281,6 @@ code, pre {
 [id*="ytp-branding"],
 a[href*="youtube.com"][class*="ytp"],
 a[href*="youtube.com"][id*="ytp"],
-/* Hide "Watch on YouTube" button */
 [class*="watch-on-youtube"],
 [aria-label*="Watch on YouTube"],
 [title*="Watch on YouTube"] {

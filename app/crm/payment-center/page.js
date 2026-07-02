@@ -53,16 +53,16 @@ export default function PaymentCenterPage() {
 		);
 	}
 
-	// Calculate earnings
-	const leadEarnings = leads
+	// Lifetime totals from dashboard API (survives lead TTL cleanup)
+	const leadEarnings = dashboardData?.allTimeLeadEarning ?? leads
 		.filter(l => l.status === 'approved' || l.status === 'paid')
 		.reduce((sum, l) => sum + (l.amount || 100), 0);
 	
-	const referralEarnings = referrals
+	const referralEarnings = dashboardData?.allTimeReferralEarning ?? referrals
 		.filter(r => r.status === 'approved' || r.status === 'paid')
 		.reduce((sum, r) => sum + (r.amount || 0), 0);
 	
-	const grandTotal = leadEarnings + referralEarnings;
+	const grandTotal = dashboardData?.allTimeEarning ?? (leadEarnings + referralEarnings);
 
 	// Get paid history (both leads and referrals with status 'paid')
 	const paidHistory = [

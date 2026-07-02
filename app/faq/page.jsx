@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FaChevronDown, FaChevronUp, FaSearch, FaQuestionCircle } from 'react-icons/fa';
+import StaticPageShell from '@/app/components/ui/StaticPageShell';
 
 const faqData = [
   {
@@ -140,24 +141,13 @@ export default function FAQPage() {
           __html: JSON.stringify(faqSchema)
         }}
       />
-      <div className="min-h-screen bg-gray-50">
-        {/* Header Section */}
-      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white py-16">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Frequently Asked Questions
-            </h1>
-            <p className="text-xl md:text-2xl text-red-100 mb-8">
-              Digital Career Center
-            </p>
-            <div className="w-24 h-1 bg-white mx-auto"></div>
-          </div>
-        </div>
-      </div>
-
+      <StaticPageShell
+        title="Frequently Asked Questions"
+        description="Find answers to common questions about courses, enrollment, learning options, and support at Digital Career Center."
+      >
+      <div className="not-prose">
       {/* Search and Filter Section */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="mb-8">
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
           {/* Search Bar */}
           <div className="relative mb-6">
@@ -263,7 +253,8 @@ export default function FAQPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+      </StaticPageShell>
     </>
   );
 }

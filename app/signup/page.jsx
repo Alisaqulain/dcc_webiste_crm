@@ -2,9 +2,13 @@
 import { useState, useEffect, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { INDIAN_STATE_OPTIONS } from '@/lib/indianStateOptions';
-// import Header from '../components/Header';
-// import Footer from '../components/Footer';
+import AuthCard, { AuthInput } from '@/app/components/ui/AuthCard';
+import PrimaryButton from '@/app/components/ui/PrimaryButton';
+
+const selectClassName =
+  'w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition';
 
 function SignupForm() {
   const router = useRouter();
@@ -200,43 +204,32 @@ function SignupForm() {
 
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4">
-      {/* <Header /> */}
-      
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Title */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Join{' '}
-              <span className="relative">
-                DCC
-                <div className="absolute bottom-0 left-0 w-full h-1 bg-red-600 rounded-full"></div>
-              </span>
-            </h1>
-            <p className="text-gray-600 text-lg">
-              Choose a course or combo bundle and create your account. You&apos;ll complete signup by paying — the platform stays locked until purchase succeeds.
-            </p>
-          </div>
-
-          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+    <AuthCard
+      title="Join DCC"
+      subtitle="Choose a course or combo and create your account. Signup completes after payment."
+      footer={
+        <Link href="/login" className="text-red-600 hover:text-red-700 font-medium transition-colors">
+          Already have an account? Sign in
+        </Link>
+      }
+    >
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Friend referral codes are set only at signup (use your friend&apos;s signup link with <span className="font-mono">?ref=</span>). Discount coupon codes from purchases are applied at checkout, not here.
           </div>
 
-          {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm">
               {error}
             </div>
           )}
 
-          {/* Google Signup Button */}
-          <div className="text-center">
-            <button
+          <div className="mb-6">
+            <PrimaryButton
               type="button"
+              variant="secondary"
               onClick={handleGoogleSignup}
               disabled={isLoading || catalogLoading || !hasCatalog || !formData.purchaseSelection}
-              className="w-full bg-white border border-gray-300 rounded-lg px-4 py-3 flex items-center justify-center space-x-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="w-full"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -245,102 +238,95 @@ function SignupForm() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
               <span>Continue with Google</span>
-            </button>
+            </PrimaryButton>
             {(!formData.purchaseSelection && hasCatalog) && (
-              <p className="mt-2 text-xs text-amber-800">Select a course or combo below before using Google.</p>
+              <p className="mt-2 text-xs text-amber-800 text-center">Select a course or combo below before using Google.</p>
             )}
-            <div className="mt-4 text-sm text-gray-600">
-              <span className="bg-white px-2">or</span>
+            <div className="relative mt-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-3 text-slate-500">or</span>
+              </div>
             </div>
           </div>
 
-          {/* Signup Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Personal Information */}
-            <div className="bg-gray-50 p-6 rounded-xl">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Personal Information</h3>
-              <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-slate-50/80 p-5 sm:p-6 rounded-xl border border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">Personal Information</h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <AuthInput
+                  label="First Name"
+                  type="text"
+                  id="firstName"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  required
+                />
+                <AuthInput
+                  label="Last Name"
+                  type="text"
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  required
+                />
+                <AuthInput
+                  label="Email Address"
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+                <AuthInput
+                  label="Mobile Number"
+                  type="tel"
+                  id="mobile"
+                  name="mobile"
+                  value={formData.mobile}
+                  onChange={handleInputChange}
+                  required
+                />
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="mobile" className="block text-sm font-medium text-gray-700 mb-2">
-                    Mobile Number
-                  </label>
-                  <input
-                    type="tel"
-                    id="mobile"
-                    name="mobile"
-                    value={formData.mobile}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
                     Password
                   </label>
                   <div className="relative">
-                    <input
+                    <AuthInput
                       type={showPassword ? 'text' : 'password'}
                       id="password"
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      className="pr-12"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
-                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                      {showPassword ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="state" className="block text-sm font-medium text-slate-700 mb-1.5">
                     State
                   </label>
                   <select
@@ -348,7 +334,7 @@ function SignupForm() {
                     name="state"
                     value={formData.state}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={selectClassName}
                     required
                   >
                     <option value="">Select State</option>
@@ -362,20 +348,22 @@ function SignupForm() {
               </div>
             </div>
 
-            <div className="bg-gray-50 p-6 rounded-xl border-2 border-red-100">
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">Choose your course or combo <span className="text-red-600">*</span></h3>
-              <p className="text-sm text-gray-600 mb-4">
+            <div className="bg-slate-50/80 p-5 sm:p-6 rounded-xl border-2 border-red-100">
+              <h3 className="text-lg font-semibold text-slate-800 mb-2">
+                Choose your course or combo <span className="text-red-600">*</span>
+              </h3>
+              <p className="text-sm text-slate-600 mb-4">
                 Required — after account creation you&apos;ll pay for your selection. Until payment succeeds, dashboard and CRM stay locked.
               </p>
               {catalogLoading ? (
-                <p className="text-sm text-gray-500">Loading courses and combos…</p>
+                <p className="text-sm text-slate-500">Loading courses and combos…</p>
               ) : !hasCatalog ? (
                 <p className="text-sm text-red-600">No courses or combos are available right now. Please try again later or contact support.</p>
               ) : (
                 <div className="space-y-5 max-h-80 overflow-y-auto pr-1">
                   {combos.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Combo bundles</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Combo bundles</p>
                       <div className="space-y-3">
                         {combos.map((combo) => {
                           const value = `combo:${combo._id}`;
@@ -383,10 +371,10 @@ function SignupForm() {
                           return (
                             <label
                               key={combo._id}
-                              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
+                              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
                                 formData.purchaseSelection === value
                                   ? 'border-red-600 bg-red-50'
-                                  : 'border-gray-200 bg-white hover:border-gray-300'
+                                  : 'border-slate-200 bg-white hover:border-slate-300'
                               }`}
                             >
                               <input
@@ -395,19 +383,19 @@ function SignupForm() {
                                 value={value}
                                 checked={formData.purchaseSelection === value}
                                 onChange={handleInputChange}
-                                className="mt-1 h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
+                                className="mt-1 h-4 w-4 text-red-600 border-slate-300 focus:ring-red-500"
                               />
                               <span className="flex-1 min-w-0">
-                                <span className="block font-medium text-gray-900">
+                                <span className="block font-medium text-slate-900">
                                   {combo.title}
                                   <span className="ml-2 text-xs font-normal text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
                                     Combo · {courseCount} courses
                                   </span>
                                 </span>
-                                <span className="block text-sm text-gray-600 mt-0.5">
+                                <span className="block text-sm text-slate-600 mt-0.5">
                                   ₹{typeof combo.price === 'number' ? combo.price.toLocaleString('en-IN') : combo.price}
                                   {combo.originalPrice > combo.price && (
-                                    <span className="ml-2 line-through text-gray-400">
+                                    <span className="ml-2 line-through text-slate-400">
                                       ₹{combo.originalPrice.toLocaleString('en-IN')}
                                     </span>
                                   )}
@@ -421,17 +409,17 @@ function SignupForm() {
                   )}
                   {courses.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Single courses</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Single courses</p>
                       <div className="space-y-3">
                         {courses.map((c) => {
                           const value = `course:${c._id}`;
                           return (
                             <label
                               key={c._id}
-                              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
+                              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
                                 formData.purchaseSelection === value
                                   ? 'border-red-600 bg-red-50'
-                                  : 'border-gray-200 bg-white hover:border-gray-300'
+                                  : 'border-slate-200 bg-white hover:border-slate-300'
                               }`}
                             >
                               <input
@@ -440,11 +428,11 @@ function SignupForm() {
                                 value={value}
                                 checked={formData.purchaseSelection === value}
                                 onChange={handleInputChange}
-                                className="mt-1 h-4 w-4 text-red-600 border-gray-300 focus:ring-red-500"
+                                className="mt-1 h-4 w-4 text-red-600 border-slate-300 focus:ring-red-500"
                               />
                               <span className="flex-1 min-w-0">
-                                <span className="block font-medium text-gray-900">{c.title}</span>
-                                <span className="block text-sm text-gray-600 mt-0.5">
+                                <span className="block font-medium text-slate-900">{c.title}</span>
+                                <span className="block text-sm text-slate-600 mt-0.5">
                                   ₹{typeof c.price === 'number' ? c.price.toLocaleString('en-IN') : c.price}
                                   {c.category ? ` · ${c.category}` : ''}
                                 </span>
@@ -459,12 +447,10 @@ function SignupForm() {
               )}
             </div>
 
-            <div className="bg-gray-50 p-6 rounded-xl">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Referral code (optional)</h3>
-              <label htmlFor="referralCode" className="block text-sm font-medium text-gray-700 mb-2">
-                Referral code
-              </label>
-              <input
+            <div className="bg-slate-50/80 p-5 sm:p-6 rounded-xl border border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">Referral code (optional)</h3>
+              <AuthInput
+                label="Referral code"
                 type="text"
                 id="referralCode"
                 name="referralCode"
@@ -472,30 +458,27 @@ function SignupForm() {
                 onChange={handleInputChange}
                 readOnly={refLockedFromUrl}
                 autoComplete="off"
-                className={`w-full max-w-md px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent uppercase ${
-                  refLockedFromUrl ? 'bg-gray-100 text-gray-700 cursor-not-allowed' : ''
-                }`}
                 placeholder="Enter a friend's code"
+                className={`uppercase ${refLockedFromUrl ? 'bg-slate-100 text-slate-700 cursor-not-allowed' : ''}`}
               />
               {refLockedFromUrl ? (
-                <p className="mt-2 text-sm text-gray-600">This code was applied from your invite link and cannot be edited.</p>
+                <p className="mt-2 text-sm text-slate-600">This code was applied from your invite link and cannot be edited.</p>
               ) : (
-                <p className="mt-2 text-sm text-gray-600">Leave blank if you were not referred. You won&apos;t be able to add or change this later.</p>
+                <p className="mt-2 text-sm text-slate-600">Leave blank if you were not referred. You won&apos;t be able to add or change this later.</p>
               )}
             </div>
 
-            {/* Terms and Conditions */}
-            <div className="flex items-start space-x-3">
+            <div className="flex items-start gap-3">
               <input
                 type="checkbox"
                 id="agreeToTerms"
                 name="agreeToTerms"
                 checked={formData.agreeToTerms}
                 onChange={handleInputChange}
-                className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500 focus:ring-2 mt-1"
+                className="w-5 h-5 text-red-600 border-slate-300 rounded focus:ring-red-500 focus:ring-2 mt-0.5 shrink-0"
                 required
               />
-              <label htmlFor="agreeToTerms" className="text-sm text-gray-700">
+              <label htmlFor="agreeToTerms" className="text-sm text-slate-700">
                 I agree to the{' '}
                 <a href="#" className="text-red-600 hover:text-red-800 underline">
                   Terms and Conditions
@@ -507,38 +490,36 @@ function SignupForm() {
               </label>
             </div>
 
-            {/* Submit Button */}
-            <button
+            <PrimaryButton
               type="submit"
               disabled={isLoading || catalogLoading || !hasCatalog || !formData.purchaseSelection}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full"
+              size="lg"
             >
               {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Creating Account...
-                </span>
+                  <span>Creating Account...</span>
+                </>
               ) : (
                 'Create account & pay for course'
               )}
-            </button>
-          </form>
-        </div>
-      </div>
-      
-      {/* <Footer /> */}
-    </div>
+            </PrimaryButton>
+      </form>
+    </AuthCard>
   );
 }
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-    </div>}>
+    <Suspense fallback={
+      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      </div>
+    }>
       <SignupForm />
     </Suspense>
   );

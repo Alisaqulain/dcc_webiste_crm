@@ -22,6 +22,14 @@ export default function AdminLeadsPage() {
   });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchSummary, setSearchSummary] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -33,6 +41,7 @@ export default function AdminLeadsPage() {
         return;
       }
       const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      if (debouncedSearch) params.set('search', debouncedSearch);
       const res = await fetch(`/api/admin/leads?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -40,12 +49,13 @@ export default function AdminLeadsPage() {
       if (!res.ok) throw new Error(data.message || 'Failed to load');
       setItems(data.leads || []);
       if (data.pagination) setPagination(data.pagination);
+      setSearchSummary(data.searchSummary || null);
     } catch (e) {
       setError(e.message);
     } finally {
       setLoading(false);
     }
-  }, [router, page]);
+  }, [router, page, debouncedSearch]);
 
   useEffect(() => {
     load();
@@ -107,13 +117,74 @@ export default function AdminLeadsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Manage Leads</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {pagination.total} total · auto-removed ~30 days after creation (MongoDB TTL)
+            {pagination.total} total · pending/rejected auto-removed ~30 days after creation
           </p>
         </div>
+        <button
+          type="button"
+          onClick={load}
+          className="shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          Reload
+        </button>
       </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">{error}</div>
+      )}
+
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search by user email (who submitted leads), client email, name, or mobile..."
+          className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400"
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setPage(1);
+          }}
+        />
+        <p className="mt-1.5 text-xs text-gray-500">
+          User email daal kar dekhein us bande ne kitne leads bheje — jaise Users page par search hota hai.
+        </p>
+      </div>
+
+      {debouncedSearch && searchSummary && !loading && (
+        <div className="mb-4 rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-950 space-y-3">
+          <div>
+            <p className="font-semibold">
+              {searchSummary.total} lead{searchSummary.total === 1 ? '' : 's'} matching &quot;{debouncedSearch}&quot;
+            </p>
+            <p className="mt-1 text-violet-800">
+              Approved: {searchSummary.approved} · Paid: {searchSummary.paid} · Pending:{' '}
+              {searchSummary.pending} · Rejected: {searchSummary.rejected}
+            </p>
+          </div>
+          {searchSummary.userBreakdown?.length > 0 && (
+            <div className="border-t border-violet-200/80 pt-3 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">
+                Leads submitted by user
+              </p>
+              {searchSummary.userBreakdown.map((row) => (
+                <div
+                  key={row.email}
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 bg-white/70 rounded-lg px-3 py-2 border border-violet-100"
+                >
+                  <div>
+                    <span className="font-medium text-gray-900">{row.email}</span>
+                    {row.name && <span className="text-gray-600"> · {row.name}</span>}
+                  </div>
+                  <div className="text-violet-900 font-semibold">
+                    {row.total} lead{row.total === 1 ? '' : 's'} total
+                    <span className="font-normal text-violet-700 text-xs ml-2">
+                      (✓{row.approved} · ₹{row.paid} paid · ⏳{row.pending} · ✗{row.rejected})
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {loading ? (
@@ -234,7 +305,11 @@ export default function AdminLeadsPage() {
               </table>
             </div>
             {items.length === 0 && (
-              <div className="text-center py-12 text-gray-500">No leads on this page.</div>
+              <div className="text-center py-12 text-gray-500">
+                {debouncedSearch
+                  ? `No leads found for "${debouncedSearch}".`
+                  : 'No leads on this page.'}
+              </div>
             )}
           </div>
 

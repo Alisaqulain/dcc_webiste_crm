@@ -3,9 +3,13 @@
 import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { FaAward, FaCheckCircle } from 'react-icons/fa';
 import { certificateDownloadPath } from '@/lib/certificateDownloadPath';
+import PageHeader from '@/app/components/ui/PageHeader';
+import AnimatedSection from '@/app/components/ui/AnimatedSection';
+import SectionTitle from '@/app/components/ui/SectionTitle';
+import PrimaryButton from '@/app/components/ui/PrimaryButton';
 
-// Certificate Download Form Component
 function CertificateDownloadForm() {
   const [rollNumber, setRollNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -14,230 +18,187 @@ function CertificateDownloadForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (rollNumber.trim()) {
+      setIsLoading(true);
       router.push(certificateDownloadPath(rollNumber.trim()));
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-      <div className="flex gap-2">
+    <form onSubmit={handleSubmit} className="max-w-lg mx-auto">
+      <div className="flex flex-col sm:flex-row gap-3">
         <input
           type="text"
           value={rollNumber}
           onChange={(e) => setRollNumber(e.target.value)}
           placeholder="e.g. 00781/DCC55 or DCC55"
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className="flex-1 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
           required
         />
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-        >
-          {isLoading ? 'Loading...' : 'Download'}
-        </button>
+        <PrimaryButton type="submit" disabled={isLoading} size="lg">
+          {isLoading ? 'Loading…' : 'Download'}
+        </PrimaryButton>
       </div>
     </form>
   );
 }
 
+const benefits = [
+  {
+    step: '1',
+    title: 'Industry Recognition',
+    description: 'Our certificates are recognized by leading companies and help you stand out in the job market.',
+  },
+  {
+    step: '2',
+    title: 'Skill Validation',
+    description: 'Proves your competency in digital marketing and related technologies to potential employers.',
+  },
+  {
+    step: '3',
+    title: 'Career Advancement',
+    description: 'Opens doors to better job opportunities and higher salary prospects.',
+  },
+];
+
+const steps = [
+  { step: '1', title: 'Enroll in Course', description: 'Choose from our comprehensive course packages that match your career goals.', color: 'blue' },
+  { step: '2', title: 'Complete Training', description: 'Attend all sessions, complete assignments, and participate in live projects.', color: 'blue' },
+  { step: '3', title: 'Pass Assessment', description: 'Successfully complete the final assessment to demonstrate your skills.', color: 'blue' },
+  { step: '✓', title: 'Receive Certificate', description: 'Get your industry-recognized certificate and boost your professional profile.', color: 'green' },
+];
+
 export default function CertificatePage() {
   return (
-    <div className="min-h-screen bg-gray-50 py-8 sm:py-12 md:py-16">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        {/* Header Section */}
-        <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Our Certificate
-          </h1>
-          <div className="w-24 sm:w-32 h-1 sm:h-2 bg-red-600 mx-auto mb-6"></div>
-          <p className="text-lg sm:text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed">
-            Digital Career Center provides industry-recognized certificates upon successful completion of our courses. 
-            These certificates validate your skills and enhance your professional credibility.
-          </p>
-        </div>
+    <div className="min-h-screen bg-slate-50">
+      <PageHeader
+        eyebrow="Credentials"
+        title="Our Certificate"
+        description="Digital Career Center provides industry-recognized certificates upon successful completion of our courses. These certificates validate your skills and enhance your professional credibility."
+      />
 
-        {/* Certificate Display Section */}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-12 mb-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
-              Digital Career Center Certificate
-            </h2>
-            <p className="text-gray-600 text-lg">
-              Industry-Recognized Professional Certification
-            </p>
-          </div>
+      <AnimatedSection className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 md:p-12 mb-10">
+          <SectionTitle
+            title="Digital Career Center Certificate"
+            subtitle="Industry-Recognized Professional Certification"
+            className="mb-8"
+          />
 
-          {/* Certificate Image Container */}
           <div className="relative max-w-5xl mx-auto">
-            <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl p-4 sm:p-6 shadow-inner">
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-4 sm:p-6 border border-slate-200">
               <div className="relative w-full aspect-[4/3]">
                 <Image
                   src="/certificate1.jpg"
                   alt="Digital Career Center Certificate"
                   fill
-                  className="object-contain rounded-lg shadow-lg"
+                  className="object-contain rounded-xl shadow-lg"
                   priority
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
                 />
               </div>
             </div>
-            
-            {/* Certificate Details */}
-            <div className="mt-8 text-center">
-              <div className="bg-red-50 border-l-4 border-red-600 p-4 sm:p-6 rounded-lg">
-                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
-                  Certificate Features
-                </h3>
-                <ul className="text-sm sm:text-base text-gray-700 space-y-2">
-                  <li className="flex items-center justify-center gap-2">
-                    <span className="text-green-500">✓</span>
-                    <span>Industry-recognized certification</span>
+
+            <div className="mt-8 bg-red-50 border border-red-100 rounded-2xl p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-4 text-center">Certificate Features</h3>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-700">
+                {[
+                  'Industry-recognized certification',
+                  'Validates your digital skills',
+                  'Enhances professional credibility',
+                  'Boosts career opportunities',
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <FaCheckCircle className="text-emerald-500 flex-shrink-0" />
+                    <span>{item}</span>
                   </li>
-                  <li className="flex items-center justify-center gap-2">
-                    <span className="text-green-500">✓</span>
-                    <span>Validates your digital skills</span>
-                  </li>
-                  <li className="flex items-center justify-center gap-2">
-                    <span className="text-green-500">✓</span>
-                    <span>Enhances professional credibility</span>
-                  </li>
-                  <li className="flex items-center justify-center gap-2">
-                    <span className="text-green-500">✓</span>
-                    <span>Boosts career opportunities</span>
-                  </li>
-                </ul>
-              </div>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
 
-        {/* Additional Information Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
-          {/* Left Column - Benefits */}
-          <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">
-              Why Our Certificate Matters
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-red-600 font-bold">1</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Industry Recognition</h4>
-                  <p className="text-gray-600 text-sm">Our certificates are recognized by leading companies and help you stand out in the job market.</p>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 mb-10">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center border border-red-100">
+                <FaAward className="text-red-600" />
               </div>
-              
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-red-600 font-bold">2</span>
+              <h3 className="text-xl font-bold text-slate-900">Why Our Certificate Matters</h3>
+            </div>
+            <div className="space-y-5">
+              {benefits.map((item) => (
+                <div key={item.step} className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-red-50 border border-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-red-600 font-bold text-sm">{item.step}</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 mb-1">{item.title}</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed">{item.description}</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Skill Validation</h4>
-                  <p className="text-gray-600 text-sm">Proves your competency in digital marketing and related technologies to potential employers.</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-red-600 font-bold">3</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Career Advancement</h4>
-                  <p className="text-gray-600 text-sm">Opens doors to better job opportunities and higher salary prospects.</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Right Column - How to Get Certificate */}
-          <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8">
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">
-              How to Earn Your Certificate
-            </h3>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-blue-600 font-bold">1</span>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+            <SectionTitle title="How to Earn Your Certificate" align="left" className="mb-6 [&_h2]:text-xl" />
+            <div className="space-y-5">
+              {steps.map((item) => (
+                <div key={item.title} className="flex items-start gap-3">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border ${
+                      item.color === 'green'
+                        ? 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                        : 'bg-blue-50 border-blue-100 text-blue-600'
+                    }`}
+                  >
+                    <span className="font-bold text-sm">{item.step}</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-slate-900 mb-1">{item.title}</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed">{item.description}</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Enroll in Course</h4>
-                  <p className="text-gray-600 text-sm">Choose from our comprehensive course packages that match your career goals.</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-blue-600 font-bold">2</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Complete Training</h4>
-                  <p className="text-gray-600 text-sm">Attend all sessions, complete assignments, and participate in live projects.</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-blue-600 font-bold">3</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Pass Assessment</h4>
-                  <p className="text-gray-600 text-sm">Successfully complete the final assessment to demonstrate your skills.</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-green-600 font-bold">✓</span>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Receive Certificate</h4>
-                  <p className="text-gray-600 text-sm">Get your industry-recognized certificate and boost your professional profile.</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Download Certificate Section */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Download Your Certificate
-          </h3>
-          <p className="text-gray-600 text-center mb-6">
-            Enter your roll number to download your certificate
-          </p>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-10 mb-10">
+          <SectionTitle
+            title="Download Your Certificate"
+            subtitle="Enter your roll number to download your certificate"
+            className="mb-6"
+          />
           <CertificateDownloadForm />
         </div>
+      </AnimatedSection>
 
-        {/* Call to Action Section */}
-        <div className="text-center mt-12 sm:mt-16">
-          <div className="bg-gradient-to-r from-red-600 to-red-700 rounded-2xl p-8 sm:p-12 text-white">
-            <h3 className="text-2xl sm:text-3xl font-bold mb-4">
-              Ready to Earn Your Certificate?
-            </h3>
-            <p className="text-lg sm:text-xl mb-8 opacity-90">
-              Join thousands of students who have already earned their Digital Career Center certification.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href="/BronzeBundle"
-                className="bg-white text-red-600 font-bold px-8 py-4 rounded-lg hover:bg-gray-100 transition-colors duration-300 transform hover:scale-105"
-              >
-                View Courses
-              </a>
-              <a
-                href="/contact"
-                className="border-2 border-white text-white font-bold px-8 py-4 rounded-lg hover:bg-white hover:text-red-600 transition-colors duration-300 transform hover:scale-105"
-              >
-                Contact Us
-              </a>
-            </div>
+      <AnimatedSection
+        className="bg-gradient-to-br from-slate-900 via-slate-800 to-red-950 py-16 md:py-20"
+        delay={0.1}
+      >
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <SectionTitle
+            title="Ready to Earn Your Certificate?"
+            subtitle="Join thousands of students who have already earned their Digital Career Center certification."
+            className="[&_h2]:text-white [&_p]:text-slate-300 [&_div]:bg-red-500"
+          />
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-2">
+            <PrimaryButton href="/BronzeBundle" size="lg">
+              View Courses
+            </PrimaryButton>
+            <PrimaryButton
+              href="/contact"
+              variant="secondary"
+              size="lg"
+              className="!bg-white/10 !text-white !border-white/30 hover:!bg-white/20"
+            >
+              Contact Us
+            </PrimaryButton>
           </div>
         </div>
-      </div>
+      </AnimatedSection>
     </div>
   );
 }

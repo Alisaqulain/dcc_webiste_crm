@@ -5,6 +5,9 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
+import CourseDescriptionBlocks from '@/app/components/ui/CourseDescriptionBlocks';
+import AnimatedSection from '@/app/components/ui/AnimatedSection';
+import SectionTitle from '@/app/components/ui/SectionTitle';
 
 // Helper function to normalize course thumbnail URL
 const getCourseThumbnail = (thumbnail) => {
@@ -156,6 +159,134 @@ function CourseDetailPageInner() {
 
   const firstPlayableVideoId = sortedVideos[0]?._id;
 
+  const renderVideoList = (compact = false) => {
+    if (sortedVideos.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500 text-sm">
+          No videos available yet.
+        </div>
+      );
+    }
+
+    return sortedVideos.map((video, index) => {
+      const isPreview = video.isPreview === true;
+      const canAccess = session || isPreview;
+      const videoUrl = `/course/${courseId}/video/${video._id}`;
+      const loginUrl = `/login?redirect=${encodeURIComponent(videoUrl)}`;
+
+      if (compact) {
+        if (canAccess) {
+          return (
+            <Link
+              key={video._id || index}
+              href={videoUrl}
+              className="block p-3 rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50/50 transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-7 h-7 shrink-0 rounded-full bg-red-100 text-red-700 text-xs font-semibold flex items-center justify-center">
+                  {index + 1}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-900 line-clamp-2">{video.title}</p>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                    <span>{video.duration}</span>
+                    {isPreview && (
+                      <span className="text-green-700 font-medium">Preview</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          );
+        }
+
+        return (
+          <button
+            key={video._id || index}
+            type="button"
+            onClick={() => router.push(loginUrl)}
+            className="block w-full text-left p-3 rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50/50 transition-colors"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 shrink-0 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold flex items-center justify-center">
+                {index + 1}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-900 line-clamp-2">{video.title}</p>
+                <p className="text-xs text-red-600 mt-1">Login required</p>
+              </div>
+            </div>
+          </button>
+        );
+      }
+
+      if (canAccess) {
+        return (
+          <Link
+            key={video._id || index}
+            href={videoUrl}
+            className="block p-4 border border-slate-200 rounded-xl hover:border-red-300 hover:bg-red-50/50 hover:shadow-md transition-all duration-200"
+          >
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    {index + 1}. {video.title}
+                  </h3>
+                  {video.isPreview && (
+                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                      Free Preview
+                    </span>
+                  )}
+                </div>
+                {video.description && (
+                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">{video.description}</p>
+                )}
+                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                  <span>{video.duration}</span>
+                  {video.fileSize && (
+                    <span>{(video.fileSize / (1024 * 1024)).toFixed(2)} MB</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Link>
+        );
+      }
+
+      return (
+        <div
+          key={video._id || index}
+          onClick={() => router.push(loginUrl)}
+          className="block p-4 border border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+        >
+          <div className="flex items-start space-x-4">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-medium text-gray-900 mb-1">
+                {index + 1}. {video.title}
+              </h3>
+              <p className="text-sm text-red-600 font-medium">Please log in to watch this video</p>
+            </div>
+          </div>
+        </div>
+      );
+    });
+  };
+
   return (
     <>
       {courseSchema && (
@@ -166,9 +297,9 @@ function CourseDetailPageInner() {
           }}
         />
       )}
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b border-slate-100 sticky top-16 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -221,11 +352,12 @@ function CourseDetailPageInner() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Course Info Card */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden sticky top-8">
-              <div className="relative h-48 w-full bg-gray-200">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* Left sidebar — course info + scrollable video list */}
+          <div className="lg:col-span-1 lg:sticky lg:top-36 lg:self-start w-full">
+            <div className="dcc-card flex flex-col lg:max-h-[calc(100vh-9rem)] overflow-hidden border-slate-100">
+              <div className="shrink-0 overflow-hidden">
+              <div className="relative h-40 w-full bg-gray-200">
                 {getCourseThumbnail(course.thumbnail) ? (
                   <Image
                     src={getCourseThumbnail(course.thumbnail)}
@@ -242,36 +374,29 @@ function CourseDetailPageInner() {
                   </div>
                 )}
               </div>
-              <div className="p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">{course.title}</h2>
+              <div className="p-5">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2">{course.title}</h2>
                 
-                <div className="space-y-3 mb-6">
+                <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Category</span>
-                    <p className="text-sm text-gray-900">{course.category}</p>
+                    <span className="text-xs font-medium text-gray-500">Category</span>
+                    <p className="text-gray-900">{course.category}</p>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Level</span>
-                    <p className="text-sm text-gray-900">{course.level}</p>
+                    <span className="text-xs font-medium text-gray-500">Level</span>
+                    <p className="text-gray-900">{course.level}</p>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Duration</span>
-                    <p className="text-sm text-gray-900">{course.duration}</p>
+                    <span className="text-xs font-medium text-gray-500">Duration</span>
+                    <p className="text-gray-900">{course.duration}</p>
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-gray-500">Instructor</span>
-                    <p className="text-sm text-gray-900">{course.instructor?.name || 'Digital Career Center'}</p>
+                    <span className="text-xs font-medium text-gray-500">Instructor</span>
+                    <p className="text-gray-900 truncate">{course.instructor?.name || 'Digital Career Center'}</p>
                   </div>
                 </div>
 
-                {course.description && (
-                  <div className="mb-6">
-                    <span className="text-sm font-medium text-gray-500">Description</span>
-                    <p className="text-sm text-gray-700 mt-2">{course.description}</p>
-                  </div>
-                )}
-
-                <div className="pt-2 border-t border-gray-100 space-y-3">
+                <div className="pt-3 border-t border-gray-100 space-y-2">
                   {priceLabel && !hasAccess && (
                     <p className="text-lg font-bold text-gray-900">{priceLabel}</p>
                   )}
@@ -281,34 +406,49 @@ function CourseDetailPageInner() {
                       {firstPlayableVideoId ? (
                         <Link
                           href={`/course/${courseId}/video/${firstPlayableVideoId}`}
-                          className="block w-full text-center bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                          className="block w-full text-center bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors text-sm"
                         >
                           Start learning
                         </Link>
                       ) : null}
-                      <Link
-                        href="/my-courses"
-                        className="block w-full text-center border border-gray-300 text-gray-800 font-medium py-2.5 px-4 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-                      >
-                        View my courses
-                      </Link>
                     </div>
                   ) : (
                     <Link
                       href={purchaseHref}
-                      className="block w-full text-center bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors"
+                      className="block w-full text-center bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition-colors text-sm"
                     >
                       {priceLabel ? `Purchase for ${priceLabel}` : 'Purchase this course'}
                     </Link>
                   )}
                 </div>
               </div>
+              </div>
+
+              {/* Scrollable video list (desktop sidebar) */}
+              <div className="hidden lg:flex flex-col min-h-0 flex-1 border-t border-slate-100">
+                <div className="shrink-0 px-4 py-3 bg-slate-50 border-b border-slate-100">
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    Course Videos ({sortedVideos.length})
+                  </h3>
+                </div>
+                <div className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-3 py-3 space-y-2 dcc-scroll">
+                  {renderVideoList(true)}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Videos List */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-lg p-6">
+          {/* Main content — course description */}
+          <div className="lg:col-span-2 space-y-8">
+            {course.description && (
+              <AnimatedSection className="dcc-card p-6 sm:p-8">
+                <SectionTitle title="About This Course" align="left" className="!mb-6" />
+                <CourseDescriptionBlocks description={course.description} />
+              </AnimatedSection>
+            )}
+
+            {/* Video list on mobile/tablet */}
+            <AnimatedSection className="lg:hidden dcc-card p-6 sm:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <h2 className="text-2xl font-semibold text-gray-900">Course Videos</h2>
                 {!hasAccess && (
@@ -320,132 +460,10 @@ function CourseDetailPageInner() {
                   </Link>
                 )}
               </div>
-              
-              {sortedVideos.length > 0 ? (
-                <div className="space-y-3">
-                  {sortedVideos.map((video, index) => {
-                    const isPreview = video.isPreview === true;
-                    const canAccess = session || isPreview;
-                    const videoUrl = `/course/${courseId}/video/${video._id}`;
-                    const loginUrl = `/login?redirect=${encodeURIComponent(videoUrl)}`;
-                    
-                    return canAccess ? (
-                      <Link
-                        key={video._id || index}
-                        href={videoUrl}
-                        className="block p-4 border border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors"
-                      >
-                      <div className="flex items-start space-x-4">
-                        <div className="flex-shrink-0">
-                          <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
-                            <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
-                            </svg>
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <h3 className="text-lg font-medium text-gray-900">
-                              {index + 1}. {video.title}
-                            </h3>
-                            {video.isPreview && (
-                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                </svg>
-                                Free Preview
-                              </span>
-                            )}
-                          </div>
-                          {video.description && (
-                            <p className="text-sm text-gray-600 mb-2 line-clamp-2">{video.description}</p>
-                          )}
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span className="flex items-center">
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              {video.duration}
-                            </span>
-                            {video.fileSize && (
-                              <span>
-                                {(video.fileSize / (1024 * 1024)).toFixed(2)} MB
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </div>
-                      </div>
-                    </Link>
-                    ) : (
-                      <div
-                        key={video._id || index}
-                        onClick={() => router.push(loginUrl)}
-                        className="block p-4 border border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-                      >
-                        <div className="flex items-start space-x-4">
-                          <div className="flex-shrink-0">
-                            <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                              <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <h3 className="text-lg font-medium text-gray-900">
-                                {index + 1}. {video.title}
-                              </h3>
-                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                Login Required
-                              </span>
-                            </div>
-                            {video.description && (
-                              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{video.description}</p>
-                            )}
-                            <div className="flex items-center space-x-4 text-sm text-gray-500">
-                              <span className="flex items-center">
-                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                {video.duration}
-                              </span>
-                              {video.fileSize && (
-                                <span>
-                                  {(video.fileSize / (1024 * 1024)).toFixed(2)} MB
-                                </span>
-                              )}
-                            </div>
-                            <div className="mt-3">
-                              <span className="text-sm text-red-600 font-medium">Please log in to watch this video</span>
-                            </div>
-                          </div>
-                          <div className="flex-shrink-0">
-                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="text-gray-400 mb-4">
-                    <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No videos available</h3>
-                  <p className="text-gray-500">This course doesn't have any videos yet.</p>
-                </div>
-              )}
-            </div>
+              <div className="space-y-3">
+                {renderVideoList(false)}
+              </div>
+            </AnimatedSection>
           </div>
         </div>
       </div>

@@ -8,6 +8,8 @@ import {
   SingleCourseCard,
   SectionShell,
 } from "@/app/components/courses/CourseCatalogCards";
+import PageHeader from "@/app/components/ui/PageHeader";
+import PrimaryButton from "@/app/components/ui/PrimaryButton";
 
 const CoursesPage = () => {
   const { data: session, status } = useSession();
@@ -193,35 +195,21 @@ const CoursesPage = () => {
       )}
 
       {/* Hero */}
-      <header className="bg-gradient-to-br from-slate-900 via-slate-800 to-red-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 text-center">
-          <p className="text-red-300 text-sm font-semibold uppercase tracking-widest mb-2">
-            Digital Career Center
-          </p>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">Our Courses</h1>
-          <p className="text-slate-300 max-w-2xl mx-auto text-base sm:text-lg">
-            Save with combo bundles or pick individual courses — lifetime access on every purchase.
-          </p>
-          <nav className="mt-8 flex flex-wrap justify-center gap-3">
-            {combos.length > 0 && (
-              <button
-                type="button"
-                onClick={() => scrollTo("combo-bundles")}
-                className="px-5 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-900 text-sm font-bold transition-colors shadow-lg"
-              >
-                Combo bundles ({combos.length})
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => scrollTo("single-courses")}
-              className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/30 text-sm font-semibold transition-colors"
-            >
-              Single courses ({courses.length})
-            </button>
-          </nav>
-        </div>
-      </header>
+      <PageHeader
+        dark
+        eyebrow="Digital Career Center"
+        title="Our Courses"
+        description="Save with combo bundles or pick individual courses — lifetime access on every purchase."
+      >
+        {combos.length > 0 && (
+          <PrimaryButton onClick={() => scrollTo("combo-bundles")} className="!bg-amber-500 hover:!bg-amber-400 !text-slate-900">
+            Combo bundles ({combos.length})
+          </PrimaryButton>
+        )}
+        <PrimaryButton onClick={() => scrollTo("single-courses")} variant="secondary" className="!bg-white/10 !text-white !border-white/20">
+          Single courses ({courses.length})
+        </PrimaryButton>
+      </PageHeader>
 
       {/* ——— COMBO SECTION ——— */}
       <SectionShell
@@ -288,27 +276,27 @@ const CoursesPage = () => {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 mb-8">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
+          <div className="dcc-filter-panel">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
               Find a course
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Search</label>
+                <label className="dcc-label">Search</label>
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Title or keyword…"
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                  className="dcc-input text-sm py-2.5"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Category</label>
+                <label className="dcc-label">Category</label>
                 <select
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 text-sm bg-white"
+                  className="dcc-select text-sm py-2.5"
                 >
                   <option value="">All categories</option>
                   {categories.map((cat) => (
@@ -319,11 +307,11 @@ const CoursesPage = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Level</label>
+                <label className="dcc-label">Level</label>
                 <select
                   value={filterLevel}
                   onChange={(e) => setFilterLevel(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 text-sm bg-white"
+                  className="dcc-select text-sm py-2.5"
                 >
                   <option value="">All levels</option>
                   {levels.map((level) => (
@@ -334,11 +322,11 @@ const CoursesPage = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Sort</label>
+                <label className="dcc-label">Sort</label>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 text-sm bg-white"
+                  className="dcc-select text-sm py-2.5"
                 >
                   <option value="newest">Newest first</option>
                   <option value="oldest">Oldest first</option>

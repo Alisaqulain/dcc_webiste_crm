@@ -1,6 +1,7 @@
 import connectDB from '@/lib/mongodb';
 import { cleanupExpiredCrmFiles } from '@/lib/services/crmFileCleanup';
 import { lockExpiredCouponsNow } from '@/lib/couponService';
+import { ensureLeadIndexes } from '@/lib/leadIndexes';
 
 /**
  * Scheduled maintenance: CRM file TTL-style cleanup.
@@ -21,6 +22,7 @@ export async function GET(request) {
 
   try {
     await connectDB();
+    await ensureLeadIndexes();
     const crm = await cleanupExpiredCrmFiles(30);
     const couponsLocked = await lockExpiredCouponsNow();
     return Response.json({
@@ -28,7 +30,7 @@ export async function GET(request) {
       crmUsersUpdated: crm.usersTouched,
       crmFilesRemoved: crm.filesRemoved,
       couponsLocked,
-      note: 'Leads expire via MongoDB TTL index on createdAt (30 days).',
+      note: 'Pending/rejected leads expire via MongoDB TTL (~30 days). Approved/paid leads are retained for lifetime earnings.',
     });
   } catch (e) {
     console.error('Cron maintenance error:', e);

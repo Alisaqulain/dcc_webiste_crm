@@ -7,12 +7,17 @@ import { authOptions } from '@/lib/auth';
 import {
   sumEarningsInRange,
   buildDailySalesSeries,
+  sumAllTimeEarnings,
+  sumAllTimeLeadEarnings,
+  sumReferralsInRange,
 } from '@/lib/crmEarnings';
+import { syncLifetimeLeadEarnings } from '@/lib/leadLifetimeEarnings';
+import { ensureLeadIndexes } from '@/lib/leadIndexes';
 
 export async function GET(request) {
   try {
     await connectDB();
-    
+    await ensureLeadIndexes();
     // Get user session
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -198,8 +203,20 @@ export async function GET(request) {
 
     const last7DaysEarning = sumEarningsInRange(leads, referrals, d7, tomorrow);
     const last30DaysEarning = sumEarningsInRange(leads, referrals, d30, tomorrow);
-    const allTimeEarning =
-      grandTotalEarning + referralTotal;
+    const lifetimeLeadEarnings = await syncLifetimeLeadEarnings(
+      user._id,
+      grandTotalEarning
+    );
+    const allTimeEarning = sumAllTimeEarnings(
+      leads,
+      referrals,
+      lifetimeLeadEarnings
+    );
+    const allTimeLeadEarning = sumAllTimeLeadEarnings(
+      leads,
+      lifetimeLeadEarnings
+    );
+    const allTimeReferralEarning = sumReferralsInRange(referrals, null, null);
     const todayTotalEarning = sumEarningsInRange(
       leads,
       referrals,
@@ -224,6 +241,9 @@ export async function GET(request) {
       last7DaysEarning,
       last30DaysEarning,
       allTimeEarning,
+      allTimeLeadEarning,
+      allTimeReferralEarning,
+      lifetimeLeadEarnings,
       salesSeries,
       conversionRate: parseFloat(conversionRate),
       conversionRateChange: 0,

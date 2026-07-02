@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FaChevronDown, FaChevronUp, FaFileContract, FaUser, FaCookieBite, FaCopyright, FaComment, FaLink, FaShieldAlt, FaExclamationTriangle, FaEye, FaCog, FaGavel } from 'react-icons/fa';
+import StaticPageShell from '@/app/components/ui/StaticPageShell';
 
 const termsSections = [
   {
@@ -106,28 +107,12 @@ export default function TermsAndConditionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white py-16">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Terms and Conditions
-            </h1>
-            <p className="text-xl md:text-2xl text-red-100 mb-4">
-              Digital Career Center
-            </p>
-            <p className="text-red-200 max-w-4xl mx-auto">
-              Please read these terms carefully before using our website. 
-              By using our site, you agree to be bound by these terms and conditions.
-            </p>
-            <div className="w-24 h-1 bg-white mx-auto mt-6"></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <StaticPageShell
+      title="Terms and Conditions"
+      description="Please read these terms carefully before using our website. By using our site, you agree to be bound by these terms and conditions."
+    >
+      <div className="not-prose">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Table of Contents - Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
@@ -274,6 +259,6 @@ export default function TermsAndConditionsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </StaticPageShell>
   );
 }

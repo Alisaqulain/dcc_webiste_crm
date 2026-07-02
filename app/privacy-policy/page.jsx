@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FaChevronDown, FaChevronUp, FaShieldAlt, FaLock, FaEye, FaUserShield, FaCookieBite, FaGavel } from 'react-icons/fa';
+import StaticPageShell from '@/app/components/ui/StaticPageShell';
 
 const privacySections = [
   {
@@ -132,29 +133,12 @@ export default function PrivacyPolicyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white py-16">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Privacy Policy
-            </h1>
-            <p className="text-xl md:text-2xl text-red-100 mb-4">
-              Digital Career Center
-            </p>
-            <p className="text-red-200 max-w-4xl mx-auto">
-              At www.digitalcareercenter.com, accessible from https://www.digitalcareercenter.com, 
-              protecting our visitors' privacy is a key priority. This Privacy Policy explains the 
-              kinds of information collected, how it is recorded, and how we use it.
-            </p>
-            <div className="w-24 h-1 bg-white mx-auto mt-6"></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <StaticPageShell
+      title="Privacy Policy"
+      description="At www.digitalcareercenter.com, protecting our visitors' privacy is a key priority. This Privacy Policy explains the kinds of information collected, how it is recorded, and how we use it."
+    >
+      <div className="not-prose">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Table of Contents - Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-8">
@@ -288,6 +272,6 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
       </div>
-    </div>
+    </StaticPageShell>
   );
 }

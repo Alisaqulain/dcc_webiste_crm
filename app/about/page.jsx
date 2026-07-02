@@ -1,8 +1,7 @@
 'use client';
 
 import { FaGraduationCap, FaUsers, FaAward, FaGlobe, FaLightbulb, FaRocket, FaHeart, FaShieldAlt, FaTrophy, FaHandshake } from 'react-icons/fa';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import StaticPageShell from '@/app/components/ui/StaticPageShell';
 
 export default function AboutPage() {
   // About page structured data
@@ -36,25 +35,13 @@ export default function AboutPage() {
           __html: JSON.stringify(aboutSchema)
         }}
       />
-      <div className="min-h-screen bg-gray-50">
-      
-        {/* Hero Section */}
-      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white py-20">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              About Digital Career Center
-            </h1>
-            <p className="text-xl md:text-2xl text-red-100 mb-8 max-w-4xl mx-auto">
-              Digital Career Center is a leading institute in Muzaffarnagar, dedicated to empowering students and professionals with practical digital skills. Since 2018, we have helped transform careers with hands-on training in digital marketing, computer courses, and web development, focusing on real-world earning opportunities.
-            </p>
-            <div className="w-32 h-2 bg-white mx-auto"></div>
-          </div>
-        </div>
-      </div>
-
+      <StaticPageShell
+        title="About Digital Career Center"
+        description="Digital Career Center is a leading institute in Muzaffarnagar, dedicated to empowering students and professionals with practical digital skills. Since 2018, we have helped transform careers with hands-on training in digital marketing, computer courses, and web development, focusing on real-world earning opportunities."
+      >
+      <div className="not-prose">
       {/* Mission & Vision Section */}
-      <section className="py-16 px-6">
+      <section className="py-8">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Mission */}
@@ -87,7 +74,7 @@ export default function AboutPage() {
       </section>
 
       {/* Our Story Section */}
-      <section className="py-16 px-6 bg-white">
+      <section className="py-8 bg-slate-50 -mx-6 sm:-mx-10 px-6 sm:px-10 rounded-xl">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Story</h2>
@@ -133,7 +120,7 @@ export default function AboutPage() {
       </section>
 
       {/* Values Section */}
-      <section className="py-16 px-6">
+      <section className="py-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Values</h2>
@@ -209,7 +196,7 @@ export default function AboutPage() {
       </section>
 
       {/* Why Choose Us Section */}
-      <section className="py-16 px-6 bg-white">
+      <section className="py-8 bg-slate-50 -mx-6 sm:-mx-10 px-6 sm:px-10 rounded-xl">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">Why Choose Digital Career Center?</h2>
@@ -272,7 +259,7 @@ export default function AboutPage() {
       </section>
 
       {/* Call to Action Section */}
-      <section className="py-16 px-6 bg-gradient-to-r from-red-600 to-red-700">
+      <section className="py-8 -mx-6 sm:-mx-10 px-6 sm:px-10 bg-gradient-to-r from-red-600 to-red-700 rounded-xl">
         <div className="max-w-4xl mx-auto text-center text-white">
           <h2 className="text-4xl font-bold mb-6">Ready to Start Your Digital Journey?</h2>
           <p className="text-xl text-red-100 mb-8">
@@ -295,8 +282,8 @@ export default function AboutPage() {
         </div>
       </section>
 
-   
       </div>
+      </StaticPageShell>
     </>
   );
 }

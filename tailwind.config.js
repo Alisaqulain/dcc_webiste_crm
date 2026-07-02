@@ -10,6 +10,10 @@ module.exports = {
       colors: {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
+        brand: {
+          red: '#dc2626',
+          'red-dark': '#b91c1c',
+        },
       },
       fontFamily: {
         sans: ['var(--font-poppins)', 'Poppins', 'Arial', 'sans-serif'],

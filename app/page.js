@@ -3,6 +3,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Image from 'next/image';
+import AnimatedSection from '@/app/components/ui/AnimatedSection';
+import AnimatedItem from '@/app/components/ui/AnimatedItem';
+import SectionTitle from '@/app/components/ui/SectionTitle';
+import {
+  HomeStats,
+  HomeCategories,
+  HomeFeaturedCourses,
+  HomeFAQ,
+  HomeCTA,
+} from '@/app/components/home/HomePremiumSections';
 
 function getPackageImageUrl(image) {
   if (!image) return null;
@@ -244,10 +254,11 @@ export default function HomePage() {
   }, [slides.length]);
 
   return (
-    <div className="w-full">
-        {/* Slider Section */}
+    <div className="w-full bg-slate-50">
+      {/* Slider Section */}
       {slides.length > 0 && (
-      <div className="relative w-full h-[200px] sm:h-[400px] md:h-[500px] overflow-hidden">
+      <AnimatedSection className="relative w-full">
+      <div className="relative w-full h-[220px] sm:h-[420px] md:h-[520px] overflow-hidden bg-slate-900">
         {slides.map((slide, index) => (
           <div
             key={slide.id}
@@ -296,32 +307,23 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+      </AnimatedSection>
       )}
 
-      {/* Stats Section */}
-      <div className="py-8 sm:py-12 md:py-16 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black mb-4">
-              Why Choose Digital Career Center
-              <div className="w-24 sm:w-148 h-1 sm:h-2 bg-red-600 mx-auto mt-2"></div>
-            </h2>
-            <p className="text-base sm:text-lg text-gray-700 max-w-4xl mx-auto leading-relaxed px-2">
-  Digital Career Center is the ideal platform to launch your digital career. 
-  We provide expert-led, practical training with live projects that ensure you gain 
-  real-world skills. Along with personalized mentorship, placement assistance, and 
-  flexible batch schedules, we make learning accessible for everyone. With affordable 
-  fees and a comprehensive curriculum, Digital Career Center equips you with the 
-  knowledge and confidence required for high-demand roles in digital marketing and 
-  related fields.
-</p>
+      <HomeStats />
+      <HomeCategories />
 
-          </div>
+      {/* Stats Section */}
+      <AnimatedSection className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <SectionTitle
+            title="Why Choose Digital Career Center"
+            subtitle="Digital Career Center is the ideal platform to launch your digital career. We provide expert-led, practical training with live projects that ensure you gain real-world skills. Along with personalized mentorship, placement assistance, and flexible batch schedules, we make learning accessible for everyone."
+          />
 
           {/* 3 Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 md:gap-10 mt-8 sm:mt-12">
-  {/* Card 1 */}
-  <div className="text-center p-4 sm:p-6 rounded-lg">
+  <AnimatedItem delay={0} className="text-center p-4 sm:p-6 rounded-2xl dcc-card-hover">
     <div className="w-30 h-30 sm:w-50 sm:h-50  mx-auto mb-4 sm:mb-5 flex items-center justify-center">
    <img src='/brief.gif' alt='Expert Instructors' className='w-30 h-30 sm:w-45 sm:h-40 text-white' />
     </div>
@@ -333,10 +335,9 @@ export default function HomePage() {
       experience who provide hands-on training and personalized 
       mentorship to help you succeed in your digital career.
     </p>
-  </div>
+  </AnimatedItem>
 
-  {/* Card 2 */}
-  <div className="text-center p-4 sm:p-6 rounded-lg">
+  <AnimatedItem delay={0.1} className="text-center p-4 sm:p-6 rounded-2xl dcc-card-hover">
   <div className="w-30 h-30 sm:w-50 sm:h-50  mx-auto mb-4 sm:mb-5 flex items-center justify-center">
    <img src='/learn.gif' alt='Expert Instructors' className='w-30 h-30 sm:w-45 sm:h-40 text-white' />
     </div>
@@ -348,10 +349,9 @@ export default function HomePage() {
       and self-paced classes, allowing you to balance studies with 
       personal and professional commitments comfortably.
     </p>
-  </div>
+  </AnimatedItem>
 
-  {/* Card 3 */}
-  <div className="text-center p-4 sm:p-6 rounded-lg">
+  <AnimatedItem delay={0.2} className="text-center p-4 sm:p-6 rounded-2xl dcc-card-hover">
   <div className="w-30 h-30 sm:w-50 sm:h-50  mx-auto mb-4 sm:mb-5 flex items-center justify-center">
    <img src='/cerit.gif' alt='Expert Instructors' className='w-30 h-30 sm:w-45 sm:h-40 text-white' />
     </div>
@@ -364,11 +364,11 @@ export default function HomePage() {
       Designed by experts, these certifications are highly valued 
       by employers and help advance your career.
     </p>
-  </div>
+  </AnimatedItem>
 </div>
 
           {/* Packages Section */}
-          <section className="py-8 sm:py-12 md:pt-6">
+          <div className="py-8 sm:py-12 md:pt-6">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-4 sm:mb-6 text-black px-4">
   Our Exclusive Packages
   <span className="block w-20 sm:w-88 h-1 bg-red-600 mx-auto mt-2"></span>
@@ -536,12 +536,14 @@ export default function HomePage() {
                 <p>No packages available at the moment. Please check back later.</p>
               </div>
             )}
-          </section>
+          </div>
         </div>
-      </div>
+      </AnimatedSection>
+
+      <HomeFeaturedCourses />
 
       {/* How Digital Career Center Works Section */}
-      <section className="py-8 sm:pb-12 md:pb-16 px-4 sm:px-6 text-center">
+      <AnimatedSection className="py-8 sm:pb-12 md:pb-16 px-4 sm:px-6 text-center bg-white">
         <h2 className="text-2xl sm:text-3xl font-bold mb-8 sm:mb-12 relative inline-block text-black">
           How Digital Career Center Works
           <span className="block w-20 sm:w-118 h-1 bg-red-600 mx-auto mt-2"></span>
@@ -558,8 +560,7 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10 md:gap-12 max-w-6xl mx-auto">
-          {/* Card 1 */}
-          <div className="flex flex-col items-center h-full">
+          <AnimatedItem delay={0} className="flex flex-col items-center h-full">
           <div className="w-30 h-30 sm:w-50 sm:h-50  mx-auto mb-4 sm:mb-5 flex items-center justify-center">
    <img src='/teacher.gif' alt='Expert Instructors' className='w-30 h-30 sm:w-45 sm:h-40 text-white' />
     </div>
@@ -567,10 +568,9 @@ export default function HomePage() {
             <p className="text-sm sm:text-base text-gray-600 text-center leading-relaxed flex-grow">
               Digital Career Center offers expert-led training to equip you with practical digital skills, flexible learning, and certification, preparing you for a successful career in the growing digital economy.
             </p>
-          </div>
+          </AnimatedItem>
 
-          {/* Card 2 */}
-          <div className="flex flex-col items-center h-full">
+          <AnimatedItem delay={0.1} className="flex flex-col items-center h-full">
           <div className="w-30 h-30 sm:w-50 sm:h-50  mx-auto mb-4 sm:mb-5 flex items-center justify-center">
    <img src='/cloud-computing.gif' alt='Expert Instructors' className='w-30 h-30 sm:w-45 sm:h-40 text-white' />
     </div>
@@ -578,10 +578,9 @@ export default function HomePage() {
             <p className="text-sm sm:text-base text-gray-600 text-center leading-relaxed flex-grow">
               At Digital Career Center, we embrace cutting-edge technology and creative learning methods like AI personalization, gamification, and immersive experiences to make education engaging, adaptive, and future-ready.
             </p>
-          </div>
+          </AnimatedItem>
 
-          {/* Card 3 */}
-          <div className="flex flex-col items-center h-full">
+          <AnimatedItem delay={0.2} className="flex flex-col items-center h-full">
           <div className="w-30 h-30 sm:w-50 sm:h-50  mx-auto mb-4 sm:mb-5 flex items-center justify-center">
    <img src='/rocket-ship.gif' alt='Expert Instructors' className='w-30 h-30 sm:w-45 sm:h-40 text-white' />
     </div>
@@ -589,12 +588,12 @@ export default function HomePage() {
             <p className="text-sm sm:text-base text-gray-600 text-center leading-relaxed flex-grow">
               Take control of your digital future with the skills and confidence gained at Digital Career Center, empowering you to excel and lead in the competitive digital landscape.
             </p>
-          </div>
+          </AnimatedItem>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Why Digital Career Center Section */}
-      <section className="py-8 sm:py-12 md:py-16 px-4 sm:px-6">
+      <AnimatedSection className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 bg-slate-50">
         <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12 mx-auto  text-black">
           Why Digital Career Center
           <span className="block w-20 sm:w-92 h-1 bg-red-600 mx-auto mt-2"></span>
@@ -606,7 +605,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
           {/* Left side - Points */}
           <div className="space-y-4 sm:space-y-6">
-            <div className="flex items-start bg-white shadow-md rounded-lg p-3 sm:p-4">
+            <AnimatedItem delay={0} className="flex items-start bg-white shadow-md rounded-lg p-3 sm:p-4">
               <img
                 src="economic-growth.png"
                 alt="Trends"
@@ -617,9 +616,9 @@ export default function HomePage() {
               <p className="text-sm sm:text-base text-gray-700">
                 Keep oneself up to date with the most recent market trends because of the fierce rivalry.
               </p>
-            </div>
+            </AnimatedItem>
 
-            <div className="flex items-start bg-white shadow-md rounded-lg p-3 sm:p-4">
+            <AnimatedItem delay={0.08} className="flex items-start bg-white shadow-md rounded-lg p-3 sm:p-4">
               <img
                 src="cv.png"
                 alt="Certification"
@@ -630,9 +629,9 @@ export default function HomePage() {
               <p className="text-sm sm:text-base text-gray-700">
                 With Digital Career Center certification now you can boost your CV to kick start your professional career.
               </p>
-            </div>
+            </AnimatedItem>
 
-            <div className="flex items-start bg-white shadow-md rounded-lg p-3 sm:p-4">
+            <AnimatedItem delay={0.16} className="flex items-start bg-white shadow-md rounded-lg p-3 sm:p-4">
               <img
                 src="payment.png"
                 alt="Commission"
@@ -643,9 +642,9 @@ export default function HomePage() {
               <p className="text-sm sm:text-base text-gray-700">
                 Join us and earn a decent amount of commission for your professional journey.
               </p>
-            </div>
+            </AnimatedItem>
 
-            <div className="flex items-start bg-white shadow-md rounded-lg p-3 sm:p-4">
+            <AnimatedItem delay={0.24} className="flex items-start bg-white shadow-md rounded-lg p-3 sm:p-4">
               <img
                 src="trainer.png"
                 alt="Partner Program"
@@ -656,23 +655,23 @@ export default function HomePage() {
               <p className="text-sm sm:text-base text-gray-700">
                 With Digital Career Center exclusive partner program, new trainers can start their journey and build their strong position in the market.
               </p>
-            </div>
+            </AnimatedItem>
           </div>
 
           {/* Right side - Illustration */}
-          <div className="flex justify-center">
+          <AnimatedItem delay={0.15} className="flex justify-center">
             <img
               src="/gif.gif"
               alt="Animated illustration"
               className="w-74 h-72 sm:w-80 sm:h-90 md:w-150 md:h-100 rounded-xl "
             />
-          </div>
+          </AnimatedItem>
         </div>
-      </section>
+      </AnimatedSection>
 
       {/* Instructors Section with Looping Card Slider */}
       {instructors && instructors.length > 0 && (
-      <section className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 text-center">
+      <AnimatedSection className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 text-center bg-white">
         <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 relative inline-block text-black">
           Our Instructors
           <span className="block w-20 sm:w-60 h-1 bg-red-600 mx-auto mt-2"></span>
@@ -742,12 +741,12 @@ export default function HomePage() {
             />
           ))}
         </div>
-      </section>
+      </AnimatedSection>
       )}
 
       {/* Testimonials Section */}
       {testimonials && testimonials.length > 0 && (
-      <section className="py-8 sm:py-12 md:py-16 px-4 sm:px-6">
+      <AnimatedSection className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 bg-slate-50">
         <h2 className="text-2xl sm:text-3xl font-bold mb-8 sm:mb-12 text-center text-black">
           Hear from Our Success Stories
           <span className="block w-20 sm:w-110 h-1 bg-red-600 mx-auto mt-2"></span>
@@ -845,11 +844,11 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </section>
+      </AnimatedSection>
       )}
 
       {/* Media Presence Section */}
-      <section className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 text-center">
+      <AnimatedSection className="py-8 sm:py-12 md:py-16 px-4 sm:px-6 text-center bg-white">
         <h2 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 relative inline-block text-black">
           Our Media Presence
           <span className="block w-20 sm:w-74 h-1 bg-red-600 mx-auto mt-2"></span>
@@ -866,15 +865,19 @@ export default function HomePage() {
             "Instamojo",
             "LatestLY",
           ].map((logo, idx) => (
-            <div
+            <AnimatedItem
               key={idx}
-              className="bg-white rounded-lg shadow-md p-4 sm:p-6 text-center font-semibold text-sm sm:text-base"
+              delay={idx * 0.05}
+              className="bg-white rounded-lg shadow-md p-4 sm:p-6 text-center font-semibold text-sm sm:text-base dcc-card-hover"
             >
               {logo}
-            </div>
+            </AnimatedItem>
           ))}
         </div>
-      </section>
+      </AnimatedSection>
+
+      <HomeFAQ />
+      <HomeCTA />
 
       {/* Disclaimer Section */}
       <footer className="bg-red-600 text-center py-4 sm:py-6 mt-8 sm:mt-12">

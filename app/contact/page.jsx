@@ -1,10 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaClock, FaFacebookF, FaInstagram, FaLinkedinIn, FaYoutube, FaTelegramPlane, FaWhatsapp } from 'react-icons/fa';
-import { FaXTwitter } from 'react-icons/fa6';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaClock, FaFacebookF, FaInstagram, FaLinkedinIn, FaYoutube, FaTelegramPlane } from 'react-icons/fa';
+import StaticPageShell from '@/app/components/ui/StaticPageShell';
 import Head from 'next/head';
 
 export default function ContactPage() {
@@ -123,25 +121,13 @@ export default function ContactPage() {
           }}
         />
       </Head>
-      <div className="min-h-screen bg-gray-50">
-      
-        {/* Hero Section */}
-      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white py-20">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Contact Us
-            </h1>
-            <p className="text-xl md:text-2xl text-red-100 mb-8 max-w-4xl mx-auto">
-              Get in touch with us today to learn more and start your journey with Digital Career Center.
-            </p>
-            <div className="w-32 h-2 bg-white mx-auto"></div>
-          </div>
-        </div>
-      </div>
-
+      <StaticPageShell
+        title="Contact Us"
+        description="Get in touch with us today to learn more and start your journey with Digital Career Center."
+      >
+      <div className="not-prose">
       {/* Contact Information & Form Section */}
-      <section className="py-16 px-6">
+      <section className="py-4">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             
@@ -359,7 +345,7 @@ export default function ContactPage() {
       </section>
 
       {/* Map Section */}
-      <section className="py-16 px-6 bg-white">
+      <section className="py-8 mt-8 border-t border-slate-200">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Find Us</h2>
@@ -462,7 +448,7 @@ export default function ContactPage() {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 px-6">
+      <section className="py-8 mt-8 border-t border-slate-200">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Frequently Asked Questions</h2>
@@ -515,8 +501,8 @@ export default function ContactPage() {
         </div>
       </section>
 
-      
       </div>
+      </StaticPageShell>
     </>
   );
 }
