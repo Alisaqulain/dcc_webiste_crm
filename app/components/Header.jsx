@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCrmAccess } from '../hooks/useCrmAccess';
 import PrimaryButton from './ui/PrimaryButton';
 
+const LOGO_SRC = '/logo%20withoutbg.png';
+
 const NAV_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/courses', label: 'All Courses' },
@@ -75,9 +77,9 @@ const Header = () => {
   if (isMandatoryCheckout) {
     return (
       <header className="sticky top-0 z-50 bg-white border-b border-red-100 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 py-2.5">
           <div className="flex items-center gap-3 min-w-0">
-            <img src="/newlogo.jpeg" alt="Digital Career Center" width={560} height={112} className="h-20 sm:h-24 w-auto max-w-[440px] sm:max-w-[520px] object-contain shrink-0" />
+            <img src={LOGO_SRC} alt="Digital Career Center" width={400} height={80} className="h-14 sm:h-16 w-auto max-w-[260px] sm:max-w-[300px] object-contain shrink-0" />
             <div className="min-w-0">
               <div className="text-sm sm:text-base font-bold text-slate-900 truncate">Digital Career Center</div>
               <p className="text-xs text-amber-800 truncate">Complete secure payment below to unlock courses & profile</p>
@@ -108,14 +110,14 @@ const Header = () => {
         scrolled ? 'dcc-glass-nav' : 'bg-white/80 backdrop-blur-sm border-b border-slate-100'
       }`}
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 py-4 md:py-6">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 py-3 md:py-3.5">
         <Link href="/" className="flex items-center shrink-0 group">
           <img
-            src="/newlogo.jpeg"
+            src={LOGO_SRC}
             alt="Digital Career Center"
-            width={640}
-            height={128}
-            className="h-20 sm:h-24 md:h-28 lg:h-32 w-auto max-w-[420px] sm:max-w-[520px] md:max-w-[600px] lg:max-w-[680px] object-contain group-hover:opacity-90 transition-opacity duration-300"
+            width={440}
+            height={88}
+            className="h-14 sm:h-16 md:h-20 w-auto max-w-[260px] sm:max-w-[300px] md:max-w-[360px] object-contain group-hover:opacity-90 transition-opacity duration-300"
           />
         </Link>
 

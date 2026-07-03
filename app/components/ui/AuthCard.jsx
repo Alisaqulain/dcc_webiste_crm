@@ -15,11 +15,11 @@ export default function AuthCard({ title, subtitle, children, footer }) {
             </div>
             <Link href="/" className="relative inline-flex items-center gap-2 mb-4 group">
               <img
-                src="/newlogo.jpeg"
+                src="/logo%20withoutbg.png"
                 alt="Digital Career Center"
-                width={480}
-                height={96}
-                className="h-24 sm:h-28 w-auto max-w-[360px] sm:max-w-[440px] object-contain rounded-md bg-white/95 px-2 py-1 shadow-lg group-hover:scale-[1.02] transition-transform duration-300"
+                width={280}
+                height={56}
+                className="h-14 sm:h-16 w-auto max-w-[240px] sm:max-w-[280px] object-contain rounded-md bg-white/95 px-2 py-1 shadow-lg group-hover:scale-[1.02] transition-transform duration-300"
               />
             </Link>
             <h1 className="relative text-2xl font-bold tracking-tight">{title}</h1>

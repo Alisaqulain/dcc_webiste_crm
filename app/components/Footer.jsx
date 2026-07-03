@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 import { FaFacebookF, FaInstagram, FaLinkedinIn, FaTelegramPlane, FaYoutube, FaWhatsapp } from 'react-icons/fa';
 
-
+const LOGO_SRC = '/logo%20withoutbg.png';
 
 const Footer = () => {
 
@@ -29,13 +29,15 @@ const Footer = () => {
           <div className="sm:col-span-2 lg:col-span-1">
 
             <Link href="/" className="inline-flex items-center mb-5 group">
-              <img
-                src="/newlogo.jpeg"
-                alt="Digital Career Center"
-                width={600}
-                height={120}
-                className="h-20 sm:h-24 md:h-28 w-auto max-w-[440px] sm:max-w-[540px] md:max-w-[620px] object-contain rounded-md group-hover:opacity-90 transition-opacity duration-300"
-              />
+              <span className="inline-flex items-center rounded-lg bg-white px-3 py-1.5 shadow-sm">
+                <img
+                  src={LOGO_SRC}
+                  alt="Digital Career Center"
+                  width={440}
+                  height={88}
+                  className="h-14 sm:h-16 md:h-20 w-auto max-w-[260px] sm:max-w-[300px] md:max-w-[360px] object-contain group-hover:opacity-90 transition-opacity duration-300"
+                />
+              </span>
             </Link>
 
             <p className="text-sm leading-relaxed text-slate-400 mb-6 max-w-sm">
