@@ -32,7 +32,9 @@ const Footer = () => {
               <img
                 src="/newlogo.jpeg"
                 alt="Digital Career Center"
-                className="h-14 sm:h-16 md:h-[4.5rem] w-auto max-w-[320px] sm:max-w-[400px] object-contain rounded-md group-hover:opacity-90 transition-opacity duration-300"
+                width={600}
+                height={120}
+                className="h-20 sm:h-24 md:h-28 w-auto max-w-[440px] sm:max-w-[540px] md:max-w-[620px] object-contain rounded-md group-hover:opacity-90 transition-opacity duration-300"
               />
             </Link>
 

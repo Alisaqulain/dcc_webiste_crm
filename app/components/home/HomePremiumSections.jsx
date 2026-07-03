@@ -169,10 +169,13 @@ export function HomeCTA() {
           Join thousands of learners building real skills with expert guidance and industry-recognized certification.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
-          <PrimaryButton href="/courses" className="!bg-white !text-red-700 hover:!bg-red-50 !shadow-lg">
+          <Link
+            href="/courses"
+            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-base font-bold rounded-xl bg-white text-red-700 hover:bg-red-50 border border-white/80 shadow-lg shadow-black/10 transition-all duration-200 hover:-translate-y-0.5"
+          >
             Browse Courses
-          </PrimaryButton>
-          <PrimaryButton href="/contact" variant="secondary" className="!border-white/30 !text-white hover:!bg-white/10 !bg-white/5">
+          </Link>
+          <PrimaryButton href="/contact" variant="secondary" className="!border-white/40 !text-white hover:!bg-white/15 !bg-white/10">
             Talk to us
           </PrimaryButton>
         </div>

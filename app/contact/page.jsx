@@ -122,13 +122,14 @@ export default function ContactPage() {
         />
       </Head>
       <StaticPageShell
+        wide
         title="Contact Us"
         description="Get in touch with us today to learn more and start your journey with Digital Career Center."
       >
-      <div className="not-prose">
+      <div className="not-prose w-full">
       {/* Contact Information & Form Section */}
-      <section className="py-4">
-        <div className="max-w-6xl mx-auto">
+      <section className="py-2">
+        <div className="w-full">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             
             {/* Contact Information */}
@@ -346,7 +347,7 @@ export default function ContactPage() {
 
       {/* Map Section */}
       <section className="py-8 mt-8 border-t border-slate-200">
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Find Us</h2>
             <p className="text-gray-600">Visit our training center in Muzaffarnagar</p>
@@ -449,7 +450,7 @@ export default function ContactPage() {
 
       {/* FAQ Section */}
       <section className="py-8 mt-8 border-t border-slate-200">
-        <div className="max-w-6xl mx-auto">
+        <div className="w-full">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">Frequently Asked Questions</h2>
             <p className="text-gray-600">Quick answers to common questions</p>

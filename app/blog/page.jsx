@@ -142,8 +142,9 @@ const BlogPage = () => {
           description="Stay updated with the latest trends, tips, and insights in digital careers and technology."
         />
 
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-5 lg:px-6">
         {featuredPost && (
-          <AnimatedSection className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+          <AnimatedSection className="py-10 md:py-14">
             <SectionTitle
               title="Featured Article"
               subtitle="Our top pick — hand-selected for maximum impact on your career journey."
@@ -201,7 +202,7 @@ const BlogPage = () => {
           </AnimatedSection>
         )}
 
-        <AnimatedSection className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8" delay={0.05}>
+        <AnimatedSection className="pb-8" delay={0.05}>
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">
               Find articles
@@ -250,7 +251,7 @@ const BlogPage = () => {
           </div>
         </AnimatedSection>
 
-        <AnimatedSection className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 md:pb-20" delay={0.1}>
+        <AnimatedSection className="pb-14 md:pb-18" delay={0.1}>
           <SectionTitle
             title={loading ? "Loading Articles…" : "Latest Articles"}
             subtitle="Expert insights to help you grow in the digital economy."
@@ -286,12 +287,13 @@ const BlogPage = () => {
             </div>
           )}
         </AnimatedSection>
+        </div>
 
         <AnimatedSection
           className="bg-gradient-to-br from-slate-900 via-slate-800 to-red-950 text-white py-16 md:py-20"
           delay={0.15}
         >
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="max-w-7xl mx-auto px-4 sm:px-5 lg:px-6 text-center">
             <SectionTitle
               title="Stay Updated"
               subtitle="Get the latest digital career tips and industry insights delivered to your inbox."

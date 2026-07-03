@@ -98,7 +98,7 @@ const BlogDetailPage = () => {
 
       <div className="min-h-screen bg-slate-50">
         <nav className="bg-white border-b border-slate-100 sticky top-0 z-10 backdrop-blur-sm bg-white/95">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
+          <div className="max-w-7xl w-full mx-auto px-4 sm:px-5 lg:px-6 py-4">
             <Link
               href="/blog"
               className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-red-600 transition-colors"
@@ -109,7 +109,7 @@ const BlogDetailPage = () => {
           </div>
         </nav>
 
-        <AnimatedSection className="max-w-4xl mx-auto px-4 sm:px-6 py-8 md:py-12">
+        <AnimatedSection className="max-w-7xl w-full mx-auto px-4 sm:px-5 lg:px-6 py-8 md:py-12">
           <article className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="relative h-56 sm:h-72 md:h-96 bg-slate-100">
               <Image
@@ -239,7 +239,7 @@ const BlogDetailPage = () => {
           </article>
         </AnimatedSection>
 
-        <AnimatedSection className="max-w-4xl mx-auto px-4 sm:px-6 pb-16" delay={0.1}>
+        <AnimatedSection className="max-w-7xl w-full mx-auto px-4 sm:px-5 lg:px-6 pb-16" delay={0.1}>
           <div className="text-center">
             <PrimaryButton href="/blog" variant="secondary">
               ← Browse all articles

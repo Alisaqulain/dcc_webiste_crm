@@ -77,7 +77,7 @@ const Header = () => {
       <header className="sticky top-0 z-50 bg-white border-b border-red-100 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
           <div className="flex items-center gap-3 min-w-0">
-            <img src="/newlogo.jpeg" alt="Digital Career Center" className="h-14 sm:h-16 w-auto max-w-[320px] sm:max-w-[380px] object-contain shrink-0" />
+            <img src="/newlogo.jpeg" alt="Digital Career Center" width={560} height={112} className="h-20 sm:h-24 w-auto max-w-[440px] sm:max-w-[520px] object-contain shrink-0" />
             <div className="min-w-0">
               <div className="text-sm sm:text-base font-bold text-slate-900 truncate">Digital Career Center</div>
               <p className="text-xs text-amber-800 truncate">Complete secure payment below to unlock courses & profile</p>
@@ -108,12 +108,14 @@ const Header = () => {
         scrolled ? 'dcc-glass-nav' : 'bg-white/80 backdrop-blur-sm border-b border-slate-100'
       }`}
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 py-3 md:py-4">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 py-4 md:py-6">
         <Link href="/" className="flex items-center shrink-0 group">
           <img
             src="/newlogo.jpeg"
             alt="Digital Career Center"
-            className="h-14 sm:h-16 md:h-[4.75rem] w-auto max-w-[300px] sm:max-w-[360px] md:max-w-[420px] object-contain group-hover:opacity-90 transition-opacity duration-300"
+            width={640}
+            height={128}
+            className="h-20 sm:h-24 md:h-28 lg:h-32 w-auto max-w-[420px] sm:max-w-[520px] md:max-w-[600px] lg:max-w-[680px] object-contain group-hover:opacity-90 transition-opacity duration-300"
           />
         </Link>
 

@@ -50,7 +50,7 @@ const DownloadApp = () => {
                     alt="Digital Career Center"
                     width={220}
                     height={80}
-                    className="mx-auto mb-4 h-14 sm:h-16 w-auto object-contain"
+                    className="mx-auto mb-4 h-16 sm:h-20 w-auto max-w-[320px] object-contain"
                   />
                   <h3 className="text-base font-bold text-slate-900 mb-1">DCC Mobile</h3>
                   <p className="text-sm text-slate-500">Coming Soon</p>
@@ -71,7 +71,7 @@ const DownloadApp = () => {
                     alt="Digital Career Center"
                     width={260}
                     height={92}
-                    className="mx-auto mb-4 h-16 sm:h-20 w-auto object-contain"
+                    className="mx-auto mb-4 h-20 sm:h-24 w-auto max-w-[360px] object-contain"
                   />
                   <h3 className="text-lg font-bold text-slate-900 mb-1">DCC Tablet</h3>
                   <p className="text-slate-500 text-sm">Coming Soon</p>
