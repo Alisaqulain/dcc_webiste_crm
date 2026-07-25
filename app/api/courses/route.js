@@ -71,13 +71,16 @@ export async function GET(request) {
 
     const total = await Course.countDocuments(query);
 
+    const totalPages = Math.ceil(total / limit) || 1;
+
     return Response.json({
       courses,
       pagination: {
         currentPage: page,
-        totalPages: Math.ceil(total / limit),
+        totalPages,
         totalCourses: total,
-        hasNext: page < Math.ceil(total / limit),
+        limit,
+        hasNext: page < totalPages,
         hasPrev: page > 1
       }
     });

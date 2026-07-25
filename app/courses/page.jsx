@@ -8,8 +8,11 @@ import {
   SingleCourseCard,
   SectionShell,
 } from "@/app/components/courses/CourseCatalogCards";
+import CourseCatalogPagination from "@/app/components/courses/CourseCatalogPagination";
 import PageHeader from "@/app/components/ui/PageHeader";
 import PrimaryButton from "@/app/components/ui/PrimaryButton";
+
+const COURSES_PER_PAGE = 12;
 
 const CoursesPage = () => {
   const { data: session, status } = useSession();
@@ -18,10 +21,13 @@ const CoursesPage = () => {
   const [combos, setCombos] = useState([]);
   const [comboLoadError, setComboLoadError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingPage, setIsFetchingPage] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [filterLevel, setFilterLevel] = useState("");
   const [sortBy, setSortBy] = useState("newest");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
   const [showViewMoreModal, setShowViewMoreModal] = useState(false);
   const [viewMoreCourse, setViewMoreCourse] = useState(null);
   const [showPendingBanner, setShowPendingBanner] = useState(false);
@@ -94,14 +100,25 @@ const CoursesPage = () => {
   const levels = ["Beginner", "Intermediate", "Advanced"];
 
   useEffect(() => {
-    fetchCourses();
+    setPage(1);
   }, [searchTerm, filterCategory, filterLevel, sortBy]);
+
+  useEffect(() => {
+    fetchCourses();
+  }, [searchTerm, filterCategory, filterLevel, sortBy, page]);
 
   const fetchCourses = async () => {
     try {
-      setIsLoading(true);
+      const isInitialLoad = courses.length === 0 && !pagination;
+      if (isInitialLoad) {
+        setIsLoading(true);
+      } else {
+        setIsFetchingPage(true);
+      }
       const params = new URLSearchParams({
         published: "true",
+        page: String(page),
+        limit: String(COURSES_PER_PAGE),
         ...(searchTerm && { search: searchTerm }),
         ...(filterCategory && { category: filterCategory }),
         ...(filterLevel && { level: filterLevel }),
@@ -115,6 +132,7 @@ const CoursesPage = () => {
       if (response.ok) {
         const data = await response.json();
         setCourses(data.courses || []);
+        setPagination(data.pagination || null);
       }
       if (comboRes.ok) {
         const comboData = await comboRes.json();
@@ -129,6 +147,7 @@ const CoursesPage = () => {
       console.error("Error fetching courses:", error);
     } finally {
       setIsLoading(false);
+      setIsFetchingPage(false);
     }
   };
 
@@ -163,6 +182,13 @@ const CoursesPage = () => {
   const scrollTo = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  const handlePageChange = (nextPage) => {
+    setPage(nextPage);
+    scrollTo("single-courses");
+  };
+
+  const totalCourseCount = pagination?.totalCourses ?? courses.length;
 
   if (isLoading) {
     return (
@@ -207,7 +233,7 @@ const CoursesPage = () => {
           </PrimaryButton>
         )}
         <PrimaryButton onClick={() => scrollTo("single-courses")} variant="secondary" className="!bg-white/10 !text-white !border-white/20">
-          Single courses ({courses.length})
+          Single courses ({totalCourseCount})
         </PrimaryButton>
       </PageHeader>
 
@@ -341,9 +367,11 @@ const CoursesPage = () => {
           {courses.length > 0 ? (
             <>
               <p className="text-sm text-slate-500 mb-6">
-                Showing {courses.length} course{courses.length !== 1 ? "s" : ""}
+                {pagination
+                  ? `Page ${pagination.currentPage} of ${pagination.totalPages} · ${pagination.totalCourses} course${pagination.totalCourses !== 1 ? "s" : ""} total`
+                  : `Showing ${courses.length} course${courses.length !== 1 ? "s" : ""}`}
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8">
+              <div className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 transition-opacity duration-200 ${isFetchingPage ? "opacity-50 pointer-events-none" : ""}`}>
                 {courses.map((course) => (
                   <SingleCourseCard
                     key={course._id}
@@ -355,6 +383,10 @@ const CoursesPage = () => {
                   />
                 ))}
               </div>
+              <CourseCatalogPagination
+                pagination={pagination}
+                onPageChange={handlePageChange}
+              />
             </>
           ) : (
             <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
