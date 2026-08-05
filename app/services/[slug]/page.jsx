@@ -497,35 +497,73 @@ export default function ServiceDetailPage() {
       </section>
 
       {/* CTA + FORM */}
-      <section className="py-20 md:py-28 bg-gradient-to-b from-slate-100 via-white to-slate-50">
+      <section id="enquire" className="py-16 md:py-24 bg-gradient-to-b from-slate-100 via-white to-slate-50 scroll-mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-5 gap-10 lg:gap-14 items-start">
-            <Reveal className="lg:col-span-2 space-y-6">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-red-600">Get started</span>
-                <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-slate-900 leading-snug">
-                  Request a FREE consultation
-                </h2>
-                <p className="text-slate-600 mt-4 leading-relaxed">
-                  Talk to our experts about {service.title}. We&apos;ll study your needs and propose the best plan for your growth.
-                </p>
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 xl:gap-10 items-stretch">
+            <Reveal className="h-full">
               <motion.div
-                whileHover={{ scale: 1.02 }}
-                className="p-7 rounded-2xl bg-gradient-to-br from-red-600 to-red-800 text-white shadow-2xl shadow-red-600/30"
+                whileHover={{ scale: 1.01 }}
+                transition={{ duration: 0.25 }}
+                className="h-full flex flex-col justify-between p-7 sm:p-8 lg:p-10 rounded-3xl bg-gradient-to-br from-red-600 via-red-700 to-red-900 text-white shadow-2xl shadow-red-600/25 ring-1 ring-red-500/20"
               >
-                <p className="text-red-100 text-sm font-medium">Prefer to call?</p>
-                <a href={`tel:${phone}`} className="block text-3xl font-bold mt-1 hover:text-red-100 transition-colors">
-                  {phoneDisplay}
-                </a>
-                <p className="text-red-200/80 text-sm mt-3">Mon–Sat · Quick response</p>
-                <PrimaryButton href={`tel:${phone}`} size="md" className="mt-5 !bg-white !text-red-700 hover:!bg-red-50 w-full">
-                  Call now
-                </PrimaryButton>
+                <div>
+                  <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-red-200">Get started</span>
+                  <h2 className="mt-3 text-2xl sm:text-3xl xl:text-4xl font-bold leading-snug text-white">
+                    Request a FREE consultation
+                  </h2>
+                  <p className="text-red-100/95 mt-5 leading-relaxed text-base sm:text-lg">
+                    Talk to our certified experts about{' '}
+                    <span className="font-semibold text-white">{service.title}</span>. We take time to
+                    understand your business goals, target audience, and current online presence — then
+                    recommend a clear, practical plan tailored to your budget and timeline.
+                  </p>
+                  <p className="text-red-100/85 mt-4 leading-relaxed text-sm sm:text-base">
+                    Whether you are launching a new brand or scaling an existing one, Digital Career Center
+                    helps you grow with strategies built for real results — not one-size-fits-all templates.
+                  </p>
+                  <ul className="mt-6 sm:mt-8 space-y-3">
+                    {[
+                      'Free strategy consultation with our team',
+                      'Custom roadmap aligned to your goals',
+                      'Transparent pricing with no hidden charges',
+                      'Ongoing support from kickoff to results',
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-3 text-sm sm:text-base text-red-50/95">
+                        <span className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-white/15 flex items-center justify-center">
+                          <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="mt-8 pt-8 border-t border-white/20">
+                  <p className="text-red-100 text-sm font-medium">Prefer to call?</p>
+                  <a
+                    href={`tel:${phone}`}
+                    className="block text-2xl sm:text-3xl font-bold mt-1 text-white hover:text-red-100 transition-colors"
+                  >
+                    {phoneDisplay}
+                  </a>
+                  <p className="text-red-200/90 text-sm mt-2">Mon–Sat · Quick response</p>
+                  <a
+                    href={`tel:${phone}`}
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-bold text-red-700 shadow-lg shadow-black/10 hover:bg-red-50 active:scale-[0.98] transition-all"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    Call now
+                  </a>
+                </div>
               </motion.div>
             </Reveal>
-            <Reveal delay={0.1} className="lg:col-span-3">
-              <div className="rounded-3xl bg-white p-6 sm:p-8 lg:p-10 shadow-2xl shadow-slate-200/60 border border-slate-100">
+
+            <Reveal delay={0.1} className="h-full">
+              <div className="h-full rounded-3xl bg-white p-6 sm:p-8 lg:p-10 shadow-2xl shadow-slate-200/60 border border-slate-100">
                 <ServiceEnquiryForm serviceSlug={service.slug} serviceTitle={service.title} />
               </div>
             </Reveal>

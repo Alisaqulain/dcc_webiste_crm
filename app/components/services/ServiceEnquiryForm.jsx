@@ -42,7 +42,7 @@ export default function ServiceEnquiryForm({ serviceSlug, serviceTitle }) {
   };
 
   return (
-    <div id="enquire" className="scroll-mt-32">
+    <div className="h-full">
       <div className="mb-6 sm:mb-8">
         <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Contact us now</h2>
         <p className="text-slate-600 mt-1.5 text-sm sm:text-base">
