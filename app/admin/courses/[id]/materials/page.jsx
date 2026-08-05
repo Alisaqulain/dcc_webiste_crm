@@ -8,6 +8,7 @@ function getMaterialTypeLabel(material) {
   const mime = String(material?.mimeType || '').toLowerCase();
   const name = String(material?.fileName || material?.fileUrl || '').toLowerCase();
   if (mime.includes('zip') || name.endsWith('.zip')) return 'ZIP';
+  if (mime.includes('rar') || name.endsWith('.rar')) return 'RAR';
   return 'PDF';
 }
 
@@ -19,7 +20,9 @@ function isAllowedDocument(file) {
     type === 'application/pdf' ||
     name.endsWith('.pdf') ||
     type.includes('zip') ||
-    name.endsWith('.zip')
+    name.endsWith('.zip') ||
+    type.includes('rar') ||
+    name.endsWith('.rar')
   );
 }
 
@@ -72,11 +75,11 @@ export default function CourseMaterialsPage() {
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!selectedFile) {
-      alert('Please select a PDF or ZIP file');
+      alert('Please select a PDF, ZIP, or RAR file');
       return;
     }
     if (!isAllowedDocument(selectedFile)) {
-      alert('Only PDF and ZIP files are allowed');
+      alert('Only PDF, ZIP, and RAR files are allowed');
       return;
     }
     if (!form.title.trim()) {
@@ -204,7 +207,7 @@ export default function CourseMaterialsPage() {
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Add new file</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Notes, practice sheets, keyboard layouts (PDF) ya software/fonts/assets (ZIP) yahan upload karein.
+            Notes, practice sheets (PDF) ya software/fonts/assets (ZIP / RAR) yahan upload karein.
             Purchased students ko course page par download milega.
           </p>
 
@@ -230,14 +233,14 @@ export default function CourseMaterialsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">File (PDF or ZIP) *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">File (PDF, ZIP, or RAR) *</label>
               <input
                 type="file"
-                accept=".pdf,application/pdf,.zip,application/zip,application/x-zip-compressed"
+                accept=".pdf,application/pdf,.zip,application/zip,application/x-zip-compressed,.rar,application/vnd.rar,application/x-rar-compressed"
                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                 className="w-full text-sm"
               />
-              <p className="text-xs text-gray-500 mt-1">Max 20MB. PDF ya ZIP allowed.</p>
+              <p className="text-xs text-gray-500 mt-1">Max 20MB. PDF, ZIP, ya RAR allowed.</p>
             </div>
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
@@ -263,7 +266,7 @@ export default function CourseMaterialsPage() {
             Uploaded files ({materials.length})
           </h2>
           {materials.length === 0 ? (
-            <p className="text-gray-500 text-sm">Abhi koi file nahi hai. Upar se pehli PDF ya ZIP add karein.</p>
+            <p className="text-gray-500 text-sm">Abhi koi file nahi hai. Upar se pehli PDF, ZIP, ya RAR add karein.</p>
           ) : (
             <ul className="divide-y divide-gray-100">
               {materials.map((m) => (

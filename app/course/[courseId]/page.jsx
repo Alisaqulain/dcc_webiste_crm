@@ -33,6 +33,7 @@ function getMaterialTypeLabel(material) {
   const mime = String(material?.mimeType || '').toLowerCase();
   const name = String(material?.fileName || material?.fileUrl || '').toLowerCase();
   if (mime.includes('zip') || name.endsWith('.zip')) return 'ZIP';
+  if (mime.includes('rar') || name.endsWith('.rar')) return 'RAR';
   return 'PDF';
 }
 
@@ -506,7 +507,7 @@ function CourseDetailPageInner() {
                 <ul className="space-y-3">
                   {sortedMaterials.map((material) => {
                     const typeLabel = getMaterialTypeLabel(material);
-                    const isZip = typeLabel === 'ZIP';
+                    const isArchive = typeLabel === 'ZIP' || typeLabel === 'RAR';
                     return (
                     <li
                       key={material._id}
@@ -514,7 +515,7 @@ function CourseDetailPageInner() {
                     >
                       <div className="flex items-start gap-3 min-w-0">
                         <span className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold ${
-                          isZip ? 'bg-violet-100 text-violet-700' : 'bg-red-100 text-red-700'
+                          isArchive ? 'bg-violet-100 text-violet-700' : 'bg-red-100 text-red-700'
                         }`}>
                           {typeLabel}
                         </span>

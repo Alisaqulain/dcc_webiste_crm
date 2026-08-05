@@ -16,18 +16,26 @@ const ZIP_TYPES = [
   'application/x-zip',
   'multipart/x-zip',
 ];
+const RAR_TYPES = [
+  'application/vnd.rar',
+  'application/x-rar-compressed',
+  'application/x-rar',
+];
 const MAX_MB = Number(process.env.UPLOAD_MAX_MB || 20);
 
 function getDocumentKind(file) {
   const name = String(file.name || '').toLowerCase();
   if (PDF_TYPES.includes(file.type) || name.endsWith('.pdf')) return 'pdf';
   if (ZIP_TYPES.includes(file.type) || name.endsWith('.zip')) return 'zip';
+  if (RAR_TYPES.includes(file.type) || name.endsWith('.rar')) return 'rar';
   return null;
 }
 
 function getDocumentMimeType(file, kind) {
-  if (file.type) return file.type;
-  return kind === 'zip' ? 'application/zip' : 'application/pdf';
+  if (file.type && file.type !== 'application/octet-stream') return file.type;
+  if (kind === 'zip') return 'application/zip';
+  if (kind === 'rar') return 'application/vnd.rar';
+  return 'application/pdf';
 }
 
 function verifyAdminToken(request) {
@@ -54,7 +62,7 @@ export async function POST(request) {
     const kind = getDocumentKind(file);
     if (!kind) {
       return NextResponse.json(
-        { success: false, message: 'Only PDF and ZIP files are allowed.' },
+        { success: false, message: 'Only PDF, ZIP, and RAR files are allowed.' },
         { status: 400 }
       );
     }
