@@ -304,6 +304,11 @@ const courseSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  listingType: {
+    type: String,
+    enum: ['course', 'app'],
+    default: 'course',
+  },
   enrollmentCount: {
     type: Number,
     default: 0
@@ -340,6 +345,8 @@ const courseSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+courseSchema.index({ listingType: 1, isPublished: 1 });
 
 // Simplified validation for videos - only check if video has required fields
 courseSchema.pre('save', function(next) {

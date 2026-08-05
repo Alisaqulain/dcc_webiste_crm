@@ -30,6 +30,7 @@ export async function GET(request) {
       students = students.filter((s) => {
         const hay = [
           s.fullName,
+          s.rollNo,
           s.phone,
           s.email,
           s.courseLabel,
@@ -67,6 +68,7 @@ export async function POST(request) {
     const student = await OfflineStudent.create({
       centerId: body.centerId,
       fullName: body.fullName,
+      rollNo: body.rollNo?.trim() || '',
       phone: body.phone,
       email: body.email,
       guardianName: body.guardianName,

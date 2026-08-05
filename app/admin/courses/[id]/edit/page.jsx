@@ -41,6 +41,7 @@ export default function EditCoursePage() {
     isPublished: false,
     isFeatured: false,
     hasCrmAccess: false,
+    listingType: 'course',
     discount: {
       percentage: 0,
       validUntil: ''
@@ -99,6 +100,7 @@ export default function EditCoursePage() {
           isPublished: courseData.isPublished || false,
           isFeatured: courseData.isFeatured || false,
           hasCrmAccess: courseData.hasCrmAccess || false,
+          listingType: courseData.listingType === 'app' ? 'app' : 'course',
           discount: {
             percentage: courseData.discount?.percentage || 0,
             validUntil: courseData.discount?.validUntil ? new Date(courseData.discount.validUntil).toISOString().split('T')[0] : ''
@@ -248,6 +250,10 @@ export default function EditCoursePage() {
     );
   }
 
+  const isApp = formData.listingType === 'app';
+  const itemLabel = isApp ? 'App' : 'Course';
+  const adminListHref = isApp ? '/admin/apps' : '/admin/courses';
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -255,12 +261,12 @@ export default function EditCoursePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <Link href="/admin/courses" className="text-gray-600 hover:text-gray-900">
+              <Link href={adminListHref} className="text-gray-600 hover:text-gray-900">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </Link>
-              <h1 className="text-2xl font-bold text-gray-900">Edit Course</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Edit {itemLabel}</h1>
             </div>
             <div className="flex space-x-4">
               <Link
@@ -273,7 +279,7 @@ export default function EditCoursePage() {
                 href={`/admin/courses/${courseId}/materials`}
                 className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
-                Manage PDFs
+                Manage Materials
               </Link>
             </div>
           </div>
@@ -288,7 +294,18 @@ export default function EditCoursePage() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Course Title *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Listing type *</label>
+                <select
+                  value={formData.listingType}
+                  onChange={(e) => setFormData(prev => ({ ...prev, listingType: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="course">Course (shows on /courses)</option>
+                  <option value="app">App (shows on /apps)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{itemLabel} Title *</label>
                 <input
                   type="text"
                   required

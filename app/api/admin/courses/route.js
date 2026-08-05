@@ -36,6 +36,7 @@ export async function GET(request) {
     const category = searchParams.get('category') || '';
     const level = searchParams.get('level') || '';
     const isPublished = searchParams.get('isPublished') || '';
+    const listingType = searchParams.get('listingType') || '';
     // Sort by newest first by default so new courses appear at top
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc'; // Newest first
@@ -64,6 +65,12 @@ export async function GET(request) {
     // Filter by published status
     if (isPublished !== '') {
       query.isPublished = isPublished === 'true';
+    }
+
+    if (listingType === 'app') {
+      query.listingType = 'app';
+    } else if (listingType === 'course') {
+      query.listingType = { $ne: 'app' };
     }
 
     const sortOptions = {};
@@ -135,6 +142,7 @@ export async function POST(request) {
       isPublished = false,
       isFeatured = false,
       hasCrmAccess = false,
+      listingType = 'course',
       discount = {}
     } = await request.json();
 
@@ -166,6 +174,7 @@ export async function POST(request) {
       isPublished,
       isFeatured,
       hasCrmAccess,
+      listingType: listingType === 'app' ? 'app' : 'course',
       discount
     });
 

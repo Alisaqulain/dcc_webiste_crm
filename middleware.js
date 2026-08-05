@@ -24,6 +24,8 @@ export async function middleware(req) {
     const allowedForUnpaid =
       path === '/' ||
       path.startsWith('/courses') ||
+      path.startsWith('/apps') ||
+      path.startsWith('/services') ||
       path.startsWith('/purchase') ||
       path.startsWith('/course/') ||
       path.startsWith('/login') ||

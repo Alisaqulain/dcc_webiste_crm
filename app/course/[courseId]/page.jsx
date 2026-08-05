@@ -29,6 +29,13 @@ const getCourseThumbnail = (thumbnail) => {
   return `/${thumbnail}`;
 };
 
+function getMaterialTypeLabel(material) {
+  const mime = String(material?.mimeType || '').toLowerCase();
+  const name = String(material?.fileName || material?.fileUrl || '').toLowerCase();
+  if (mime.includes('zip') || name.endsWith('.zip')) return 'ZIP';
+  return 'PDF';
+}
+
 function CourseDetailPageInner() {
   const { courseId } = useParams();
   const searchParams = useSearchParams();
@@ -490,21 +497,26 @@ function CourseDetailPageInner() {
 
             {sortedMaterials.length > 0 && (
               <AnimatedSection className="dcc-card p-6 sm:p-8">
-                <SectionTitle title="Course PDFs & Notes" align="left" className="!mb-2" />
+                <SectionTitle title="Course Materials" align="left" className="!mb-2" />
                 <p className="text-sm text-slate-500 mb-6">
                   {hasAccess
-                    ? 'Download study materials and practice sheets for this course.'
-                    : 'Sample PDFs available below. Purchase the course to unlock all materials.'}
+                    ? 'Download study materials, notes, and resource files for this course.'
+                    : 'Sample files available below. Purchase the course to unlock all materials.'}
                 </p>
                 <ul className="space-y-3">
-                  {sortedMaterials.map((material) => (
+                  {sortedMaterials.map((material) => {
+                    const typeLabel = getMaterialTypeLabel(material);
+                    const isZip = typeLabel === 'ZIP';
+                    return (
                     <li
                       key={material._id}
                       className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:border-red-200 hover:bg-red-50/30 transition-colors"
                     >
                       <div className="flex items-start gap-3 min-w-0">
-                        <span className="shrink-0 w-10 h-10 rounded-lg bg-red-100 text-red-700 flex items-center justify-center text-xs font-bold">
-                          PDF
+                        <span className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-xs font-bold ${
+                          isZip ? 'bg-violet-100 text-violet-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {typeLabel}
                         </span>
                         <div className="min-w-0">
                           <p className="font-medium text-slate-900">{material.title}</p>
@@ -537,7 +549,8 @@ function CourseDetailPageInner() {
                         </Link>
                       )}
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </AnimatedSection>
             )}

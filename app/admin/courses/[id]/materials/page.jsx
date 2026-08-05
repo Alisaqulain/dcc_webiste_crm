@@ -4,6 +4,25 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 
+function getMaterialTypeLabel(material) {
+  const mime = String(material?.mimeType || '').toLowerCase();
+  const name = String(material?.fileName || material?.fileUrl || '').toLowerCase();
+  if (mime.includes('zip') || name.endsWith('.zip')) return 'ZIP';
+  return 'PDF';
+}
+
+function isAllowedDocument(file) {
+  if (!file) return false;
+  const name = file.name.toLowerCase();
+  const type = (file.type || '').toLowerCase();
+  return (
+    type === 'application/pdf' ||
+    name.endsWith('.pdf') ||
+    type.includes('zip') ||
+    name.endsWith('.zip')
+  );
+}
+
 export default function CourseMaterialsPage() {
   const router = useRouter();
   const params = useParams();
@@ -40,11 +59,11 @@ export default function CourseMaterialsPage() {
         setCourseTitle(data.courseTitle || '');
         setMaterials(data.materials || []);
       } else {
-        alert('Error loading PDFs');
+        alert('Error loading materials');
       }
     } catch (error) {
       console.error(error);
-      alert('Error loading PDFs');
+      alert('Error loading materials');
     } finally {
       setIsLoading(false);
     }
@@ -53,11 +72,15 @@ export default function CourseMaterialsPage() {
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!selectedFile) {
-      alert('Please select a PDF file');
+      alert('Please select a PDF or ZIP file');
+      return;
+    }
+    if (!isAllowedDocument(selectedFile)) {
+      alert('Only PDF and ZIP files are allowed');
       return;
     }
     if (!form.title.trim()) {
-      alert('Please enter PDF title (e.g. Hindi Typing Lesson 1 Notes)');
+      alert('Please enter a title (e.g. Hindi Typing Lesson 1 Notes)');
       return;
     }
 
@@ -74,7 +97,7 @@ export default function CourseMaterialsPage() {
       });
       const uploadResult = await uploadRes.json();
       if (!uploadRes.ok || !uploadResult.success) {
-        throw new Error(uploadResult.message || 'PDF upload failed');
+        throw new Error(uploadResult.message || 'File upload failed');
       }
 
       const saveRes = await fetch(`/api/admin/courses/${courseId}/materials`, {
@@ -95,14 +118,14 @@ export default function CourseMaterialsPage() {
       });
       const saveResult = await saveRes.json();
       if (!saveRes.ok) {
-        throw new Error(saveResult.error || 'Failed to save PDF');
+        throw new Error(saveResult.error || 'Failed to save file');
       }
 
       setForm({ title: '', description: '', isFreePreview: false });
       setSelectedFile(null);
       e.target.reset?.();
       fetchMaterials();
-      alert('PDF added successfully!');
+      alert('File added successfully!');
     } catch (error) {
       alert(error.message || 'Upload failed');
     } finally {
@@ -155,7 +178,7 @@ export default function CourseMaterialsPage() {
               ← Back
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Course PDFs / Notes</h1>
+              <h1 className="text-xl font-bold text-gray-900">Course Materials</h1>
               <p className="text-sm text-gray-500">{courseTitle}</p>
             </div>
           </div>
@@ -179,15 +202,15 @@ export default function CourseMaterialsPage() {
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         <div className="bg-white rounded-xl shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Add new PDF</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Add new file</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Hindi Typing jaise courses ke liye notes, practice sheets, ya keyboard layout PDF yahan upload karein.
+            Notes, practice sheets, keyboard layouts (PDF) ya software/fonts/assets (ZIP) yahan upload karein.
             Purchased students ko course page par download milega.
           </p>
 
           <form onSubmit={handleUpload} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">PDF Title *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
               <input
                 type="text"
                 value={form.title}
@@ -207,14 +230,14 @@ export default function CourseMaterialsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">PDF File *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">File (PDF or ZIP) *</label>
               <input
                 type="file"
-                accept=".pdf,application/pdf"
+                accept=".pdf,application/pdf,.zip,application/zip,application/x-zip-compressed"
                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                 className="w-full text-sm"
               />
-              <p className="text-xs text-gray-500 mt-1">Max 20MB. Sirf PDF allowed.</p>
+              <p className="text-xs text-gray-500 mt-1">Max 20MB. PDF ya ZIP allowed.</p>
             </div>
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
@@ -230,23 +253,28 @@ export default function CourseMaterialsPage() {
               disabled={isUploading}
               className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg font-medium"
             >
-              {isUploading ? 'Uploading…' : 'Upload PDF'}
+              {isUploading ? 'Uploading…' : 'Upload file'}
             </button>
           </form>
         </div>
 
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Uploaded PDFs ({materials.length})
+            Uploaded files ({materials.length})
           </h2>
           {materials.length === 0 ? (
-            <p className="text-gray-500 text-sm">Abhi koi PDF nahi hai. Upar se pehli PDF add karein.</p>
+            <p className="text-gray-500 text-sm">Abhi koi file nahi hai. Upar se pehli PDF ya ZIP add karein.</p>
           ) : (
             <ul className="divide-y divide-gray-100">
               {materials.map((m) => (
                 <li key={m._id} className="py-4 flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-medium text-gray-900">{m.title}</p>
+                    <p className="font-medium text-gray-900 flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                        {getMaterialTypeLabel(m)}
+                      </span>
+                      {m.title}
+                    </p>
                     {m.description && (
                       <p className="text-sm text-gray-500 mt-0.5">{m.description}</p>
                     )}

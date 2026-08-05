@@ -42,6 +42,7 @@ export default function OfflineStudentsPage() {
   const [studentForm, setStudentForm] = useState({
     centerId: '',
     fullName: '',
+    rollNo: '',
     phone: '',
     email: '',
     guardianName: '',
@@ -265,6 +266,7 @@ export default function OfflineStudentsPage() {
     setStudentForm({
       centerId: studentForm.centerId,
       fullName: '',
+      rollNo: '',
       phone: '',
       email: '',
       guardianName: '',
@@ -455,6 +457,12 @@ export default function OfflineStudentsPage() {
               />
               <input
                 className="border rounded-lg px-3 py-2 text-sm"
+                placeholder="Roll no."
+                value={studentForm.rollNo}
+                onChange={(e) => setStudentForm({ ...studentForm, rollNo: e.target.value })}
+              />
+              <input
+                className="border rounded-lg px-3 py-2 text-sm"
                 placeholder="Phone"
                 value={studentForm.phone}
                 onChange={(e) => setStudentForm({ ...studentForm, phone: e.target.value })}
@@ -512,7 +520,7 @@ export default function OfflineStudentsPage() {
                 <div className="flex flex-wrap gap-2 items-center">
                   <input
                     type="search"
-                    placeholder="Search name, phone, course…"
+                    placeholder="Search name, roll no, phone, course…"
                     className="border rounded-lg px-3 py-1.5 text-sm w-48"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -567,6 +575,7 @@ export default function OfflineStudentsPage() {
                         >
                           <td className="p-3">
                             <p className="font-semibold text-gray-900">{s.fullName}</p>
+                            {s.rollNo && <p className="text-xs text-gray-500 font-mono">Roll: {s.rollNo}</p>}
                             <p className="text-xs text-gray-500">{s.courseLabel || '—'}</p>
                             {s.phone && <p className="text-xs text-gray-400">{s.phone}</p>}
                           </td>
@@ -621,6 +630,9 @@ export default function OfflineStudentsPage() {
                 <div className="space-y-5">
                   <div>
                     <h2 className="text-lg font-bold text-gray-900">{selected.fullName}</h2>
+                    {selected.rollNo && (
+                      <p className="text-sm font-mono text-gray-700">Roll no: {selected.rollNo}</p>
+                    )}
                     <p className="text-sm text-gray-600">{selected.centerId?.name}</p>
                     <p className="text-sm text-gray-600">{selected.courseLabel}</p>
                     <button

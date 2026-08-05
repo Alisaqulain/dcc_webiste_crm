@@ -27,6 +27,7 @@ const offlineStudentSchema = new mongoose.Schema({
     required: true,
   },
   fullName: { type: String, required: true, trim: true },
+  rollNo: { type: String, trim: true },
   phone: { type: String, trim: true },
   email: { type: String, trim: true, lowercase: true },
   guardianName: { type: String, trim: true },
@@ -42,7 +43,7 @@ const offlineStudentSchema = new mongoose.Schema({
 });
 
 offlineStudentSchema.index({ centerId: 1, fullName: 1 });
-offlineStudentSchema.index({ phone: 1 });
+offlineStudentSchema.index({ rollNo: 1 });
 
 offlineStudentSchema.pre('save', function (next) {
   this.updatedAt = Date.now();

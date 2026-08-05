@@ -42,7 +42,7 @@ export async function POST(request, { params }) {
 
     if (!title?.trim() || !fileUrl?.trim()) {
       return NextResponse.json(
-        { error: 'Title and PDF file are required.' },
+        { error: 'Title and file are required.' },
         { status: 400 }
       );
     }
@@ -74,11 +74,11 @@ export async function POST(request, { params }) {
     const added = course.materials[course.materials.length - 1];
     return NextResponse.json({
       success: true,
-      message: 'PDF added successfully',
+      message: 'File added successfully',
       material: added,
     });
   } catch (error) {
-    return NextResponse.json({ error: error.message || 'Failed to add PDF' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to add file' }, { status: 500 });
   }
 }
 
@@ -103,11 +103,11 @@ export async function DELETE(request, { params }) {
     const before = course.materials.length;
     course.materials = course.materials.filter((m) => m._id.toString() !== materialId);
     if (course.materials.length === before) {
-      return NextResponse.json({ error: 'PDF not found' }, { status: 404 });
+      return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
 
     await course.save();
-    return NextResponse.json({ success: true, message: 'PDF removed' });
+    return NextResponse.json({ success: true, message: 'File removed' });
   } catch (error) {
     return NextResponse.json({ error: error.message || 'Failed to delete PDF' }, { status: 500 });
   }

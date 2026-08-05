@@ -17,14 +17,14 @@ export async function GET(request, { params }) {
 
     const material = course.materials?.find((m) => m._id.toString() === materialId);
     if (!material) {
-      return NextResponse.json({ message: 'PDF not found' }, { status: 404 });
+      return NextResponse.json({ message: 'File not found' }, { status: 404 });
     }
 
     const isFree = material.isFreePreview === true;
     if (!isFree) {
       const session = await getServerSession(authOptions);
       if (!session?.user?.id) {
-        return NextResponse.json({ message: 'Login required to download this PDF' }, { status: 401 });
+        return NextResponse.json({ message: 'Login required to download this file' }, { status: 401 });
       }
 
       const user = await User.findById(session.user.id).select('courses').lean();
@@ -46,7 +46,7 @@ export async function GET(request, { params }) {
 
     return NextResponse.redirect(fileUrl, 302);
   } catch (error) {
-    console.error('PDF download error:', error);
+    console.error('Material download error:', error);
     return NextResponse.json({ message: 'Download failed' }, { status: 500 });
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 // Helper function to normalize course thumbnail URL
@@ -24,6 +24,11 @@ const getCourseThumbnail = (thumbnail) => {
 
 export default function CoursesPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const listingType = pathname?.startsWith('/admin/apps') ? 'app' : 'course';
+  const isApp = listingType === 'app';
+  const itemLabel = isApp ? 'App' : 'Course';
+  const itemLabelLower = isApp ? 'app' : 'course';
   const [courses, setCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,14 +60,15 @@ export default function CoursesPage() {
     
     fetchCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router, searchTerm, filterCategory, filterLevel, filterPublished]);
+  }, [router, searchTerm, filterCategory, filterLevel, filterPublished, listingType]);
 
   const fetchCourses = async () => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('adminToken');
       const params = new URLSearchParams({
-        limit: 0, // 0 means fetch all courses (no limit)
+        limit: 0,
+        listingType,
         ...(searchTerm && { search: searchTerm }),
         ...(filterCategory && { category: filterCategory }),
         ...(filterLevel && { level: filterLevel }),
@@ -105,7 +111,7 @@ export default function CoursesPage() {
   };
 
   const handleDelete = async (courseId) => {
-    if (!confirm('Are you sure you want to delete this course?')) return;
+    if (!confirm(`Are you sure you want to delete this ${itemLabelLower}?`)) return;
 
     try {
       const token = localStorage.getItem('adminToken');
@@ -159,7 +165,7 @@ export default function CoursesPage() {
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading courses...</p>
+          <p className="mt-4 text-gray-600">Loading {itemLabelLower}s...</p>
         </div>
       </div>
     );
@@ -177,14 +183,25 @@ export default function CoursesPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </Link>
-              <h1 className="text-2xl font-bold text-gray-900">Course Management</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{isApp ? 'App Management' : 'Course Management'}</h1>
             </div>
+            <div className="flex items-center gap-2">
+              {isApp ? (
+                <Link href="/admin/courses" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 border rounded-lg">
+                  Courses
+                </Link>
+              ) : (
+                <Link href="/admin/apps" className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 border rounded-lg">
+                  Apps
+                </Link>
+              )}
             <button
               onClick={() => setShowAddModal(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
-              Add New Course
+              Add New {itemLabel}
             </button>
+            </div>
           </div>
         </div>
       </header>
@@ -356,7 +373,7 @@ export default function CoursesPage() {
           {courses.length > 0 && (
             <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
               <p className="text-sm text-gray-700">
-                Showing <span className="font-medium">{courses.length}</span> course{courses.length !== 1 ? 's' : ''} 
+                Showing <span className="font-medium">{courses.length}</span> {itemLabelLower}{courses.length !== 1 ? 's' : ''} 
                 {totalCourses > courses.length && (
                   <span> of <span className="font-medium">{totalCourses}</span> total</span>
                 )}
@@ -369,6 +386,8 @@ export default function CoursesPage() {
       {/* Add Course Modal */}
       {showAddModal && (
         <AddCourseModal
+          listingType={listingType}
+          itemLabel={itemLabel}
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
             setShowAddModal(false);
@@ -382,7 +401,7 @@ export default function CoursesPage() {
 }
 
 // Add Course Modal Component
-function AddCourseModal({ onClose, onSuccess }) {
+function AddCourseModal({ onClose, onSuccess, listingType = 'course', itemLabel = 'Course' }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -481,7 +500,8 @@ function AddCourseModal({ onClose, onSuccess }) {
         whatYouWillLearn: ['Professional skills', 'Industry knowledge'],
         tags: [formData.category.toLowerCase().replace(/\s+/g, '-')],
         isFeatured: false,
-        isPublished: true, // Automatically publish courses
+        isPublished: true,
+        listingType,
         enrollmentCount: 0
       };
 
@@ -497,7 +517,7 @@ function AddCourseModal({ onClose, onSuccess }) {
       if (response.ok) {
         const result = await response.json();
         console.log('Course created successfully:', result);
-        alert('Course created successfully!');
+        alert(`${itemLabel} created successfully!`);
         onSuccess();
       } else {
         const error = await response.json();
@@ -518,7 +538,7 @@ function AddCourseModal({ onClose, onSuccess }) {
       <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
         <div className="mt-3">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Add New Course</h3>
+            <h3 className="text-lg font-medium text-gray-900">Add New {itemLabel}</h3>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"

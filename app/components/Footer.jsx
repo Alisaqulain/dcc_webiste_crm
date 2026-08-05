@@ -95,6 +95,8 @@ const Footer = () => {
             <ul className="space-y-2.5 text-sm">
 
               <li><Link href="/courses" className="dcc-footer-link">All Courses</Link></li>
+              <li><Link href="/apps" className="dcc-footer-link">Apps</Link></li>
+              <li><Link href="/services" className="dcc-footer-link">Services</Link></li>
 
               <li><Link href="/my-courses" className="dcc-footer-link">My Courses</Link></li>
 

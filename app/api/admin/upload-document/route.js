@@ -10,7 +10,25 @@ export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 const PDF_TYPES = ['application/pdf'];
+const ZIP_TYPES = [
+  'application/zip',
+  'application/x-zip-compressed',
+  'application/x-zip',
+  'multipart/x-zip',
+];
 const MAX_MB = Number(process.env.UPLOAD_MAX_MB || 20);
+
+function getDocumentKind(file) {
+  const name = String(file.name || '').toLowerCase();
+  if (PDF_TYPES.includes(file.type) || name.endsWith('.pdf')) return 'pdf';
+  if (ZIP_TYPES.includes(file.type) || name.endsWith('.zip')) return 'zip';
+  return null;
+}
+
+function getDocumentMimeType(file, kind) {
+  if (file.type) return file.type;
+  return kind === 'zip' ? 'application/zip' : 'application/pdf';
+}
 
 function verifyAdminToken(request) {
   const token = request.headers.get('authorization')?.replace('Bearer ', '');
@@ -33,11 +51,10 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: 'No file uploaded' }, { status: 400 });
     }
 
-    const isPdf =
-      PDF_TYPES.includes(file.type) || String(file.name || '').toLowerCase().endsWith('.pdf');
-    if (!isPdf) {
+    const kind = getDocumentKind(file);
+    if (!kind) {
       return NextResponse.json(
-        { success: false, message: 'Only PDF files are allowed.' },
+        { success: false, message: 'Only PDF and ZIP files are allowed.' },
         { status: 400 }
       );
     }
@@ -60,7 +77,7 @@ export async function POST(request) {
       if (!result.isDataUrl) {
         const filepath = join(getUploadDir('uploads'), result.filename);
         if (!existsSync(filepath)) {
-          throw new Error('PDF upload failed — file not found on disk.');
+          throw new Error(`${kind.toUpperCase()} upload failed — file not found on disk.`);
         }
       }
 
@@ -74,14 +91,15 @@ export async function POST(request) {
         filename: result.filename,
         originalName: file.name,
         size: result.size || file.size,
-        mimeType: file.type || 'application/pdf',
+        mimeType: getDocumentMimeType(file, kind),
+        fileType: kind,
       });
     } catch (uploadError) {
       storageService.isServerless = originalIsServerless;
       throw uploadError;
     }
   } catch (error) {
-    console.error('PDF upload error:', error);
+    console.error('Document upload error:', error);
     return NextResponse.json(
       { success: false, message: error.message || 'Upload failed' },
       { status: 500 }
