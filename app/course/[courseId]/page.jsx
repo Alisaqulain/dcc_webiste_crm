@@ -8,8 +8,8 @@ import Image from 'next/image';
 import CourseDescriptionBlocks from '@/app/components/ui/CourseDescriptionBlocks';
 import AnimatedSection from '@/app/components/ui/AnimatedSection';
 import SectionTitle from '@/app/components/ui/SectionTitle';
-import CustomYouTubePlayer from '@/app/components/CustomYouTubePlayer';
-import VimeoPlayer from '@/app/components/VimeoPlayer';
+import CourseVideoPlayer from '@/app/components/courses/CourseVideoPlayer';
+import { isPreviewVideo } from '@/lib/courseAccess';
 
 // Helper function to normalize course thumbnail URL
 const getCourseThumbnail = (thumbnail) => {
@@ -57,17 +57,16 @@ function CourseDetailPageInner() {
   const fetchCourseData = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/courses/${courseId}?includeVideos=true`);
+      const response = await fetch(`/api/courses/${courseId}?includeVideos=true`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
       
       if (response.ok) {
         const data = await response.json();
         setCourse(data.course);
         setHasAccess(Boolean(data.hasAccess));
-        
-        // Check if there are any videos (preview or purchased)
-        if (!data.course.videos || data.course.videos.length === 0) {
-          setError('No videos found for this course');
-        }
+        setError(null);
       } else {
         setError('Course not found');
       }
@@ -154,6 +153,8 @@ function CourseDetailPageInner() {
   // Sort videos by order
   const sortedVideos = course.videos ? [...course.videos].sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
   const sortedMaterials = course.materials ? [...course.materials].sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
+  const totalVideoCount = course.totalVideoCount ?? sortedVideos.length;
+  const totalMaterialCount = course.totalMaterialCount ?? sortedMaterials.length;
 
   const couponQ = searchParams.get('coupon');
   const purchaseSuffix = couponQ
@@ -169,23 +170,21 @@ function CourseDetailPageInner() {
       : null;
 
   const firstPlayableVideoId = sortedVideos[0]?._id;
-  const previewVideo = sortedVideos.find(
-    (v) => v.isPreview === true || v.isFreePreview === true
-  );
+  const previewVideo = sortedVideos.find((v) => isPreviewVideo(v));
   const inlinePreviewVideo = previewVideo || (hasAccess ? sortedVideos[0] : null);
 
   const renderVideoList = (compact = false) => {
     if (sortedVideos.length === 0) {
       return (
         <div className="text-center py-8 text-gray-500 text-sm">
-          No videos available yet.
+          No videos yet. Check course materials below.
         </div>
       );
     }
 
     return sortedVideos.map((video, index) => {
-      const isPreview = video.isPreview === true || video.isFreePreview === true;
-      const canAccess = session || isPreview;
+      const isPreview = isPreviewVideo(video);
+      const canAccess = hasAccess || isPreview;
       const videoUrl = `/course/${courseId}/video/${video._id}`;
       const loginUrl = `/login?redirect=${encodeURIComponent(videoUrl)}`;
 
@@ -219,7 +218,7 @@ function CourseDetailPageInner() {
           <button
             key={video._id || index}
             type="button"
-            onClick={() => router.push(loginUrl)}
+            onClick={() => router.push(session ? purchaseHref : loginUrl)}
             className="block w-full text-left p-3 rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50/50 transition-colors"
           >
             <div className="flex items-start gap-3">
@@ -228,7 +227,7 @@ function CourseDetailPageInner() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-gray-900 line-clamp-2">{video.title}</p>
-                <p className="text-xs text-red-600 mt-1">Login required</p>
+                <p className="text-xs text-red-600 mt-1">{session ? 'Purchase to unlock' : 'Login required'}</p>
               </div>
             </div>
           </button>
@@ -279,7 +278,7 @@ function CourseDetailPageInner() {
       return (
         <div
           key={video._id || index}
-          onClick={() => router.push(loginUrl)}
+          onClick={() => router.push(canAccess ? videoUrl : session ? purchaseHref : loginUrl)}
           className="block p-4 border border-gray-200 rounded-lg hover:border-red-500 hover:bg-red-50 transition-colors cursor-pointer"
         >
           <div className="flex items-start space-x-4">
@@ -294,7 +293,9 @@ function CourseDetailPageInner() {
               <h3 className="text-lg font-medium text-gray-900 mb-1">
                 {index + 1}. {video.title}
               </h3>
-              <p className="text-sm text-red-600 font-medium">Please log in to watch this video</p>
+              <p className="text-sm text-red-600 font-medium">
+                {session ? 'Purchase this course to watch' : 'Please log in to watch this video'}
+              </p>
             </div>
           </div>
         </div>
@@ -330,7 +331,11 @@ function CourseDetailPageInner() {
             </div>
             <div className="flex items-center gap-3 flex-wrap justify-end">
               <span className="text-sm text-gray-500">
-                {sortedVideos.length} {sortedVideos.length === 1 ? 'Video' : 'Videos'}
+                {(hasAccess ? Math.max(sortedVideos.length, totalVideoCount) : totalVideoCount)}{' '}
+                {(hasAccess ? Math.max(sortedVideos.length, totalVideoCount) : totalVideoCount) === 1 ? 'Video' : 'Videos'}
+                {!hasAccess && totalVideoCount > sortedVideos.length && (
+                  <span className="text-red-600 ml-1">· Purchase to unlock all</span>
+                )}
               </span>
               {hasAccess ? (
                 <>
@@ -441,7 +446,7 @@ function CourseDetailPageInner() {
               <div className="hidden lg:block border-t border-slate-100">
                 <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
                   <h3 className="text-sm font-semibold text-gray-900">
-                    Course Videos ({sortedVideos.length})
+                    Course Videos ({hasAccess ? Math.max(sortedVideos.length, totalVideoCount) : totalVideoCount})
                   </h3>
                 </div>
                 <div className="px-3 py-3 space-y-2">
@@ -471,21 +476,7 @@ function CourseDetailPageInner() {
                   </div>
                 </div>
                 <div className="p-4 sm:p-6 bg-black">
-                  {inlinePreviewVideo.youtubeUrl ? (
-                    <CustomYouTubePlayer
-                      courseId={courseId}
-                      video={inlinePreviewVideo}
-                    />
-                  ) : inlinePreviewVideo.vimeoUrl || inlinePreviewVideo.vimeoVideoId ? (
-                    <VimeoPlayer
-                      courseId={courseId}
-                      video={inlinePreviewVideo}
-                    />
-                  ) : (
-                    <div className="aspect-video flex items-center justify-center text-white/80 text-sm">
-                      Video source not available
-                    </div>
-                  )}
+                  <CourseVideoPlayer courseId={courseId} video={inlinePreviewVideo} />
                 </div>
               </AnimatedSection>
             )}

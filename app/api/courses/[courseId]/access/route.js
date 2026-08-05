@@ -3,6 +3,7 @@ import Course from '@/models/Course';
 import User from '@/models/User';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { resolvePurchasedAccess } from '@/lib/courseAccess';
 
 /**
  * GET /api/courses/[courseId]/access
@@ -31,16 +32,7 @@ export async function GET(request, { params }) {
       return Response.json({ hasAccess: false });
     }
 
-    // Find user
-    const user = await User.findById(session.user.id).lean();
-    if (!user) {
-      return Response.json({ hasAccess: false });
-    }
-
-    // Check if user has purchased this course
-    const hasPurchased = user.courses?.some(
-      c => c.courseId && c.courseId.toString() === courseId
-    );
+    const { hasAccess: hasPurchased } = await resolvePurchasedAccess(session, courseId, User);
 
     return Response.json({ hasAccess: hasPurchased });
   } catch (error) {

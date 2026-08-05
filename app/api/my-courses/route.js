@@ -3,6 +3,8 @@ import Course from '@/models/Course';
 import User from '@/models/User';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
+import { normalizeCourseIds } from '@/lib/courseAccess';
+import { enrichCourseContent } from '@/lib/courseContent';
 
 export async function GET(request) {
   try {
@@ -24,25 +26,31 @@ export async function GET(request) {
       return Response.json({ courses: [] });
     }
 
-    // Extract course IDs from user's courses
-    const courseIds = user.courses.map(c => c.courseId);
+    const courseIds = normalizeCourseIds(user.courses);
 
-    // Fetch course details for purchased courses
-    // Include videos count but not full video data for listing page
+    if (courseIds.length === 0) {
+      return Response.json({ courses: [] });
+    }
+
     const courses = await Course.find({
       _id: { $in: courseIds },
       isPublished: true
     })
-    .select('title description shortDescription thumbnail price category level duration instructor rating videos')
+    .select('title description shortDescription thumbnail price category level duration instructor rating videos materials listingType')
     .lean();
 
-    // Only include video count and basic info, not full video data
-    const coursesWithVideoCount = courses.map(course => ({
-      ...course,
-      videoCount: course.videos?.length || 0,
-      videos: undefined // Remove full video data to reduce payload
-    }));
-
+    const coursesWithVideoCount = await Promise.all(
+      courses.map(async (course) => {
+        const enriched = await enrichCourseContent(course);
+        return {
+          ...course,
+          videoCount: enriched.videos?.length || 0,
+          materialCount: enriched.materials?.length || 0,
+          videos: undefined,
+          materials: undefined,
+        };
+      })
+    );
     return Response.json({ courses: coursesWithVideoCount });
   } catch (error) {
     console.error('Error fetching user courses:', error);

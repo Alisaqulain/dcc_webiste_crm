@@ -1,21 +1,23 @@
 import connectDB from '@/lib/mongodb';
-import Course from '@/models/Course';
 import User from '@/models/User';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { NextResponse } from 'next/server';
+import { resolvePurchasedAccess } from '@/lib/courseAccess';
+import { resolveCourseMedia } from '@/lib/courseContent';
 
 export async function GET(request, { params }) {
   try {
     await connectDB();
 
     const { courseId, materialId } = await params;
-    const course = await Course.findById(courseId).select('materials title').lean();
-    if (!course) {
+    const resolved = await resolveCourseMedia(courseId, { materialId });
+
+    if (!resolved?.course) {
       return NextResponse.json({ message: 'Course not found' }, { status: 404 });
     }
 
-    const material = course.materials?.find((m) => m._id.toString() === materialId);
+    const material = resolved.material;
     if (!material) {
       return NextResponse.json({ message: 'File not found' }, { status: 404 });
     }
@@ -23,14 +25,11 @@ export async function GET(request, { params }) {
     const isFree = material.isFreePreview === true;
     if (!isFree) {
       const session = await getServerSession(authOptions);
-      if (!session?.user?.id) {
+      if (!session?.user) {
         return NextResponse.json({ message: 'Login required to download this file' }, { status: 401 });
       }
 
-      const user = await User.findById(session.user.id).select('courses').lean();
-      const hasAccess = user?.courses?.some(
-        (c) => c.courseId && c.courseId.toString() === courseId
-      );
+      const { hasAccess } = await resolvePurchasedAccess(session, courseId, User);
       if (!hasAccess) {
         return NextResponse.json(
           { message: 'Purchase this course to download study materials' },

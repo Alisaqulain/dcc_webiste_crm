@@ -475,20 +475,20 @@ export default function ServiceDetailPage() {
       ))}
 
       {/* PROCESS */}
-      <section className="py-20 md:py-28 bg-slate-950 text-white relative overflow-hidden">
+      <section className="py-20 md:py-28 bg-slate-950 text-white relative overflow-hidden [&_h2]:text-white [&_h3]:text-white">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(220,38,38,0.12),transparent_60%)] pointer-events-none" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Reveal className="text-center max-w-2xl mx-auto mb-14">
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-red-400">How it works</span>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight">Simple 3-step process</h2>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-white">Simple 3-step process</h2>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
             {PROCESS.map((p, i) => (
               <Reveal key={p.step} delay={i * 0.12}>
                 <div className="relative p-8 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-red-500/30 transition-all duration-300 h-full">
                   <span className="text-5xl font-black text-red-500/30">{p.step}</span>
-                  <h3 className="text-xl font-bold mt-4 mb-2">{p.title}</h3>
-                  <p className="text-slate-400 text-sm leading-relaxed">{p.desc}</p>
+                  <h3 className="text-xl font-bold mt-4 mb-2 text-white">{p.title}</h3>
+                  <p className="text-slate-300 text-sm leading-relaxed">{p.desc}</p>
                 </div>
               </Reveal>
             ))}

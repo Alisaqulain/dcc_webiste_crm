@@ -7,6 +7,8 @@ import Course from '@/models/Course';
 import User from '@/models/User';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { resolvePurchasedAccess } from '@/lib/courseAccess';
+import { resolveCourseMedia } from '@/lib/courseContent';
 
 // Helper function to parse Range header
 function parseRange(rangeHeader, fileSize) {
@@ -50,40 +52,40 @@ export async function GET(request, { params }) {
 
     await connectDB();
 
-    // Find course and video first to check if it's a preview video
-    const course = await Course.findById(courseId);
-    if (!course) {
+    const resolved = await resolveCourseMedia(courseId, { videoId });
+    if (!resolved?.course) {
       return NextResponse.json(
         { error: 'Course not found' },
-        { 
+        {
           status: 404,
           headers: {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
             'Access-Control-Allow-Headers': 'Range',
-          }
+          },
         }
       );
     }
 
-    const video = course.videos.find(v => v._id.toString() === videoId);
+    const video = resolved.video;
+    const course = resolved.course;
+
     if (!video) {
-      console.error('Video not found in course:', {
+      console.error('Video not found in course or twin listing:', {
         courseId,
         videoId,
         courseTitle: course.title,
-        totalVideos: course.videos.length,
-        videoIds: course.videos.map(v => v._id.toString())
+        mergedFrom: resolved.sibling?._id,
       });
       return NextResponse.json(
         { error: 'Video not found' },
-        { 
+        {
           status: 404,
           headers: {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
             'Access-Control-Allow-Headers': 'Range',
-          }
+          },
         }
       );
     }
@@ -101,7 +103,7 @@ export async function GET(request, { params }) {
     });
 
     // Check if this is a preview video (free to watch)
-    const isPreviewVideo = video.isPreview === true;
+    const isPreviewVideo = video.isPreview === true || video.isFreePreview === true;
     
     // Check authentication - only required for non-preview videos
     const session = await getServerSession(authOptions);
@@ -137,26 +139,7 @@ export async function GET(request, { params }) {
         videoId
       });
       
-      // Check if user has access to this course
-      const user = await User.findById(session.user.id);
-      
-      if (!user || !user.courses) {
-        return NextResponse.json(
-          { error: 'Access denied. Please purchase this course.' },
-          { 
-            status: 403,
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-              'Access-Control-Allow-Headers': 'Range',
-            }
-          }
-        );
-      }
-
-      const hasAccess = user.courses.some(
-        c => c.courseId && c.courseId.toString() === courseId
-      );
+      const { hasAccess } = await resolvePurchasedAccess(session, courseId, User);
 
       if (!hasAccess) {
         return NextResponse.json(

@@ -117,7 +117,8 @@ export async function POST(request, { params }) {
       youtubeUrl: youtubeUrl || undefined,
       duration,
       order: nextOrder,
-      isPreview
+      isPreview: Boolean(isPreview),
+      isFreePreview: Boolean(isPreview),
     };
 
     course.videos.push(newVideo);
@@ -185,8 +186,14 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // Update video
-    Object.assign(course.videos[videoIndex], updateData);
+    // Update video — keep isPreview and isFreePreview in sync
+    const patch = { ...updateData };
+    if (patch.isPreview !== undefined || patch.isFreePreview !== undefined) {
+      const preview = Boolean(patch.isFreePreview ?? patch.isPreview);
+      patch.isPreview = preview;
+      patch.isFreePreview = preview;
+    }
+    Object.assign(course.videos[videoIndex], patch);
     await course.save();
 
     return NextResponse.json({
