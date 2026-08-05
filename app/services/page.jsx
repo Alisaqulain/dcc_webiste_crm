@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import PageHeader from '@/app/components/ui/PageHeader';
+import PrimaryButton from '@/app/components/ui/PrimaryButton';
+import AnimatedSection from '@/app/components/ui/AnimatedSection';
 
 const DEFAULT_PHONE = '+917599863007';
 const DEFAULT_PHONE_DISPLAY = '+91-7599863007';
@@ -39,72 +42,115 @@ export default function ServicesPage() {
         dark
         eyebrow="Digital Career Center"
         title="Our Services"
-        description="Website management, SEO, SMO, digital marketing and advertising — professional solutions for your business."
+        description="Website management, SEO, SMO, digital marketing and advertising — professional solutions built for growth."
       >
-        <a
-          href={`tel:${DEFAULT_PHONE}`}
-          className="dcc-btn dcc-btn-md bg-white text-red-700 hover:bg-red-50 shadow-md hover:shadow-lg border border-white/80"
-        >
+        <PrimaryButton href={`tel:${DEFAULT_PHONE}`} size="md" className="!bg-white !text-red-700 hover:!bg-red-50 shadow-lg">
           Call Now
-        </a>
-        <Link href="/contact" className="dcc-btn-secondary dcc-btn-md !bg-white/10 !text-white !border-white/20">
+        </PrimaryButton>
+        <PrimaryButton href="/contact" variant="secondary" size="md" className="!bg-white/10 !text-white !border-white/25 hover:!bg-white/15">
           Enquire Now
-        </Link>
+        </PrimaryButton>
       </PageHeader>
 
+      {/* Trust strip */}
+      <div className="bg-white border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-sm text-slate-600">
+          {['SEO & SMO', 'Website Management', 'Digital Advertising', 'Content Strategy'].map((t) => (
+            <span key={t} className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              {t}
+            </span>
+          ))}
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-        <p className="text-center text-slate-600 max-w-3xl mx-auto mb-10">
-          Talk to our experts — Call us on{' '}
+        <p className="text-center text-slate-600 max-w-2xl mx-auto mb-12">
+          Talk to our experts —{' '}
           <a href={`tel:${DEFAULT_PHONE}`} className="font-semibold text-red-600 hover:text-red-700">
             {DEFAULT_PHONE_DISPLAY}
           </a>
         </p>
 
         {services.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-200">
-            <p className="text-slate-600">Services coming soon.</p>
+          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+            <p className="text-slate-500">Services coming soon.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            {services.map((service) => {
+            {services.map((service, idx) => {
               const img = getImg(service.image);
               return (
-                <Link
+                <motion.div
                   key={service._id}
-                  href={`/services/${service.slug}`}
-                  className="group dcc-card-premium overflow-hidden hover:border-red-200 transition-all hover:-translate-y-1"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.06, duration: 0.4 }}
                 >
-                  <div className="relative h-44 bg-gradient-to-br from-slate-800 to-slate-900">
-                    {img ? (
-                      img.startsWith('data:') ? (
-                        <img src={img} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-90 transition-opacity" />
+                  <Link
+                    href={`/services/${service.slug}`}
+                    className="group flex flex-col h-full dcc-card-premium overflow-hidden hover:border-red-200/80 hover:shadow-xl hover:shadow-red-100/30 hover:-translate-y-1 transition-all duration-300"
+                  >
+                    <div className="relative h-48 bg-slate-900 overflow-hidden">
+                      {img ? (
+                        img.startsWith('data:') ? (
+                          <img
+                            src={img}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <Image
+                            src={img}
+                            alt=""
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                            unoptimized
+                          />
+                        )
                       ) : (
-                        <Image src={img} alt="" fill className="object-cover opacity-80 group-hover:opacity-90 transition-opacity" unoptimized />
-                      )
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center text-white/30 text-4xl font-bold">
-                        {service.title?.charAt(0)}
+                        <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-red-950 flex items-center justify-center">
+                          <span className="text-4xl font-black text-white/20">{service.title?.charAt(0)}</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        <h3 className="text-xl font-bold text-white group-hover:text-red-100 transition-colors">
+                          {service.title}
+                        </h3>
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent" />
-                    <h3 className="absolute bottom-4 left-4 right-4 text-xl font-bold text-white">
-                      {service.title}
-                    </h3>
-                  </div>
-                  <div className="p-5">
-                    <p className="text-sm text-slate-600 line-clamp-3">
-                      {service.shortDescription || 'Learn more about this service.'}
-                    </p>
-                    <span className="inline-block mt-4 text-sm font-semibold text-red-600 group-hover:text-red-700">
-                      View details →
-                    </span>
-                  </div>
-                </Link>
+                    </div>
+                    <div className="flex flex-col flex-1 p-5 sm:p-6">
+                      <p className="text-sm text-slate-600 line-clamp-3 flex-1 leading-relaxed">
+                        {service.shortDescription || 'Professional digital marketing and website solutions.'}
+                      </p>
+                      <span className="inline-flex items-center gap-1.5 mt-5 text-sm font-semibold text-red-600 group-hover:text-red-700">
+                        View service
+                        <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                      </span>
+                    </div>
+                  </Link>
+                </motion.div>
               );
             })}
           </div>
         )}
       </div>
+
+      <AnimatedSection className="pb-16">
+        <div className="max-w-3xl mx-auto px-4 text-center">
+          <div className="dcc-card-premium p-8 sm:p-10 bg-gradient-to-br from-slate-900 to-slate-800 text-white border-0">
+            <h2 className="text-xl sm:text-2xl font-bold">Not sure which service you need?</h2>
+            <p className="text-slate-300 mt-2 text-sm sm:text-base">Book a free call — we&apos;ll recommend the right plan.</p>
+            <PrimaryButton href={`tel:${DEFAULT_PHONE}`} size="lg" className="mt-6">
+              Call {DEFAULT_PHONE_DISPLAY}
+            </PrimaryButton>
+          </div>
+        </div>
+      </AnimatedSection>
     </div>
   );
 }
