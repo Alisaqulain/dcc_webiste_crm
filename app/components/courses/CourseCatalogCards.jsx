@@ -140,10 +140,12 @@ export function ComboCard({ combo, owned, session, onPurchase, onViewMore }) {
 export function SingleCourseCard({
   course,
   isOwned,
+  accessCourseId,
   session,
   onPurchase,
   onViewMore,
 }) {
+  const openId = accessCourseId || course._id;
   const levelClass =
     course.level === 'Beginner'
       ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200/60'
@@ -223,7 +225,7 @@ export function SingleCourseCard({
           <div className="flex flex-col gap-2">
             {isOwned ? (
               <Link
-                href={`/course/${course._id}`}
+                href={`/course/${openId}`}
                 className="dcc-btn-success dcc-btn-md dcc-btn-block text-center"
               >
                 Continue learning

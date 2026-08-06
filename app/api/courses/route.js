@@ -1,5 +1,6 @@
 import connectDB from '@/lib/mongodb';
 import Course from '@/models/Course';
+import { getAppTwinTitles } from '@/lib/myPurchases';
 
 export async function GET(request) {
   try {
@@ -21,6 +22,11 @@ export async function GET(request) {
       query.listingType = 'app';
     } else {
       query.listingType = { $ne: 'app' };
+      // Hide course duplicates when a published app shares the same title
+      const appTwinTitles = await getAppTwinTitles();
+      if (appTwinTitles.size > 0) {
+        query.title = { $nin: [...appTwinTitles] };
+      }
     }
     
     // Search functionality

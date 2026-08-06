@@ -67,8 +67,23 @@ export default function CourseListingPage({ listingType = "course" }) {
   const [showPendingBanner, setShowPendingBanner] = useState(false);
   const [couponFromUrl, setCouponFromUrl] = useState("");
   const [ownedCourseIds, setOwnedCourseIds] = useState(() => new Set());
+  const [ownedAccessByTitle, setOwnedAccessByTitle] = useState(() => ({}));
 
   const itemLabel = config.itemSingular;
+
+  const isListingOwned = (course) => {
+    if (ownedCourseIds.has(String(course._id))) return true;
+    const title = course.title?.trim();
+    return Boolean(title && ownedAccessByTitle[title]);
+  };
+
+  const getListingAccessId = (course) => {
+    const id = String(course._id);
+    if (ownedCourseIds.has(id)) return id;
+    const title = course.title?.trim();
+    if (title && ownedAccessByTitle[title]) return ownedAccessByTitle[title];
+    return id;
+  };
 
   const purchaseUrl = (path) => {
     if (!couponFromUrl) return path;
@@ -82,10 +97,18 @@ export default function CourseListingPage({ listingType = "course" }) {
       return;
     }
     try {
-      const r = await fetch("/api/my-courses", { cache: "no-store" });
+      const endpoint = config.listingType === "app" ? "/api/my-apps" : "/api/my-courses";
+      const r = await fetch(endpoint, { cache: "no-store" });
       if (!r.ok) return;
       const d = await r.json();
-      setOwnedCourseIds(new Set((d.courses || []).map((c) => String(c._id))));
+      const list = config.listingType === "app" ? d.apps : d.courses;
+      setOwnedCourseIds(new Set((list || []).map((c) => String(c._id))));
+      const byTitle = {};
+      (list || []).forEach((c) => {
+        const title = c.title?.trim();
+        if (title) byTitle[title] = String(c._id);
+      });
+      setOwnedAccessByTitle(byTitle);
     } catch {
       /* ignore */
     }
@@ -402,7 +425,8 @@ export default function CourseListingPage({ listingType = "course" }) {
                   <SingleCourseCard
                     key={course._id}
                     course={course}
-                    isOwned={ownedCourseIds.has(String(course._id))}
+                    isOwned={isListingOwned(course)}
+                    accessCourseId={getListingAccessId(course)}
                     session={session}
                     onPurchase={handlePurchase}
                     onViewMore={handleViewMore}

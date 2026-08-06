@@ -265,6 +265,7 @@ const Header = () => {
             {session ? (
               <>
                 <NavLink href="/my-courses" label="My Courses" active={isActive('/my-courses')} />
+                <NavLink href="/my-apps" label="My Apps" active={isActive('/my-apps')} />
                 <NavLink href="/profile" label="My Profile" active={isActive('/profile')} />
                 {hasCrmAccess && (
                   <NavLink href="/crm" label="CRM" active={isActive('/crm')} />
@@ -358,6 +359,7 @@ const Header = () => {
                 {session ? (
                   <>
                     <NavLink href="/my-courses" label="My Courses" active={isActive('/my-courses')} onClick={() => setMenuOpen(false)} />
+                    <NavLink href="/my-apps" label="My Apps" active={isActive('/my-apps')} onClick={() => setMenuOpen(false)} />
                     <NavLink href="/profile" label="My Profile" active={isActive('/profile')} onClick={() => setMenuOpen(false)} />
                     {hasCrmAccess && (
                       <NavLink href="/crm" label="CRM" active={isActive('/crm')} onClick={() => setMenuOpen(false)} />

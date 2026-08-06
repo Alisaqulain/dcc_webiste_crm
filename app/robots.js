@@ -6,13 +6,13 @@ export default function robots() {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin/', '/crm/', '/api/', '/profile', '/my-courses', '/purchase/'],
+        disallow: ['/admin/', '/crm/', '/api/', '/profile', '/my-courses', '/my-apps', '/purchase/'],
         crawlDelay: 1,
       },
       {
         userAgent: 'Googlebot',
         allow: '/',
-        disallow: ['/admin/', '/crm/', '/api/', '/profile', '/my-courses', '/purchase/'],
+        disallow: ['/admin/', '/crm/', '/api/', '/profile', '/my-courses', '/my-apps', '/purchase/'],
         crawlDelay: 0,
       },
     ],

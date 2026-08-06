@@ -99,6 +99,7 @@ const Footer = () => {
               <li><Link href="/services" className="dcc-footer-link">Services</Link></li>
 
               <li><Link href="/my-courses" className="dcc-footer-link">My Courses</Link></li>
+              <li><Link href="/my-apps" className="dcc-footer-link">My Apps</Link></li>
 
               <li><Link href="/login" className="dcc-footer-link">Login</Link></li>
 

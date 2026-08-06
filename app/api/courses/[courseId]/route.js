@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { resolvePurchasedAccess, isPreviewVideo } from '@/lib/courseAccess';
 import { enrichCourseContent } from '@/lib/courseContent';
+import { getAppTwinTitles, resolveLibraryCategory } from '@/lib/myPurchases';
 
 export async function GET(request, { params }) {
   try {
@@ -56,6 +57,9 @@ export async function GET(request, { params }) {
       course.totalVideoCount = full?.videos?.length ?? 0;
       course.totalMaterialCount = full?.materials?.length ?? 0;
     }
+
+    const appTwinTitles = await getAppTwinTitles();
+    course.libraryCategory = resolveLibraryCategory(course, appTwinTitles);
 
     return Response.json({ course, hasAccess });
   } catch (error) {

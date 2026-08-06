@@ -159,7 +159,11 @@ function PurchaseContent() {
                 initialCouponCode={couponFromUrl}
                 couponLockedFromUrl={couponLockedFromUrl}
                 onSuccess={() =>
-                  router.push("/my-courses?purchased=true&completeProfile=1")
+                  router.push(
+                    course.listingType === "app"
+                      ? "/my-apps?purchased=true&completeProfile=1"
+                      : "/my-courses?purchased=true&completeProfile=1"
+                  )
                 }
               />
               {session?.user?.isActive === false && (

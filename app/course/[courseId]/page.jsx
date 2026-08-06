@@ -90,6 +90,8 @@ function CourseDetailPageInner() {
   }
 
   if (error || !course) {
+    const fallbackLibrary = course?.libraryCategory === 'app' || course?.listingType === 'app' ? '/my-apps' : '/my-courses';
+    const fallbackLabel = course?.libraryCategory === 'app' || course?.listingType === 'app' ? 'My apps' : 'My courses';
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -103,10 +105,10 @@ function CourseDetailPageInner() {
           <div className="flex gap-4 justify-center">
             {session ? (
               <Link
-                href="/my-courses"
+                href={fallbackLibrary}
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
               >
-                Back to My Courses
+                Back to {fallbackLabel}
               </Link>
             ) : (
               <Link
@@ -155,6 +157,10 @@ function CourseDetailPageInner() {
   const sortedMaterials = course.materials ? [...course.materials].sort((a, b) => (a.order || 0) - (b.order || 0)) : [];
   const totalVideoCount = course.totalVideoCount ?? sortedVideos.length;
   const totalMaterialCount = course.totalMaterialCount ?? sortedMaterials.length;
+  const isApp = course.libraryCategory === 'app' || course.listingType === 'app';
+  const libraryHref = isApp ? '/my-apps' : '/my-courses';
+  const libraryLabel = isApp ? 'My apps' : 'My courses';
+  const browseHref = isApp ? '/apps' : '/courses';
 
   const couponQ = searchParams.get('coupon');
   const purchaseSuffix = couponQ
@@ -320,7 +326,7 @@ function CourseDetailPageInner() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <Link 
-                href={session ? "/my-courses" : "/courses"}
+                href={session ? libraryHref : browseHref}
                 className="text-gray-600 hover:text-gray-900"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -351,10 +357,10 @@ function CourseDetailPageInner() {
                     </Link>
                   )}
                   <Link
-                    href="/my-courses"
+                    href={libraryHref}
                     className="text-sm font-medium text-gray-700 hover:text-red-600 underline"
                   >
-                    My courses
+                    {libraryLabel}
                   </Link>
                 </>
               ) : (
