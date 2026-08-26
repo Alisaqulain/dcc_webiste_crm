@@ -6,7 +6,7 @@ import { resolvePublicUrl } from '@/lib/resolvePublicUrl';
 import { existsSync } from 'fs';
 import { join } from 'path';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 const PDF_TYPES = ['application/pdf'];
@@ -21,7 +21,7 @@ const RAR_TYPES = [
   'application/x-rar-compressed',
   'application/x-rar',
 ];
-const MAX_MB = Number(process.env.UPLOAD_MAX_MB || 20);
+const MAX_MB = Number(process.env.UPLOAD_MAX_MB || 512);
 
 function getDocumentKind(file) {
   const name = String(file.name || '').toLowerCase();

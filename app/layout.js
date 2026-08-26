@@ -87,9 +87,7 @@ export const metadata = {
     },
   },
   verification: {
-    google: 'your-google-verification-code',
-    yandex: 'your-yandex-verification-code',
-    yahoo: 'your-yahoo-verification-code',
+    google: 'cT7juGSampzpczmOnhP_RTK6x34gwZ_Qh-9BX8EXnLw',
   },
 };
 
@@ -104,6 +102,7 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#dc2626" />
         <meta name="msapplication-TileColor" content="#dc2626" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="google-site-verification" content="cT7juGSampzpczmOnhP_RTK6x34gwZ_Qh-9BX8EXnLw" />
         
         {/* JSON-LD Structured Data - Organization */}
         <script

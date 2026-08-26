@@ -3,6 +3,25 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { ChunkedUploader } from '@/lib/chunkedUpload';
+
+const CHUNKED_THRESHOLD = 10 * 1024 * 1024; // 10MB — avoids Nginx/proxy body limits
+
+async function parseApiResponse(response) {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    if (text.trim().startsWith('<')) {
+      throw new Error(
+        response.status === 413
+          ? 'File too large for the server gateway. Large files use chunked upload automatically — try again. If it persists, set Nginx client_max_body_size to 100M or higher.'
+          : `Server error (HTTP ${response.status}). The upload may have exceeded server limits.`
+      );
+    }
+    throw new Error(text.slice(0, 200) || `Request failed (HTTP ${response.status})`);
+  }
+}
 
 function getMaterialTypeLabel(material) {
   const mime = String(material?.mimeType || '').toLowerCase();
@@ -41,6 +60,7 @@ export default function CourseMaterialsPage() {
     isFreePreview: false,
   });
   const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -88,19 +108,39 @@ export default function CourseMaterialsPage() {
     }
 
     setIsUploading(true);
+    setUploadProgress(0);
     try {
       const token = localStorage.getItem('adminToken');
+      let uploadResult;
 
-      const uploadData = new FormData();
-      uploadData.append('file', selectedFile);
-      const uploadRes = await fetch('/api/admin/upload-document', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: uploadData,
-      });
-      const uploadResult = await uploadRes.json();
-      if (!uploadRes.ok || !uploadResult.success) {
-        throw new Error(uploadResult.message || 'File upload failed');
+      if (selectedFile.size > CHUNKED_THRESHOLD) {
+        uploadResult = await new Promise((resolve, reject) => {
+          const uploader = new ChunkedUploader(selectedFile, {
+            chunkSize: 512 * 1024, // 512KB chunks — safe for default Nginx limits
+            uploadUrl: '/api/admin/document-upload-chunk',
+            headers: { Authorization: `Bearer ${token}` },
+            onProgress: (progress) => setUploadProgress(Math.round(progress)),
+            onSuccess: (result) => resolve(result),
+            onError: (err) => reject(err),
+          });
+          uploader.upload().catch(reject);
+        });
+      } else {
+        const uploadData = new FormData();
+        uploadData.append('file', selectedFile);
+        const uploadRes = await fetch('/api/admin/upload-document', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: uploadData,
+        });
+        uploadResult = await parseApiResponse(uploadRes);
+        if (!uploadRes.ok || !uploadResult.success) {
+          throw new Error(uploadResult.message || 'File upload failed');
+        }
+      }
+
+      if (!uploadResult?.success) {
+        throw new Error(uploadResult?.message || 'File upload failed');
       }
 
       const saveRes = await fetch(`/api/admin/courses/${courseId}/materials`, {
@@ -119,13 +159,14 @@ export default function CourseMaterialsPage() {
           isFreePreview: form.isFreePreview,
         }),
       });
-      const saveResult = await saveRes.json();
+      const saveResult = await parseApiResponse(saveRes);
       if (!saveRes.ok) {
         throw new Error(saveResult.error || 'Failed to save file');
       }
 
       setForm({ title: '', description: '', isFreePreview: false });
       setSelectedFile(null);
+      setUploadProgress(0);
       e.target.reset?.();
       fetchMaterials();
       alert('File added successfully!');
@@ -133,6 +174,7 @@ export default function CourseMaterialsPage() {
       alert(error.message || 'Upload failed');
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -240,8 +282,24 @@ export default function CourseMaterialsPage() {
                 onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                 className="w-full text-sm"
               />
-              <p className="text-xs text-gray-500 mt-1">Max 20MB. PDF, ZIP, ya RAR allowed.</p>
+              <p className="text-xs text-gray-500 mt-1">
+                PDF, ZIP, ya RAR — up to 512MB. Files over 10MB upload in parts automatically.
+              </p>
             </div>
+            {isUploading && uploadProgress > 0 && (
+              <div>
+                <div className="flex justify-between text-xs text-gray-600 mb-1">
+                  <span>Uploading…</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-red-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <label className="flex items-center gap-2 text-sm text-gray-700">
               <input
                 type="checkbox"
@@ -256,7 +314,7 @@ export default function CourseMaterialsPage() {
               disabled={isUploading}
               className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg font-medium"
             >
-              {isUploading ? 'Uploading…' : 'Upload file'}
+              {isUploading ? (uploadProgress > 0 ? `Uploading ${uploadProgress}%…` : 'Uploading…') : 'Upload file'}
             </button>
           </form>
         </div>
