@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { resolvePurchasedAccess, isPreviewVideo } from '@/lib/courseAccess';
 import { enrichCourseContent } from '@/lib/courseContent';
 import { getAppTwinTitles, resolveLibraryCategory } from '@/lib/myPurchases';
+import { stripVideosHeavyFields } from '@/lib/sanitizeVideo';
 
 export async function GET(request, { params }) {
   try {
@@ -31,6 +32,7 @@ export async function GET(request, { params }) {
       const totalMaterialCount = course.materials?.length ?? 0;
 
       if (course.videos) {
+        course.videos = stripVideosHeavyFields(course.videos);
         course.videos.sort((a, b) => (a.order || 0) - (b.order || 0));
         if (!hasAccess) {
           course.videos = course.videos.filter((v) => isPreviewVideo(v));

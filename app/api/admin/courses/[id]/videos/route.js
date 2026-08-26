@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Course from '@/models/Course';
 import jwt from 'jsonwebtoken';
+import { stripVideosHeavyFields } from '@/lib/sanitizeVideo';
 
 // Verify admin token
 const verifyAdminToken = (request) => {
@@ -43,8 +44,9 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Sort videos by order
-    const sortedVideos = course.videos.sort((a, b) => a.order - b.order);
+    const sortedVideos = stripVideosHeavyFields(
+      [...(course.videos || [])].sort((a, b) => (a.order || 0) - (b.order || 0))
+    );
 
     return NextResponse.json({
       success: true,

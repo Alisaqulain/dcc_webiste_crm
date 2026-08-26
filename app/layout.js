@@ -1,8 +1,7 @@
 import "./globals.css";
 import { Poppins } from "next/font/google";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
 import SessionProvider from "./components/SessionProvider";
+import ConditionalSiteChrome from "./components/ConditionalSiteChrome";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ||
@@ -214,9 +213,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className={`${poppins.variable} font-poppins antialiased flex flex-col min-h-screen bg-slate-50`}>
         <SessionProvider>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <ConditionalSiteChrome>{children}</ConditionalSiteChrome>
         </SessionProvider>
       </body>
     </html>

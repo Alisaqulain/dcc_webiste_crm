@@ -14,14 +14,24 @@ export default function AdminLayout({ children }) {
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     const admin = localStorage.getItem('adminInfo');
-    
+
+    if (pathname === '/admin/login' || pathname === '/admin/setup') {
+      return;
+    }
+
     if (!token || !admin) {
       router.push('/admin/login');
       return;
     }
 
-    setAdminInfo(JSON.parse(admin));
-  }, [router]);
+    try {
+      setAdminInfo(JSON.parse(admin));
+    } catch {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminInfo');
+      router.push('/admin/login');
+    }
+  }, [router, pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');

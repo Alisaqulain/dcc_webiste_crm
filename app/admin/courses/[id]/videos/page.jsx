@@ -13,6 +13,7 @@ export default function CourseVideosPage() {
   const [course, setCourse] = useState(null);
   const [videos, setVideos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingVideo, setEditingVideo] = useState(null);
 
@@ -29,6 +30,7 @@ export default function CourseVideosPage() {
 
   const fetchCourseVideos = async () => {
     try {
+      setLoadError('');
       const token = localStorage.getItem('adminToken');
       const response = await fetch(`/api/admin/courses/${courseId}/videos`, {
         headers: {
@@ -38,14 +40,21 @@ export default function CourseVideosPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setCourse({ title: data.courseTitle });
-        setVideos(data.videos);
+        setCourse({ title: data.courseTitle || 'Course' });
+        setVideos(Array.isArray(data.videos) ? data.videos : []);
       } else {
-        alert('Error fetching course videos');
+        let message = 'Error fetching course videos';
+        try {
+          const err = await response.json();
+          message = err.error || err.message || message;
+        } catch {
+          /* non-JSON error body */
+        }
+        setLoadError(message);
       }
     } catch (error) {
       console.error('Error fetching course videos:', error);
-      alert('Error fetching course videos');
+      setLoadError(error.message || 'Error fetching course videos');
     } finally {
       setIsLoading(false);
     }
@@ -166,6 +175,35 @@ export default function CourseVideosPage() {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-xl shadow p-6 text-center">
+          <p className="text-red-600 font-medium mb-2">Could not load videos</p>
+          <p className="text-sm text-gray-600 mb-4">{loadError}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsLoading(true);
+                fetchCourseVideos();
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium"
+            >
+              Try again
+            </button>
+            <Link
+              href="/admin/courses"
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700"
+            >
+              Back to courses
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -218,13 +256,13 @@ export default function CourseVideosPage() {
                             alt={video.title}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              // Fallback to default icon if thumbnail fails to load
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.nextElementSibling;
+                              if (fallback) fallback.classList.remove('hidden');
                             }}
                           />
                         ) : null}
-                        <div 
+                        <div
                           className={`w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center ${
                             video.thumbnail ? 'hidden' : 'flex'
                           }`}
