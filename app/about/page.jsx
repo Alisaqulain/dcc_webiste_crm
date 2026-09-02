@@ -10,7 +10,7 @@ export default function AboutPage() {
     "@type": "AboutPage",
     "name": "About Digital Career Center",
     "description": "Learn about Digital Career Center, a leading digital skills training institute in Muzaffarnagar since 2018.",
-    "url": "https://domainisdigitalcareercenter.com/about",
+    "url": "https://www.digitalcareercenter.com/about",
     "mainEntity": {
       "@type": "EducationalOrganization",
       "name": "Digital Career Center",

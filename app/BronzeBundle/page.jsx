@@ -90,14 +90,14 @@ export default function BronzeBundlePage() {
         <meta name="keywords" content="digital starter package, DSP course, bronze bundle, Microsoft Office course, professional communication, resume building, interview preparation, office skills training" />
         <meta property="og:title" content="Digital Starter Package (DSP) - Bronze Bundle Course | Digital Career Center" />
         <meta property="og:description" content="Master essential office skills with our Digital Starter Package (DSP) Bronze Bundle. Learn Microsoft Office, professional communication, resume building, and interview preparation. 21 hours of content for just ₹1,899." />
-        <meta property="og:url" content="https://domainisdigitalcareercenter.com/BronzeBundle" />
+        <meta property="og:url" content="https://www.digitalcareercenter.com/BronzeBundle" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
+        <meta property="og:image" content="https://www.digitalcareercenter.com/newlogo.jpeg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Digital Starter Package (DSP) - Bronze Bundle Course | Digital Career Center" />
         <meta name="twitter:description" content="Master essential office skills with our Digital Starter Package (DSP) Bronze Bundle. Learn Microsoft Office, professional communication, resume building, and interview preparation. 21 hours of content for just ₹1,899." />
-        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
-        <link rel="canonical" href="https://domainisdigitalcareercenter.com/BronzeBundle" />
+        <meta name="twitter:image" content="https://www.digitalcareercenter.com/newlogo.jpeg" />
+        <link rel="canonical" href="https://www.digitalcareercenter.com/BronzeBundle" />
         
         <script
           type="application/ld+json"
@@ -110,7 +110,7 @@ export default function BronzeBundlePage() {
               "provider": {
                 "@type": "EducationalOrganization",
                 "name": "Digital Career Center",
-                "url": "https://domainisdigitalcareercenter.com"
+                "url": "https://www.digitalcareercenter.com"
               },
               "courseCode": "DSP-BRONZE",
               "educationalLevel": "Beginner to Intermediate",

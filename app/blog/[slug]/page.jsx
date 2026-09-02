@@ -71,7 +71,7 @@ const BlogDetailPage = () => {
   }
 
   const shareUrl =
-    typeof window !== "undefined" ? window.location.href : `https://domainisdigitalcareercenter.com/blog/${blog.slug}`;
+    typeof window !== "undefined" ? window.location.href : `https://www.digitalcareercenter.com/blog/${blog.slug}`;
 
   return (
     <>
@@ -83,7 +83,7 @@ const BlogDetailPage = () => {
         <meta property="og:title" content={blog.title} />
         <meta property="og:description" content={blog.excerpt} />
         <meta property="og:image" content={blog.featuredImage} />
-        <meta property="og:url" content={`https://domainisdigitalcareercenter.com/blog/${blog.slug}`} />
+        <meta property="og:url" content={`https://www.digitalcareercenter.com/blog/${blog.slug}`} />
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:title" content={blog.title} />
         <meta property="twitter:description" content={blog.excerpt} />

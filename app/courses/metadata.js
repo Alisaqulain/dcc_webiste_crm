@@ -12,7 +12,7 @@ export const metadata = {
   openGraph: {
     title: 'All Courses - Digital Career Center | Online Digital Skills Training',
     description: 'Browse all digital skills courses at Digital Career Center. Learn digital marketing, SEO, web development, and more. Expert-led courses with certificates.',
-    url: 'https://domainisdigitalcareercenter.com/courses',
+    url: 'https://www.digitalcareercenter.com/courses',
     type: 'website',
     images: [
       {

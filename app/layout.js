@@ -2,10 +2,9 @@ import "./globals.css";
 import { Poppins } from "next/font/google";
 import SessionProvider from "./components/SessionProvider";
 import ConditionalSiteChrome from "./components/ConditionalSiteChrome";
+import { getSiteUrl } from "@/lib/siteUrl";
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ||
-  'https://www.digitalcareercenter.com';
+const siteUrl = getSiteUrl();
 
 // Configure Poppins font with multiple weights
 const poppins = Poppins({

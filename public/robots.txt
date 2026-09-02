@@ -1,26 +1,15 @@
+# https://www.digitalcareercenter.com/robots.txt
+# Generated dynamically by app/robots.js — this file is a fallback only.
+
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://domainisdigitalcareercenter.com/sitemap.xml
-
-# Crawl-delay
-Crawl-delay: 1
-
-# Disallow admin areas (if any)
 Disallow: /admin/
 Disallow: /crm/
 Disallow: /api/
+Disallow: /profile
+Disallow: /my-courses
+Disallow: /my-apps
+Disallow: /purchase/
 
-# Allow important pages
-Allow: /
-Allow: /about
-Allow: /contact
-Allow: /blog
-Allow: /courses
-Allow: /faq
-Allow: /privacy-policy
-Allow: /terms-and-conditions
-Allow: /refund-policy
-Allow: /disclaimer
-Allow: /cookie-policy
+Sitemap: https://www.digitalcareercenter.com/sitemap.xml

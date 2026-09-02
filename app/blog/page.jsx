@@ -83,9 +83,9 @@ const BlogPage = () => {
           property="og:description"
           content="Stay updated with the latest digital career trends, tips, and insights. Read expert articles on digital marketing, SEO, web development, and career development from Digital Career Center."
         />
-        <meta property="og:url" content="https://domainisdigitalcareercenter.com/blog" />
+        <meta property="og:url" content="https://www.digitalcareercenter.com/blog" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
+        <meta property="og:image" content="https://www.digitalcareercenter.com/newlogo.jpeg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta
           name="twitter:title"
@@ -95,8 +95,8 @@ const BlogPage = () => {
           name="twitter:description"
           content="Stay updated with the latest digital career trends, tips, and insights. Read expert articles on digital marketing, SEO, web development, and career development from Digital Career Center."
         />
-        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
-        <link rel="canonical" href="https://domainisdigitalcareercenter.com/blog" />
+        <meta name="twitter:image" content="https://www.digitalcareercenter.com/newlogo.jpeg" />
+        <link rel="canonical" href="https://www.digitalcareercenter.com/blog" />
 
         <script
           type="application/ld+json"
@@ -107,11 +107,11 @@ const BlogPage = () => {
               name: "Digital Career Center Blog",
               description:
                 "Stay updated with the latest digital career trends, tips, and insights from Digital Career Center.",
-              url: "https://domainisdigitalcareercenter.com/blog",
+              url: "https://www.digitalcareercenter.com/blog",
               publisher: {
                 "@type": "EducationalOrganization",
                 name: "Digital Career Center",
-                url: "https://domainisdigitalcareercenter.com",
+                url: "https://www.digitalcareercenter.com",
               },
               blogPost: blogPosts.map((post) => ({
                 "@type": "BlogPosting",
@@ -125,9 +125,9 @@ const BlogPage = () => {
                 image: post.featuredImage
                   ? post.featuredImage.startsWith("http")
                     ? post.featuredImage
-                    : `https://domainisdigitalcareercenter.com${post.featuredImage}`
+                    : `https://www.digitalcareercenter.com${post.featuredImage}`
                   : undefined,
-                url: `https://domainisdigitalcareercenter.com/blog/${post.slug}`,
+                url: `https://www.digitalcareercenter.com/blog/${post.slug}`,
               })),
             }),
           }}

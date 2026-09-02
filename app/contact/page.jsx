@@ -70,14 +70,14 @@ export default function ContactPage() {
         <meta name="keywords" content="contact digital career center, digital skills training contact, computer course Muzaffarnagar, digital marketing institute contact" />
         <meta property="og:title" content="Contact Us - Digital Career Center | Get in Touch for Digital Skills Training" />
         <meta property="og:description" content="Contact Digital Career Center for digital skills training inquiries. Located in Muzaffarnagar, Uttar Pradesh. Call +91-7599863007 or email info@digitalcareercenter.com" />
-        <meta property="og:url" content="https://domainisdigitalcareercenter.com/contact" />
+        <meta property="og:url" content="https://www.digitalcareercenter.com/contact" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
+        <meta property="og:image" content="https://www.digitalcareercenter.com/newlogo.jpeg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Contact Us - Digital Career Center | Get in Touch for Digital Skills Training" />
         <meta name="twitter:description" content="Contact Digital Career Center for digital skills training inquiries. Located in Muzaffarnagar, Uttar Pradesh. Call +91-7599863007 or email info@digitalcareercenter.com" />
-        <meta name="twitter:image" content="https://domainisdigitalcareercenter.com/newlogo.jpeg" />
-        <link rel="canonical" href="https://domainisdigitalcareercenter.com/contact" />
+        <meta name="twitter:image" content="https://www.digitalcareercenter.com/newlogo.jpeg" />
+        <link rel="canonical" href="https://www.digitalcareercenter.com/contact" />
         
         <script
           type="application/ld+json"
@@ -87,7 +87,7 @@ export default function ContactPage() {
               "@type": "ContactPage",
               "name": "Contact Digital Career Center",
               "description": "Contact Digital Career Center for digital skills training inquiries and course information.",
-              "url": "https://domainisdigitalcareercenter.com/contact",
+              "url": "https://www.digitalcareercenter.com/contact",
               "mainEntity": {
                 "@type": "EducationalOrganization",
                 "name": "Digital Career Center",

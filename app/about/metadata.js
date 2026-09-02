@@ -11,7 +11,7 @@ export const metadata = {
   openGraph: {
     title: 'About Us - Digital Career Center | Leading Digital Skills Training Institute',
     description: 'Learn about Digital Career Center, a leading digital skills training institute in Muzaffarnagar since 2018. Discover our mission, vision, values, and success stories.',
-    url: 'https://domainisdigitalcareercenter.com/about',
+    url: 'https://www.digitalcareercenter.com/about',
     type: 'website',
     images: [
       {

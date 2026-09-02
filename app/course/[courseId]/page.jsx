@@ -133,7 +133,7 @@ function CourseDetailPageInner() {
     "provider": {
       "@type": "EducationalOrganization",
       "name": "Digital Career Center",
-      "url": "https://domainisdigitalcareercenter.com"
+      "url": "https://www.digitalcareercenter.com"
     },
     "instructor": {
       "@type": "Person",
@@ -143,7 +143,7 @@ function CourseDetailPageInner() {
     "educationalLevel": course.level || "Beginner",
     "courseCategory": course.category || "Digital Skills",
     "timeRequired": course.duration || "PT1H",
-    "image": course.thumbnail ? (course.thumbnail.startsWith('http') ? course.thumbnail : `https://domainisdigitalcareercenter.com${course.thumbnail}`) : "https://domainisdigitalcareercenter.com/newlogo.jpeg",
+    "image": course.thumbnail ? (course.thumbnail.startsWith('http') ? course.thumbnail : `https://www.digitalcareercenter.com${course.thumbnail}`) : "https://www.digitalcareercenter.com/newlogo.jpeg",
     "offers": {
       "@type": "Offer",
       "price": course.price || 0,
