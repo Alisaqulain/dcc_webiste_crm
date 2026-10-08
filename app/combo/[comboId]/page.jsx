@@ -10,6 +10,7 @@ import AnimatedSection from '@/app/components/ui/AnimatedSection';
 import SectionTitle from '@/app/components/ui/SectionTitle';
 import PrimaryButton from '@/app/components/ui/PrimaryButton';
 import EmptyState from '@/app/components/ui/EmptyState';
+import { buildLoginUrl } from '@/lib/authRedirect';
 
 const getThumb = (thumbnail) => {
   if (!thumbnail) return null;
@@ -66,7 +67,7 @@ export default function ComboDetailPage() {
 
   const handlePurchase = () => {
     if (!session) {
-      router.push(`/login?redirect=${encodeURIComponent(`/purchase/combo/${comboId}`)}`);
+      router.push(buildLoginUrl(`/combo/${comboId}`));
       return;
     }
     router.push(`/purchase/combo/${comboId}`);

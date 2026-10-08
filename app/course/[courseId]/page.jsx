@@ -10,6 +10,7 @@ import AnimatedSection from '@/app/components/ui/AnimatedSection';
 import SectionTitle from '@/app/components/ui/SectionTitle';
 import CourseVideoPlayer from '@/app/components/courses/CourseVideoPlayer';
 import { isPreviewVideo } from '@/lib/courseAccess';
+import { buildLoginUrl } from '@/lib/authRedirect';
 
 // Helper function to normalize course thumbnail URL
 const getCourseThumbnail = (thumbnail) => {
@@ -166,9 +167,10 @@ function CourseDetailPageInner() {
   const purchaseSuffix = couponQ
     ? `?coupon=${encodeURIComponent(couponQ)}`
     : '';
+  const courseReturnPath = `/course/${courseId}${purchaseSuffix}`;
   const purchaseHref = session
     ? `/purchase/${courseId}${purchaseSuffix}`
-    : `/login?redirect=${encodeURIComponent(`/purchase/${courseId}${purchaseSuffix}`)}`;
+    : buildLoginUrl(courseReturnPath);
 
   const priceLabel =
     course.price != null && course.price !== ''

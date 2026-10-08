@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { buildLoginUrl, buildSignupUrl, getReturnPathFromLocation } from '@/lib/authRedirect';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCrmAccess } from '../hooks/useCrmAccess';
 import PrimaryButton from './ui/PrimaryButton';
@@ -45,6 +46,11 @@ const Header = () => {
   const { data: session, status } = useSession();
   const { hasCrmAccess } = useCrmAccess();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams?.toString() ? `?${searchParams.toString()}` : '';
+  const returnPath = getReturnPathFromLocation(pathname, search);
+  const loginHref = buildLoginUrl(returnPath);
+  const signupHref = buildSignupUrl(returnPath);
   const [menuOpen, setMenuOpen] = useState(false);
   const [downloadsOpen, setDownloadsOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
@@ -286,8 +292,8 @@ const Header = () => {
               </>
             ) : (
               <div className="flex items-center gap-2">
-                <PrimaryButton href="/login" variant="secondary" size="sm">Login</PrimaryButton>
-                <PrimaryButton href="/signup" size="sm">Sign up</PrimaryButton>
+                <PrimaryButton href={loginHref} variant="secondary" size="sm">Login</PrimaryButton>
+                <PrimaryButton href={signupHref} size="sm">Sign up</PrimaryButton>
               </div>
             )}
           </div>
@@ -372,8 +378,8 @@ const Header = () => {
                   </>
                 ) : (
                   <div className="flex flex-col gap-2 pt-3">
-                    <PrimaryButton href="/login" variant="secondary" className="w-full" onClick={() => setMenuOpen(false)}>Login</PrimaryButton>
-                    <PrimaryButton href="/signup" className="w-full" onClick={() => setMenuOpen(false)}>Sign up</PrimaryButton>
+                    <PrimaryButton href={loginHref} variant="secondary" className="w-full" onClick={() => setMenuOpen(false)}>Login</PrimaryButton>
+                    <PrimaryButton href={signupHref} className="w-full" onClick={() => setMenuOpen(false)}>Sign up</PrimaryButton>
                   </div>
                 )}
               </nav>

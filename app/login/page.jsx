@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import AuthCard, { AuthInput } from '@/app/components/ui/AuthCard';
 import PrimaryButton from '@/app/components/ui/PrimaryButton';
+import { buildSignupUrl, resolvePostLoginPath } from '@/lib/authRedirect';
 
 function LoginForm() {
   const router = useRouter();
@@ -44,21 +45,8 @@ function LoginForm() {
         await updateSession();
         // Small delay to ensure session is set
         await new Promise(resolve => setTimeout(resolve, 100));
-        // Check for redirect or callbackUrl parameter (NextAuth uses callbackUrl)
         const redirectPath = searchParams.get('redirect') || searchParams.get('callbackUrl');
-        // Extract path from absolute URL if needed
-        let finalPath = '/profile';
-        if (redirectPath) {
-          try {
-            // If it's an absolute URL, extract the path
-            const url = new URL(redirectPath, window.location.origin);
-            finalPath = url.pathname;
-          } catch {
-            // If it's already a relative path, use it directly
-            finalPath = redirectPath.startsWith('/') ? redirectPath : '/' + redirectPath;
-          }
-        }
-        router.push(finalPath);
+        router.push(resolvePostLoginPath(redirectPath));
       } else {
         setError('Invalid email or password');
       }
@@ -72,20 +60,8 @@ function LoginForm() {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
-      // Check for redirect or callbackUrl parameter (NextAuth uses callbackUrl)
       const redirectPath = searchParams.get('redirect') || searchParams.get('callbackUrl');
-      // Extract path from absolute URL if needed
-      let callbackUrl = '/profile';
-      if (redirectPath) {
-        try {
-          // If it's an absolute URL, extract the path
-          const url = new URL(redirectPath, window.location.origin);
-          callbackUrl = url.pathname;
-        } catch {
-          // If it's already a relative path, use it directly
-          callbackUrl = redirectPath.startsWith('/') ? redirectPath : '/' + redirectPath;
-        }
-      }
+      const callbackUrl = resolvePostLoginPath(redirectPath);
       await signIn('google', { callbackUrl });
     } catch (error) {
       setError('Google login failed. Please try again.');
@@ -94,12 +70,15 @@ function LoginForm() {
     }
   };
 
+  const redirectPath = searchParams.get('redirect') || searchParams.get('callbackUrl');
+  const signupHref = buildSignupUrl(redirectPath);
+
   return (
     <AuthCard
       title="Login to DCC"
       subtitle="Sign in to access your courses and dashboard"
       footer={
-        <Link href="/signup" className="text-red-600 hover:text-red-700 font-medium transition-colors">
+        <Link href={signupHref} className="text-red-600 hover:text-red-700 font-medium transition-colors">
           New User? Create an Account
         </Link>
       }

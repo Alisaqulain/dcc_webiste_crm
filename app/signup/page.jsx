@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { INDIAN_STATE_OPTIONS } from '@/lib/indianStateOptions';
 import AuthCard, { AuthInput } from '@/app/components/ui/AuthCard';
 import PrimaryButton from '@/app/components/ui/PrimaryButton';
+import { buildLoginUrl } from '@/lib/authRedirect';
 
 const selectClassName =
   'w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition';
@@ -203,12 +204,15 @@ function SignupForm() {
   };
 
 
+  const redirectAfterAuth = searchParams.get('redirect');
+  const loginHref = buildLoginUrl(redirectAfterAuth);
+
   return (
     <AuthCard
       title="Join DCC"
       subtitle="Choose a course or combo and create your account. Signup completes after payment."
       footer={
-        <Link href="/login" className="text-red-600 hover:text-red-700 font-medium transition-colors">
+        <Link href={loginHref} className="text-red-600 hover:text-red-700 font-medium transition-colors">
           Already have an account? Sign in
         </Link>
       }
