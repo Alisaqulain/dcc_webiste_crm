@@ -82,7 +82,7 @@ export default function CertificatePreview({ certificate, className = '', sheetI
         }}
       >
         <img
-          src="/certificate-base.jpg?v=9"
+          src="/certificate-base.jpg?v=16"
           alt=""
           draggable={false}
           style={{ width: '100%', height: '100%', display: 'block', objectFit: 'fill' }}
@@ -152,9 +152,9 @@ export default function CertificatePreview({ certificate, className = '', sheetI
           style={{
             position: 'absolute',
             zIndex: 4,
-            left: '80.7%',
-            top: '23.9%',
-            width: '13.5%',
+            left: '81.4%',
+            top: '21.8%',
+            width: '12.8%',
             aspectRatio: '1',
             borderRadius: '50%',
             overflow: 'hidden',
@@ -203,10 +203,22 @@ export function printCertificateElement(element, title = 'Certificate') {
     <meta charset="utf-8" />
     <title>${escapeHtml(title)}</title>
     <style>
-      @page { size: landscape; margin: 8mm; }
-      html, body { margin: 0; padding: 0; background: #fff; }
-      body { display: flex; justify-content: center; align-items: flex-start; }
-      #${element.id || 'certificate-sheet'} { width: 1100px; max-width: 100%; }
+      @page { size: A4 landscape; margin: 0; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 297mm;
+        height: 210mm;
+        background: #fff;
+        overflow: hidden;
+      }
+      body { display: block; }
+      #${element.id || 'certificate-sheet'} {
+        width: 297mm !important;
+        max-width: none !important;
+        height: 210mm !important;
+        margin: 0 !important;
+      }
       * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     </style>
   </head>
