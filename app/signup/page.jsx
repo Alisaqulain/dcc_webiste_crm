@@ -7,6 +7,7 @@ import { INDIAN_STATE_OPTIONS } from '@/lib/indianStateOptions';
 import AuthCard, { AuthInput } from '@/app/components/ui/AuthCard';
 import PrimaryButton from '@/app/components/ui/PrimaryButton';
 import { buildLoginUrl } from '@/lib/authRedirect';
+import { rememberReferralCode } from '@/lib/referralShare';
 
 const selectClassName =
   'w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition';
@@ -46,14 +47,21 @@ function SignupForm() {
 
   useEffect(() => {
     const refCode = searchParams.get('ref');
-    if (refCode && String(refCode).trim()) {
-      const trimmed = String(refCode).trim();
+    let trimmed = refCode && String(refCode).trim() ? String(refCode).trim() : '';
+    if (!trimmed && typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;\s*)signup_ref=([^;]*)/);
+      if (match) {
+        try {
+          trimmed = decodeURIComponent(match[1]);
+        } catch {
+          trimmed = match[1];
+        }
+      }
+    }
+    if (trimmed) {
       setFormData(prev => ({ ...prev, referralCode: trimmed.toUpperCase() }));
       setRefLockedFromUrl(true);
-      const maxAge = 60 * 60 * 24 * 7;
-      document.cookie = `signup_ref=${encodeURIComponent(trimmed)}; path=/; max-age=${maxAge}; SameSite=Lax`;
-    } else {
-      document.cookie = 'signup_ref=; path=/; max-age=0';
+      rememberReferralCode(trimmed);
     }
   }, [searchParams]);
 

@@ -10,6 +10,7 @@ import crypto from 'crypto';
 import { sendEmail } from '@/lib/email';
 import { distributePurchaseReferrals } from '@/lib/referralCommission';
 import { enrollUserInCombo } from '@/lib/enrollComboPurchase';
+import { attachReferralFromCookie } from '@/lib/attachReferralFromCookie';
 import {
   computeFinalPrice,
   getCouponValidationError,
@@ -97,6 +98,7 @@ export async function POST(request) {
       if (!user) {
         return Response.json({ message: 'User not found' }, { status: 404 });
       }
+      await attachReferralFromCookie(user, request);
 
       const userIdStr = user._id.toString();
       const comboPrice = Number(combo.price) || 0;
@@ -189,6 +191,7 @@ export async function POST(request) {
     if (!user) {
       return Response.json({ message: 'User not found' }, { status: 404 });
     }
+    await attachReferralFromCookie(user, request);
 
     const userIdStr = user._id.toString();
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ import SectionTitle from '@/app/components/ui/SectionTitle';
 import PrimaryButton from '@/app/components/ui/PrimaryButton';
 import EmptyState from '@/app/components/ui/EmptyState';
 import { buildLoginUrl } from '@/lib/authRedirect';
+import { rememberReferralCode, referralCodeFromSearch } from '@/lib/referralShare';
 
 const getThumb = (thumbnail) => {
   if (!thumbnail) return null;
@@ -18,12 +19,26 @@ const getThumb = (thumbnail) => {
   return `/${thumbnail}`;
 };
 
-export default function ComboDetailPage() {
+function ComboDetailPage() {
   const { comboId } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession();
   const [combo, setCombo] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const incoming = referralCodeFromSearch(searchParams);
+    if (incoming) {
+      rememberReferralCode(incoming);
+      return;
+    }
+    const ownCode = session?.user?.referralCode;
+    if (!ownCode || !comboId) return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.set('ref', ownCode);
+    router.replace(`/combo/${comboId}?${next.toString()}`, { scroll: false });
+  }, [session, comboId, searchParams, router]);
 
   useEffect(() => {
     fetch(`/api/combos/${comboId}`)
@@ -66,8 +81,10 @@ export default function ComboDetailPage() {
   const thumb = getThumb(combo.thumbnail);
 
   const handlePurchase = () => {
+    const query = searchParams.toString();
+    const returnPath = `/combo/${comboId}${query ? `?${query}` : ''}`;
     if (!session) {
-      router.push(buildLoginUrl(`/combo/${comboId}`));
+      router.push(buildLoginUrl(returnPath));
       return;
     }
     router.push(`/purchase/combo/${comboId}`);
@@ -135,5 +152,19 @@ export default function ComboDetailPage() {
         </div>
       </AnimatedSection>
     </div>
+  );
+}
+
+export default function ComboDetailPageSuspense() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600" />
+        </div>
+      }
+    >
+      <ComboDetailPage />
+    </Suspense>
   );
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaAward, FaCheckCircle } from 'react-icons/fa';
@@ -9,6 +8,7 @@ import PageHeader from '@/app/components/ui/PageHeader';
 import AnimatedSection from '@/app/components/ui/AnimatedSection';
 import SectionTitle from '@/app/components/ui/SectionTitle';
 import PrimaryButton from '@/app/components/ui/PrimaryButton';
+import CertificatePreview from '@/app/components/certificate/CertificatePreview';
 
 function CertificateDownloadForm() {
   const [rollNumber, setRollNumber] = useState('');
@@ -86,16 +86,7 @@ export default function CertificatePage() {
 
           <div className="relative max-w-5xl mx-auto">
             <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-4 sm:p-6 border border-slate-200">
-              <div className="relative w-full aspect-[4/3]">
-                <Image
-                  src="/certificate1.jpg"
-                  alt="Digital Career Center Certificate"
-                  fill
-                  className="object-contain rounded-xl shadow-lg"
-                  priority
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1200px"
-                />
-              </div>
+              <CertificatePreview />
             </div>
 
             <div className="mt-8 bg-red-50 border border-red-100 rounded-2xl p-6">

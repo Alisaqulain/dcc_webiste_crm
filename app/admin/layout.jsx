@@ -50,6 +50,7 @@ export default function AdminLayout({ children }) {
     { name: 'Services', href: '/admin/services', icon: 'blogs' },
     { name: 'Service enquiries', href: '/admin/service-inquiries', icon: 'users' },
     { name: 'Offline students', href: '/admin/offline-students', icon: 'users' },
+    { name: 'Certificates', href: '/admin/certificates', icon: 'courses' },
     { name: 'Coupons', href: '/admin/coupons', icon: 'courses' },
     { name: 'CRM Purchasers', href: '/admin/crm-purchasers', icon: 'users' },
     { name: 'Purchases', href: '/admin/purchases', icon: 'analytics' },

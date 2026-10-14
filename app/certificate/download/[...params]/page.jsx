@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { parseCertificateDownloadParams } from '@/lib/parseCertificateDownloadParams';
 import CertificatePreview, {
-  buildCertificatePrintHtml,
+  printCertificateElement,
 } from '@/app/components/certificate/CertificatePreview';
 
 export default function CertificateDownloadPage() {
@@ -63,100 +63,8 @@ export default function CertificateDownloadPage() {
 
   const handleDownload = () => {
     if (!certificate) return;
-
-    const {
-      studentName,
-      parentName,
-      courseName,
-      duration,
-      startDate,
-      endDate,
-      rollNum,
-      photoUrl,
-    } = buildCertificatePrintHtml(certificate);
-
-    const imageUrl = `${window.location.origin}/certificate1.jpg`;
-    const printWindow = window.open('', '_blank');
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Certificate - ${studentName}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: Arial, sans-serif;
-              background: white;
-              display: flex;
-              justify-content: center;
-              padding: 12px;
-            }
-            .stage {
-              position: relative;
-              width: 100%;
-              max-width: 1000px;
-            }
-            .stage img.bg {
-              width: 100%;
-              height: auto;
-              display: block;
-            }
-            .overlay {
-              position: absolute;
-              font-weight: bold;
-              color: black;
-              z-index: 10;
-            }
-            .photo {
-              top: 25%;
-              left: 80%;
-              width: 13%;
-              aspect-ratio: 1.08;
-              object-fit: cover;
-              border-radius: 8px;
-              border: 2px solid #ccc;
-            }
-            .roll { top: 27%; left: 55.5%; font-size: 14px; white-space: nowrap; }
-            .name { top: 45%; left: 60%; font-size: 18px; white-space: nowrap; }
-            .parent { top: 50%; left: 47%; font-size: 14px; white-space: nowrap; }
-            .course { top: 53.5%; left: 50%; font-size: 13px; max-width: 38%; line-height: 1.2; }
-            .duration { top: 58%; left: 65%; font-size: 14px; white-space: nowrap; }
-            .start { top: 62%; left: 45%; font-size: 12px; white-space: nowrap; }
-            .end { top: 62%; left: 65%; font-size: 12px; white-space: nowrap; }
-            @media print {
-              body { padding: 0; }
-              .stage { max-width: none; width: 100%; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="stage">
-            <img src="${imageUrl}" alt="Certificate" class="bg" />
-            ${photoUrl ? `<img src="${photoUrl}" alt="" class="overlay photo" onerror="this.style.display='none'" />` : ''}
-            <div class="overlay roll">${rollNum}</div>
-            <div class="overlay name">${studentName}</div>
-            <div class="overlay parent">${parentName}</div>
-            <div class="overlay course">${courseName}</div>
-            <div class="overlay duration">${duration}</div>
-            <div class="overlay start">${startDate}</div>
-            <div class="overlay end">${endDate}</div>
-          </div>
-          <script>
-            (function () {
-              var img = document.querySelector('.bg');
-              function doPrint() {
-                setTimeout(function () { window.print(); }, 600);
-              }
-              if (img && img.complete) doPrint();
-              else if (img) img.onload = doPrint;
-              else doPrint();
-            })();
-          </script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
+    const sheet = document.getElementById('certificate-sheet');
+    printCertificateElement(sheet, `Certificate - ${certificate.studentName || 'Student'}`);
   };
 
   if (isLoading) {

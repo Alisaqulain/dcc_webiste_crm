@@ -11,6 +11,7 @@ import SectionTitle from '@/app/components/ui/SectionTitle';
 import CourseVideoPlayer from '@/app/components/courses/CourseVideoPlayer';
 import { isPreviewVideo } from '@/lib/courseAccess';
 import { buildLoginUrl } from '@/lib/authRedirect';
+import { rememberReferralCode, referralCodeFromSearch } from '@/lib/referralShare';
 
 // Helper function to normalize course thumbnail URL
 const getCourseThumbnail = (thumbnail) => {
@@ -164,9 +165,26 @@ function CourseDetailPageInner() {
   const browseHref = isApp ? '/apps' : '/courses';
 
   const couponQ = searchParams.get('coupon');
-  const purchaseSuffix = couponQ
-    ? `?coupon=${encodeURIComponent(couponQ)}`
-    : '';
+  const incomingRef = referralCodeFromSearch(searchParams);
+
+  useEffect(() => {
+    if (incomingRef) {
+      rememberReferralCode(incomingRef);
+      return;
+    }
+    const ownCode = session?.user?.referralCode;
+    if (!ownCode || !courseId || status === 'loading') return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.set('ref', ownCode);
+    router.replace(`/course/${courseId}?${next.toString()}`, { scroll: false });
+  }, [incomingRef, session, courseId, status, searchParams, router]);
+
+  const purchaseParams = new URLSearchParams();
+  if (couponQ) purchaseParams.set('coupon', couponQ);
+  if (incomingRef || session?.user?.referralCode) {
+    purchaseParams.set('ref', incomingRef || session.user.referralCode);
+  }
+  const purchaseSuffix = purchaseParams.toString() ? `?${purchaseParams.toString()}` : '';
   const courseReturnPath = `/course/${courseId}${purchaseSuffix}`;
   const purchaseHref = session
     ? `/purchase/${courseId}${purchaseSuffix}`

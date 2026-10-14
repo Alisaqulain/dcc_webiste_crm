@@ -3,9 +3,21 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCrmAccess } from '../hooks/useCrmAccess';
 import './crm-theme.css';
+
+function localUploadSrc(url) {
+  if (!url) return '';
+  if (url.startsWith('/uploads/')) return url;
+  try {
+    const path = new URL(url).pathname;
+    if (path.startsWith('/uploads/')) return path;
+  } catch {
+    /* not an absolute url */
+  }
+  return url;
+}
 
 const NAV = [
   { href: '/crm', label: 'Dashboard', icon: '📊' },
@@ -28,6 +40,9 @@ export default function CrmLayout({ children }) {
   const [isOpen, setIsOpen] = useState(false);
   const [userData, setUserData] = useState(null);
   const [sidebarRevenue, setSidebarRevenue] = useState(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const photoInputRef = useRef(null);
 
   useEffect(() => {
     if (session) {
@@ -63,6 +78,46 @@ export default function CrmLayout({ children }) {
       router.push('/profile?error=crm-access-required');
     }
   }, [session, status, hasCrmAccess, checkingAccess, router, pathname]);
+
+  const avatarSrc = localUploadSrc(userData?.profile?.avatar || session?.user?.image || '');
+
+  const onProfilePhoto = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setPhotoError('');
+    setPhotoBusy(true);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body });
+      const uploadJson = await uploadRes.json();
+      if (!uploadRes.ok || !uploadJson.success || !uploadJson.url) {
+        throw new Error(uploadJson.message || 'Upload failed');
+      }
+      const saveRes = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: { avatar: localUploadSrc(uploadJson.url) } }),
+      });
+      const saveJson = await saveRes.json();
+      if (!saveRes.ok) {
+        throw new Error(saveJson.message || 'Could not save photo');
+      }
+      setUserData((prev) => ({
+        ...(prev || {}),
+        profile: {
+          ...(prev?.profile || {}),
+          ...(saveJson.profile || {}),
+          avatar: localUploadSrc(uploadJson.url),
+        },
+      }));
+    } catch (err) {
+      setPhotoError(err.message || 'Could not update photo');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
 
   const getUserInitials = () => {
     if (session?.user?.name) {
@@ -138,14 +193,51 @@ export default function CrmLayout({ children }) {
 
         <div className="p-4 crm-profile-card rounded-xl mx-3 mt-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-violet-400/40 flex items-center justify-center font-bold text-sm border-2 border-white/30">
-              {getUserInitials()}
-            </div>
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={photoBusy}
+              className="relative shrink-0 w-20 h-20"
+              aria-label="Add profile photo"
+            >
+              <span className="relative block w-full h-full rounded-full bg-violet-400/40 border-2 border-white/40 overflow-hidden">
+                {avatarSrc ? (
+                  <img
+                    src={avatarSrc}
+                    alt=""
+                    className="absolute inset-0 block h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center font-bold text-xl">
+                    {getUserInitials()}
+                  </span>
+                )}
+              </span>
+              <span className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full bg-yellow-300 text-gray-900 text-base font-bold flex items-center justify-center border-2 border-white">
+                {photoBusy ? '…' : '+'}
+              </span>
+            </button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={onProfilePhoto}
+            />
             <div className="min-w-0">
               <p className="font-semibold text-sm truncate">{displayName}</p>
               <p className="text-xs text-white/70">Affiliate member</p>
+              <button
+                type="button"
+                onClick={() => photoInputRef.current?.click()}
+                disabled={photoBusy}
+                className="mt-1 text-xs font-semibold text-yellow-300 hover:text-yellow-200"
+              >
+                {photoBusy ? 'Saving photo…' : avatarSrc ? 'Change photo' : 'Add photo'}
+              </button>
             </div>
           </div>
+          {photoError ? <p className="mt-2 text-[11px] text-red-200">{photoError}</p> : null}
           <div className="mt-3 pt-3 border-t border-white/15">
             <p className="text-[10px] uppercase tracking-wide text-white/60">Today</p>
             <p className="text-lg font-bold text-yellow-300">
@@ -154,7 +246,7 @@ export default function CrmLayout({ children }) {
           </div>
         </div>
 
-        <nav className="p-3 space-y-0.5 overflow-y-auto max-h-[calc(100vh-220px)]">
+        <nav className="p-3 space-y-0.5 overflow-y-auto max-h-[calc(100vh-280px)]">
           {NAV.map((item) => {
             const active = pathname === item.href;
             return (

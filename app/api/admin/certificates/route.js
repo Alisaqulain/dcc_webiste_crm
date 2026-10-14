@@ -66,7 +66,8 @@ export async function POST(request) {
       startDate,
       endDate,
       rollNumber,
-      photo
+      photo,
+      photoZoom
     } = body;
 
     // Validate required fields
@@ -98,7 +99,8 @@ export async function POST(request) {
       duration: parseInt(duration),
       startDate: new Date(startDate),
       endDate: new Date(endDate),
-      rollNumber
+      rollNumber,
+      photoZoom: Math.min(2.5, Math.max(1, Number(photoZoom) || 1))
     };
     
     // Always include photo field - set to undefined if not provided

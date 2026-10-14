@@ -45,6 +45,12 @@ const certificateSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  photoZoom: {
+    type: Number,
+    default: 1,
+    min: 1,
+    max: 2.5
+  },
   createdAt: {
     type: Date,
     default: Date.now

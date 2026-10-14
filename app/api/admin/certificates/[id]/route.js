@@ -40,7 +40,8 @@ export async function PUT(request, { params }) {
       startDate,
       endDate,
       rollNumber,
-      photo
+      photo,
+      photoZoom
     } = body;
 
     // Validate required fields
@@ -83,6 +84,9 @@ export async function PUT(request, { params }) {
     certificate.startDate = new Date(startDate);
     certificate.endDate = new Date(endDate);
     certificate.rollNumber = rollNumber;
+    if (photoZoom !== undefined && photoZoom !== null && photoZoom !== '') {
+      certificate.photoZoom = Math.min(2.5, Math.max(1, Number(photoZoom) || 1));
+    }
     
     // Update photo - explicitly set the value
     if (photo !== undefined && photo !== null) {

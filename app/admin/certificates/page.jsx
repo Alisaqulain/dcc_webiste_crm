@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import CertificatePreview from '@/app/components/certificate/CertificatePreview';
+import { certificateDownloadPath } from '@/lib/certificateDownloadPath';
 
 export default function AdminCertificatesPage() {
   const router = useRouter();
@@ -193,7 +195,7 @@ export default function AdminCertificatesPage() {
                             Edit
                           </button>
                           <button
-                            onClick={() => window.open(`/certificate/download/${certificate.rollNumber}`, '_blank')}
+                            onClick={() => window.open(certificateDownloadPath(certificate.rollNumber), '_blank')}
                             className="text-green-600 hover:text-green-900"
                           >
                             Download
@@ -247,6 +249,18 @@ export default function AdminCertificatesPage() {
 }
 
 // Certificate Modal Component
+function toDateInput(value) {
+  if (!value) return '';
+  const text = String(value);
+  const dateOnly = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (dateOnly) return `${dateOnly[1]}-${dateOnly[2]}-${dateOnly[3]}`;
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${parsed.getFullYear()}-${month}-${day}`;
+}
+
 function CertificateModal({ certificate, onClose, onSave }) {
   // Ensure any returned filename-only value becomes a valid path
   const normalizeMediaUrl = (value) => {
@@ -264,10 +278,11 @@ function CertificateModal({ certificate, onClose, onSave }) {
     relation: certificate?.relation || 's/o',
     courseName: certificate?.courseName || '',
     duration: certificate?.duration || '',
-    startDate: certificate?.startDate || '',
-    endDate: certificate?.endDate || '',
+    startDate: toDateInput(certificate?.startDate),
+    endDate: toDateInput(certificate?.endDate),
     rollNumber: certificate?.rollNumber || '',
-    photo: certificate?.photo || ''
+    photo: certificate?.photo || '',
+    photoZoom: certificate?.photoZoom || 1
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -306,7 +321,7 @@ function CertificateModal({ certificate, onClose, onSave }) {
       if (result.success) {
         const url = normalizeMediaUrl(result.url || result.filename);
         setUploadedPhoto(url);
-        setFormData(prev => ({ ...prev, photo: url }));
+        setFormData(prev => ({ ...prev, photo: url, photoZoom: 1 }));
       } else {
         alert('Upload failed: ' + result.message);
       }
@@ -341,7 +356,7 @@ function CertificateModal({ certificate, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
+      <div className="relative top-8 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white mb-10">
         <div className="mt-3">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-medium text-gray-900">
@@ -358,6 +373,8 @@ function CertificateModal({ certificate, onClose, onSave }) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Student Name *</label>
@@ -457,33 +474,98 @@ function CertificateModal({ certificate, onClose, onSave }) {
 
             {/* Student Photo Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Student Photo</label>
-              
-              {/* Photo Preview */}
-              {(uploadedPhoto || formData.photo) && (
-                <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Student photo</label>
+              <p className="text-xs text-gray-500 mb-2">This image is printed in the box on the certificate.</p>
+              <div className="flex items-center gap-4">
+                {(uploadedPhoto || formData.photo) ? (
                   <img
                     src={uploadedPhoto || normalizeMediaUrl(formData.photo)}
                     alt="Student photo preview"
-                    className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                    className="w-24 h-28 object-cover border border-gray-300 bg-white"
                   />
-                </div>
-              )}
-
-              {/* Upload Section */}
-              <div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  disabled={isUploading}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
-                />
-                {isUploading && (
-                  <p className="text-sm text-red-600 mt-1">Uploading...</p>
+                ) : (
+                  <div className="w-24 h-28 border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-xs text-gray-400 text-center px-2">
+                    No photo
+                  </div>
                 )}
-                <p className="text-xs text-gray-500 mt-1">Max file size: 5MB. Supported formats: JPG, PNG, GIF, WebP</p>
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handlePhotoUpload}
+                    disabled={isUploading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
+                  />
+                  {isUploading && (
+                    <p className="text-sm text-red-600 mt-1">Uploading...</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">JPG, PNG, GIF, or WebP. Max 5MB.</p>
+                  {(uploadedPhoto || formData.photo) && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({
+                          ...prev,
+                          photoZoom: Math.max(1, Math.round(((Number(prev.photoZoom) || 1) - 0.1) * 10) / 10),
+                        }))}
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        Zoom out
+                      </button>
+                      <input
+                        type="range"
+                        min="1"
+                        max="2.5"
+                        step="0.05"
+                        value={Number(formData.photoZoom) || 1}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, photoZoom: Number(e.target.value) }))}
+                        className="flex-1"
+                        aria-label="Photo zoom"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({
+                          ...prev,
+                          photoZoom: Math.min(2.5, Math.round(((Number(prev.photoZoom) || 1) + 0.1) * 10) / 10),
+                        }))}
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        Zoom in
+                      </button>
+                      <span className="text-xs text-gray-600 w-12 text-right">
+                        {Math.round((Number(formData.photoZoom) || 1) * 100)}%
+                      </span>
+                    </div>
+                  )}
+                  {(uploadedPhoto || formData.photo) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadedPhoto(null);
+                        setFormData((prev) => ({ ...prev, photo: '' }));
+                      }}
+                      className="mt-2 text-xs text-red-600 hover:text-red-800"
+                    >
+                      Remove photo
+                    </button>
+                  )}
+                </div>
               </div>
+            </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Certificate preview</p>
+              <div className="bg-gray-100 rounded-lg p-2 overflow-hidden">
+                <CertificatePreview
+                  certificate={{
+                    ...formData,
+                    photo: uploadedPhoto || formData.photo,
+                  }}
+                  sheetId="certificate-preview-sheet"
+                />
+              </div>
+            </div>
             </div>
 
             <div className="flex justify-end space-x-3">
@@ -496,7 +578,7 @@ function CertificateModal({ certificate, onClose, onSave }) {
               </button>
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isUploading}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50"
               >
                 {isSubmitting ? 'Saving...' : (certificate ? 'Update' : 'Create')}

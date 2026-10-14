@@ -4,6 +4,7 @@ import User from '@/models/User';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { distributePurchaseReferrals } from '@/lib/referralCommission';
+import { attachReferralFromCookie } from '@/lib/attachReferralFromCookie';
 import {
   validateCouponForCheckout,
   consumeCouponById,
@@ -39,6 +40,7 @@ export async function POST(request) {
     }
 
     const user = await User.findOne({ email: session.user.email.toLowerCase() });
+    if (user) await attachReferralFromCookie(user, request);
     if (!user) {
       return Response.json({ message: 'User not found' }, { status: 404 });
     }
