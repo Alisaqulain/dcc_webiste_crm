@@ -51,6 +51,18 @@ const certificateSchema = new mongoose.Schema({
     min: 1,
     max: 2.5
   },
+  photoOffsetX: {
+    type: Number,
+    default: 0,
+    min: -40,
+    max: 40
+  },
+  photoOffsetY: {
+    type: Number,
+    default: 0,
+    min: -40,
+    max: 40
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -47,6 +47,8 @@ const fieldStyle = {
 export default function CertificatePreview({ certificate, className = '', sheetId = 'certificate-sheet' }) {
   const photoSrc = resolvePhotoSrc(certificate?.photo);
   const photoZoom = Math.min(2.5, Math.max(1, Number(certificate?.photoZoom) || 1));
+  const photoOffsetX = Math.min(40, Math.max(-40, Number(certificate?.photoOffsetX) || 0));
+  const photoOffsetY = Math.min(40, Math.max(-40, Number(certificate?.photoOffsetY) || 0));
   const studentName = certificate?.studentName || '';
   const parentName = certificate?.parentName || '';
   const courseName = certificate?.courseName || '';
@@ -80,14 +82,14 @@ export default function CertificatePreview({ certificate, className = '', sheetI
         }}
       >
         <img
-          src="/certificate-base.jpg?v=8"
+          src="/certificate-base.jpg?v=9"
           alt=""
           draggable={false}
           style={{ width: '100%', height: '100%', display: 'block', objectFit: 'fill' }}
         />
 
         {rollNumber ? (
-          <div style={{ ...fieldStyle, top: '27.35%', left: '52.6%', fontSize: '1.15cqw' }}>
+          <div style={{ ...fieldStyle, top: '27.05%', left: '52.4%', fontSize: '1.9cqw' }}>
             {rollNumber}
           </div>
         ) : null}
@@ -171,7 +173,7 @@ export default function CertificatePreview({ certificate, className = '', sheetI
                 height: '100%',
                 objectFit: 'cover',
                 display: 'block',
-                transform: `scale(${photoZoom})`,
+                transform: `translate(${photoOffsetX}%, ${photoOffsetY}%) scale(${photoZoom})`,
                 transformOrigin: 'center center',
               }}
             />

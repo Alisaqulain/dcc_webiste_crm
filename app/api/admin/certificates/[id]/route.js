@@ -41,7 +41,9 @@ export async function PUT(request, { params }) {
       endDate,
       rollNumber,
       photo,
-      photoZoom
+      photoZoom,
+      photoOffsetX,
+      photoOffsetY
     } = body;
 
     // Validate required fields
@@ -86,6 +88,12 @@ export async function PUT(request, { params }) {
     certificate.rollNumber = rollNumber;
     if (photoZoom !== undefined && photoZoom !== null && photoZoom !== '') {
       certificate.photoZoom = Math.min(2.5, Math.max(1, Number(photoZoom) || 1));
+    }
+    if (photoOffsetX !== undefined && photoOffsetX !== null && photoOffsetX !== '') {
+      certificate.photoOffsetX = Math.min(40, Math.max(-40, Number(photoOffsetX) || 0));
+    }
+    if (photoOffsetY !== undefined && photoOffsetY !== null && photoOffsetY !== '') {
+      certificate.photoOffsetY = Math.min(40, Math.max(-40, Number(photoOffsetY) || 0));
     }
     
     // Update photo - explicitly set the value

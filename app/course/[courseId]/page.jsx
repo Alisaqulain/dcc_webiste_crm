@@ -50,6 +50,19 @@ function CourseDetailPageInner() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const incoming = referralCodeFromSearch(searchParams);
+    if (incoming) {
+      rememberReferralCode(incoming);
+      return;
+    }
+    const ownCode = session?.user?.referralCode;
+    if (!ownCode || !courseId || status === 'loading') return;
+    const next = new URLSearchParams(searchParams.toString());
+    next.set('ref', ownCode);
+    router.replace(`/course/${courseId}?${next.toString()}`, { scroll: false });
+  }, [session, courseId, status, searchParams, router]);
+
+  useEffect(() => {
     if (status === 'loading') return;
     
     // Allow access to course page even without login to view preview videos
@@ -166,18 +179,6 @@ function CourseDetailPageInner() {
 
   const couponQ = searchParams.get('coupon');
   const incomingRef = referralCodeFromSearch(searchParams);
-
-  useEffect(() => {
-    if (incomingRef) {
-      rememberReferralCode(incomingRef);
-      return;
-    }
-    const ownCode = session?.user?.referralCode;
-    if (!ownCode || !courseId || status === 'loading') return;
-    const next = new URLSearchParams(searchParams.toString());
-    next.set('ref', ownCode);
-    router.replace(`/course/${courseId}?${next.toString()}`, { scroll: false });
-  }, [incomingRef, session, courseId, status, searchParams, router]);
 
   const purchaseParams = new URLSearchParams();
   if (couponQ) purchaseParams.set('coupon', couponQ);

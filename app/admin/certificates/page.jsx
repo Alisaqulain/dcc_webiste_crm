@@ -282,7 +282,9 @@ function CertificateModal({ certificate, onClose, onSave }) {
     endDate: toDateInput(certificate?.endDate),
     rollNumber: certificate?.rollNumber || '',
     photo: certificate?.photo || '',
-    photoZoom: certificate?.photoZoom || 1
+    photoZoom: certificate?.photoZoom || 1,
+    photoOffsetX: certificate?.photoOffsetX || 0,
+    photoOffsetY: certificate?.photoOffsetY || 0
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -321,7 +323,7 @@ function CertificateModal({ certificate, onClose, onSave }) {
       if (result.success) {
         const url = normalizeMediaUrl(result.url || result.filename);
         setUploadedPhoto(url);
-        setFormData(prev => ({ ...prev, photo: url, photoZoom: 1 }));
+        setFormData(prev => ({ ...prev, photo: url, photoZoom: 1, photoOffsetX: 0, photoOffsetY: 0 }));
       } else {
         alert('Upload failed: ' + result.message);
       }
@@ -501,7 +503,8 @@ function CertificateModal({ certificate, onClose, onSave }) {
                   )}
                   <p className="text-xs text-gray-500 mt-1">JPG, PNG, GIF, or WebP. Max 5MB.</p>
                   {(uploadedPhoto || formData.photo) && (
-                    <div className="mt-3 flex items-center gap-2">
+                    <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => setFormData((prev) => ({
@@ -535,6 +538,49 @@ function CertificateModal({ certificate, onClose, onSave }) {
                       <span className="text-xs text-gray-600 w-12 text-right">
                         {Math.round((Number(formData.photoZoom) || 1) * 100)}%
                       </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({
+                          ...prev,
+                          photoOffsetY: Math.max(-40, (Number(prev.photoOffsetY) || 0) - 4),
+                        }))}
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        Up
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({
+                          ...prev,
+                          photoOffsetY: Math.min(40, (Number(prev.photoOffsetY) || 0) + 4),
+                        }))}
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        Down
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({
+                          ...prev,
+                          photoOffsetX: Math.max(-40, (Number(prev.photoOffsetX) || 0) - 4),
+                        }))}
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        Left
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({
+                          ...prev,
+                          photoOffsetX: Math.min(40, (Number(prev.photoOffsetX) || 0) + 4),
+                        }))}
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                      >
+                        Right
+                      </button>
+                    </div>
                     </div>
                   )}
                   {(uploadedPhoto || formData.photo) && (
